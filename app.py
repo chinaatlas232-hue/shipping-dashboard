@@ -41,16 +41,16 @@ with st.sidebar:
         st.error("الرقم السري غير صحيح!")
 
 
-# --- 3. قراءة البيانات الأصلية بدون أي تعديل خارجي يعطل الفلاتر ---
+# --- 3. قراءة البيانات الأصلية وتحديد السطر الثاني كعنوان ---
 @st.cache_data
 def load_data(file):
   if file is not None:
-    raw_df = pd.read_excel(file)
-    # تنظيف مسافات العناوين فقط لضمان مطابقتها
+    # 🌟 الحل الذكي: قراءة الملف واعتبار السطر الثاني (header=1) هو عنوان الأعمدة الحقيقي
+    raw_df = pd.read_excel(file, header=1)
+    # تنظيف مسافات العناوين لضمان المطابقة الكاملة
     raw_df.columns = raw_df.columns.str.strip()
     return raw_df
   else:
-    # إرجاع جدول فارغ مبدئياً لطلب رفع الملف
     return pd.DataFrame()
 
 
@@ -63,7 +63,7 @@ if df.empty:
       " وعرض البيانات فوراً."
   )
 else:
-  # 🌟 تثبيت أسماء الأعمدة حرفياً ومباشرة كما تظهر في ملف الإكسيل الخاص بك
+  # تثبيت أسماء الأعمدة حرفياً ومباشرة كما تظهر في السطر الثاني لملفك
   container_col = "Container NO."
   shipping_mark_col = "Shipping mark"
   amt_col = "Amount"
@@ -72,7 +72,7 @@ else:
   ctns_col = "Sum of Ctns"
   cbm_col = "Sum of Cbm"
 
-  # تحويل الحقول النصية التي تحتوي على رموز عملات إلى قيم رقمية نظيفة لضمان الحساب الصواب 100%
+  # تحويل الحقول النصية التي تحتوي على رموز عملات إلى قيم رقمية نظيفة لضمان الحساب الصواب
   for col in [amt_col, client_col, office_col, ctns_col, cbm_col]:
     if col in df.columns:
       df[col] = (
@@ -85,7 +85,7 @@ else:
           .fillna(0)
       )
 
-  # استبعاد سطر الإجمالي (Grand Total) المخزن بالأسفل لتقوم البرمجة بالحسابات ديناميكياً
+  # استبعاد سطر الإجمالي (Grand Total) إن وجد لتقوم البرمجة بالحسابات ديناميكياً
   if shipping_mark_col in df.columns:
     df = df[
         ~df[shipping_mark_col]
@@ -99,7 +99,7 @@ else:
   st.markdown(
       "Interactive view of shipments by container, shipping mark, payments and"
       " freight"
-  )
+)
   st.markdown("---")
 
   # --- 5. الشريط الأفقي السريع (Selector) للحاويات الفريدة ---
@@ -118,7 +118,7 @@ else:
   else:
     filtered_df = df
 
-  # --- 6. العمليات الحسابية والمؤشرات الديناميكية المطابقة لملفك بنسبة 100% ---
+  # --- 6. العمليات الحسابية والمؤشرات الديناميكية ---
   total_orders = len(filtered_df)
   total_containers = filtered_df[container_col].nunique()
   total_amount_val = (
@@ -186,7 +186,7 @@ else:
         "Office Paid", f"¥ {total_office_paid:,.2f}", "🏢", "#6366f1"
     )
 
-  # توزيع شبكة المؤشرات (الصف الثاني المتوافق مع شاشتك)
+  # توزيع شبكة المؤشرات (الصف الثاني)
   row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
 
   with row2_col1:
@@ -240,7 +240,7 @@ else:
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
-  # --- 8. عرض جدول البيانات الكامل بعد التنظيف الصارم ---
+  # --- 8. عرض جدول البيانات الكامل بعد التنظيف ---
   with st.expander("📋 عرض جدول البيانات الكاملة والنقية (الجدول الأم)"):
     st.dataframe(filtered_df, use_container_width=True)
 
