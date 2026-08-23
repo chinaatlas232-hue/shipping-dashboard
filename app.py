@@ -105,28 +105,31 @@ with st.sidebar:
         except Exception as e:
             pass
 
-    # 🌟 تم إصلاح الربط هنا لكي يرى بايثون ملف قاعدة البيانات دائماً وثابتاً في خادم المنصة 🌟
-    uploaded_file = "data.xlsx" if os.path.exists("data.xlsx") else None
+# --- 3. دالة معالجة الجداول حياً ومباشراً من السيرفر (تم تصحيح جلب الملف للأبد) 🌟 ---
+def load_data_absolute():
+    # 🌟 فحص ذكي: الأولوية للملف الحقيقي المرفوع بداخل المجلد لضمان العمل دائماً
+    if os.path.exists("data.xlsx"):
+        file_path = "data.xlsx"
+    elif os.path.exists("data.xls"):
+        file_path = "data.xls"
+    else:
+        return pd.DataFrame()
+        
+    try:
+        xl = pd.ExcelFile(file_path)
+        target_sheet = xl.sheet_names[0]
+        for sheet in xl.sheet_names:
+            test_df = pd.read_excel(file_path, sheet_name=sheet, nrows=5)
+            if not test_df.empty and len(test_df.columns) > 2:
+                target_sheet = sheet
+                break
+        raw_df = pd.read_excel(file_path, sheet_name=target_sheet, header=0)
+        raw_df.columns = raw_df.columns.str.strip()
+        return raw_df
+    except Exception as e:
+        return pd.DataFrame()
 
-# --- 3. دالة معالجة الجداول والملفات البرمجية بذكاء وفورية ---
-def load_data_smart(file):
-    if file is not None:
-        try:
-            xl = pd.ExcelFile(file)
-            target_sheet = xl.sheet_names
-            for sheet in xl.sheet_names:
-                test_df = pd.read_excel(file, sheet_name=sheet, nrows=5)
-                if not test_df.empty and len(test_df.columns) > 2:
-                    target_sheet = sheet
-                    break
-            raw_df = pd.read_excel(file, sheet_name=target_sheet, header=0)
-            raw_df.columns = raw_df.columns.str.strip()
-            return raw_df
-        except Exception as e:
-            return pd.DataFrame()
-    return pd.DataFrame()
-
-df = load_data_smart(uploaded_file)
+df = load_data_absolute()
 
 # التحقق من سلامة البيانات وعرض شاشة البوابة الرئيسية
 if df.empty:
@@ -134,7 +137,7 @@ if df.empty:
       <div class='login-box'>
           <h2 style='color: white;'>🏛️ شركة أطلس للشحن والتجارة العامة</h2>
           <h4 style='color: #4f46e5; margin-top: 10px;'>بوابة العملاء اللوجستية</h4>
-          <p style='color: #94a3b8; margin-top: 15px;'>النظام قيد المزامنة الآمنة. يرجى رفع ملف قاعدة البيانات الشاملة من زر الرفع في الشريط الجانبي ⬅️ لتفعيل الخدمة فوراً.</p>
+          <p style='color: #94a3b8; margin-top: 15px;'>يرجى رفع ملف قاعدة البيانات وتسميته <b>data.xlsx</b> داخل حساب GitHub بجانب ملف الكود app.py مباشرة لتفعيل الخدمة تلقائياً.</p>
       </div>
     """, unsafe_allow_html=True)
     st.stop()
@@ -224,8 +227,10 @@ selected_client = st.session_state.logged_in_customer
 if selected_client != "الكل":
     selected_client_digits = str(re.sub(r'\D', '', str(selected_client))).strip()
     df_client = df[(df[client_name_col].astype(str).str.lower() == str(selected_client).lower().strip()) | (df[client_name_col].astype(str).str.replace(r'\D', '', regex=True) == selected_client_digits)]
+    st.sidebar.markdown(f"👤 العميل الحالي: **{selected_client}**")
 else:
     df_client = df
+    st.sidebar.markdown("👑 صلاحية: **مدير النظام**")
     st.sidebar.markdown("### 🔍 كاشف الأكواد المتاحة بالملف:")
     st.sidebar.dataframe(pd.DataFrame({"الأكواد المسجلة": valid_codes}), height=150)
 
@@ -239,4 +244,3 @@ st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **{selected_cl
 st.markdown("---")
 
 # أشرطة التصفية المفتوحة الحرة المباشرة
-container_options = ["الكل"] + list(df_client[container_col].dropna().unique()) if (container_col in df_client.columns and not df_client.empty) else ["الكل"]
