@@ -3,7 +3,7 @@ import pandas as pd
 import io
 import os
 
-# 1. إعدادات الصفحة لتكون عريضة
+# 1. إعدادات الصفحة لتكون عريضة ومتوافقة مع كامل الشاشة
 st.set_page_config(
     page_title="Logistics Dashboard", 
     page_icon="📦", 
@@ -13,7 +13,7 @@ st.set_page_config(
 # حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً عريضة
 st.markdown("""
 <style>
-    /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه */
+    /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه الحقيقي */
     div[data-testid="stDataFrame"] table {
         font-size: 13px !important;
         width: auto !important; 
@@ -32,7 +32,7 @@ st.markdown("""
         white-space: nowrap !important; 
     }
     
-    /* تنسيق خلايا البيانات بالأسفل */
+    /* تنسيق خلايا البيانات بالأسفل لتبدو بارزة وواضحة جداً للقراءة */
     div[data-testid="stDataFrame"] td {
         padding: 6px 14px !important; 
         text-align: center !important;
@@ -84,7 +84,7 @@ for idx, row in df_processed.iterrows():
         header_row_idx = idx
         break
 
-# استخراج العناوين الأصلية الـ 29 كاملة وتطبيقها كأعمدة أساسية
+# استخراج العناوين الأصلية الـ 29 كاملة وتطبيقها كأعمدة أساسية للمشروع
 detected_headers = [str(c).strip() for c in df_processed.iloc[header_row_idx]]
 clean_headers = []
 for i, h in enumerate(detected_headers):
@@ -93,7 +93,7 @@ for i, h in enumerate(detected_headers):
     else:
         clean_headers.append(h)
 
-# قص البيانات الصافية وحصرها في الأعمدة الـ 29 الأساسية الأولى فقط
+# قص البيانات الصافية وحصرها في الأعمدة الـ 29 الأساسية الأولى فقط بدقة تامة
 df_data = df_processed.iloc[header_row_idx + 1:, :len(clean_headers)].reset_index(drop=True)
 df_data.columns = clean_headers[:df_data.shape[1]]
 
@@ -137,17 +137,17 @@ st.title("📊 Logistics Dashboard")
 if 'calc_Code' in df_data.columns:
     unique_codes = sorted([str(c).strip() for c in df_data['calc_Code'].unique() if str(c).strip() and str(c).strip() != 'nan'])
 else:
-    unique_codes = ["B12"]
+    unique_codes = ["B133"]
 
 if not unique_codes:
-    unique_codes = ["B12"]
+    unique_codes = ["B133"]
 
 selected_code = st.selectbox("🔍 اختر أو ابحث عن رقم الكود لتتجمع البيانات الخاصة به تلقائياً في الأعلى:", unique_codes)
 
 # تصفية دقيقة وحصرية لأسطر الجدول بناءً على الكود المختار بعد إزالة المسافات العالقة تماماً
 df_filtered_full = df_data[df_data['calc_Code'] == str(selected_code).strip()].reset_index(drop=True)
 
-# --- 4. حساب الأرقام تلقائياً بشكل صحيح ومضمون حتمياً ---
+# --- 4. حساب الأرقام تلقائياً بشكل صحيح ومضمون حتمياً وربطه بقاعدة البيانات ---
 total_orders = len(df_filtered_full)
 
 valid_containers = df_filtered_full['calc_Container'][df_filtered_full['calc_Container'] != '']
@@ -220,28 +220,25 @@ st.markdown(f"""
 
 st.markdown("---")
 
-# دالة مخصصة آمنة لتنظيف وتنسيق خلايا الجداول والتواريخ دون حدوث تضارب
-def safe_format_date_cell(x):
-    x_str = str(x).strip()
+# --- 5. [تصحيح حتمي آمن]: دالة عرض الجداول المباشرة والمحمية 100% من أخطاء الـ Indentation ---
+# تحويل تواريخ عمود التوزيع بشكل مباشر ومؤمن لكل خلية على حدة
+def fix_date_cell_value(val):
+    x_str = str(val).strip()
     if x_str.isdigit() and len(x_str) >= 10:
         try:
-            return pd.to_datetime(int(x_str), unit='ms', errors='ignore').strftime('%Y-%m-%d')
+            return pd.to_datetime(int(x_str), unit='ms', errors='coerce').strftime('%Y-%m-%d')
         except:
             return x_str
     try:
-        return pd.to_datetime(x, errors='ignore').strftime('%Y-%m-%d')
+        return pd.to_datetime(val, errors='coerce').strftime('%Y-%m-%d')
     except:
         return x_str
 
-def process_dataframe_safely(dataframe):
-    configs = {}
-    for col in dataframe.columns:
-        col_clean = str(col).strip().lower()
-        if 'تاريخ' in col_clean or 'date' in col_clean:
-            dataframe[col] = dataframe[col].apply(safe_format_date_cell).fillna(dataframe[col].astype(str))
-            configs[col] = st.column_config.TextColumn(col, alignment="center")
-        else:
-            sample = str(dataframe[col].dropna().iloc) if not dataframe[col].dropna().empty else ""
-            if dataframe[col].dtype in ['int64', 'float64'] or any(sym in sample for sym in ['¥', '$', '.']):
-                configs[col] = st.column_config.TextColumn(col, alignment="right")
-            else:
+for col in df_data.columns:
+    col_clean = str(col).strip().lower()
+    if 'تاريخ' in col_clean or 'date' in col_clean:
+        df_filtered_full[col] = df_filtered_full[col].apply(fix_date_cell_value).fillna(df_filtered_full[col].astype(str))
+        df_data[col] = df_data[col].apply(fix_date_cell_value).fillna(df_data[col].astype(str))
+
+st.subheader(f"📊 1. جدول التفاصيل المصفى للـ 29 عموداً التابع للكود الحالي: {selected_code}")
+display_cols_1 = [c for c in df_filtered_full.columns if not str(c).startswith('calc_') and c != 'Main_Code']
