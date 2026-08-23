@@ -15,7 +15,6 @@ st.sidebar.subheader("📁 إدارة ملفات العملاء")
 
 # --- 1. زر المسح البرمجي والتصفير الشامل ---
 if os.path.exists(SAVED_FILE_PATH):
-    st.sidebar.markdown("---")
     # زر أحمر لحذف البيانات برمجياً من السيرفر
     if st.sidebar.button("🗑️ مسح وتصفير البيانات المخزنة", type="primary"):
         try:
@@ -32,13 +31,12 @@ uploaded_file = st.sidebar.file_uploader(
     "رفع ملف اكسل العميل الجديد", type=["xlsx", "xls"]
 )
 
-# إذا قام المستخدم برفع ملف جديد، يتم حفظه فوراً على الخادم واستبدال الملف القديم
+# [تعديل جوهري]: حفظ الملف الجديد وإعادة تشغيل التطبيق فوراً ليتم قراءته في الخطوة التالية
 if uploaded_file is not None:
     with open(SAVED_FILE_PATH, "wb") as f:
         f.write(uploaded_file.getbuffer())
-    st.sidebar.success("تم رفع وحفظ ملف العميل الجديد بنجاح على الخادم! 🚀")
     st.cache_data.clear()
-    st.rerun()
+    st.rerun()  # إعادة تشغيل التطبيق ليقرأ الملف المحفوظ حديثاً مباشرة
 
 # --- 3. دالة قراءة وتجهيز البيانات المثبتة ---
 def load_and_clean_data(path):
@@ -53,12 +51,11 @@ def load_and_clean_data(path):
         return None
 
 # التحقق من وجود الملف الثابت لقراءته وعرضه
+df = None
 if os.path.exists(SAVED_FILE_PATH):
     df = load_and_clean_data(SAVED_FILE_PATH)
     if df is not None:
         st.info("📌 يتم الآن عرض بيانات الملخص المثبتة والمخزنة مسبقاً على الخادم.")
-else:
-    df = None
 
 # التحقق من سلامة البيانات قبل المتابعة (إذا كان النظام مصفراً أو تم مسحه)
 if df is None or df.empty:
