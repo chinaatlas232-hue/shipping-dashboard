@@ -35,24 +35,31 @@ with st.sidebar:
                 st.error("الرقم السري غير صحيح!")
 
 
-# --- 3. دالة قراءة وتجهيز البيانات ---
+# --- 3. دالة قراءة وتجهيز البيانات الحازمة ---
 @st.cache_data
 def load_data(file):
     if file is not None:
         raw_df = pd.read_excel(file)
+        
         # تنظيف مسافات العناوين
         raw_df.columns = raw_df.columns.str.strip()
         
-        # تعيين العمود الأساسي
+        # تعيين المسميات الحقيقية المتطابقة مع ملف الإكسيل
         c_col = "Container NO." if "Container NO." in raw_df.columns else "container"
+        s_col = "Shipping mark" if "Shipping mark" in raw_df.columns else "shipping_mark"
         
-        # إزالة أسطر الإجماليات العامة (Grand Total) إن وجدت أسفل الملف لحماية الحسابات
+        # 🌟 خطوة التطهير الحاسمة: إزالة أي أسطر فارغة أو تحتوي على كلمة إجمالي/Total تماماً
+        if s_col in raw_df.columns:
+            raw_df = raw_df[raw_df[s_col].notna()]
+            raw_df = raw_df[~raw_df[s_col].astype(str).str.contains('Total|إجمالي|Grand|cbm|ctns', case=False, na=False)]
+            
+        # فك دمج خلايا عمود الحاوية بشكل آمن بعد تنظيف الجدول
         if c_col in raw_df.columns:
-            raw_df = raw_df[~raw_df[c_col].astype(str).str.contains('Total|إجمالي|Grand', case=False, na=False)]
+            raw_df[c_col] = raw_df[c_col].ffill()
             
         return raw_df
     else:
-        # بيانات افتراضية سليمة لتشغيل التطبيق المبدئي
+        # بيانات افتراضية سليمة لتشغيل التطبيق المبدئي في حال عدم رفع الملف
         rows = [
             {"Container NO.": "RQ6025", "Shipping mark": "B12-102", "Amount": 12500, "Client paid": 100, "Office paid": 12400, "Sum of Ctns": 3, "Sum of Cbm": 0.513},
             {"Container NO.": "RQ6035", "Shipping mark": "B12-114", "Amount": 70800, "Client paid": 0, "Office paid": 70800, "Sum of Ctns": 13, "Sum of Cbm": 3.211},
@@ -62,22 +69,19 @@ def load_data(file):
 
 df = load_data(uploaded_file)
 
-# تعيين المسميات الحقيقية المتطابقة مع ملف الإكسيل
+# تعيين أسماء الأعمدة للعمليات الحسابية
 container_col = "Container NO." if "Container NO." in df.columns else "container"
+shipping_mark_col = "Shipping mark" if "Shipping mark" in df.columns else "shipping_mark"
 ctns_col = "Sum of Ctns" if "Sum of Ctns" in df.columns else "Cartons"
 cbm_col = "Sum of Cbm" if "Sum of Cbm" in df.columns else "Volume_CBM"
 amt_col = "Amount" if "Amount" in df.columns else "Total_Amount"
 client_col = "Client paid" if "Client paid" in df.columns else "Client_Paid"
 office_col = "Office paid" if "Office paid" in df.columns else "Office_Paid"
 
-# تحويل الأعمدة المالية والعددية بشكل آمن لتطهير أي رموز نصية (مثل ¥ أو $)
+# تحويل الأعمدة بالكامل إلى قيم رقمية نقية وتطهيرها من رموز العملات والفواصل النصية
 for col in [amt_col, client_col, office_col, ctns_col, cbm_col]:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col].astype(str).str.replace(r'[^\d.]', '', regex=True), errors='coerce').fillna(0)
-
-# إنشاء نسخة معالجة بفك الدمج فقط لأغراض التصفية والفلترة
-df_filled = df.copy()
-df_filled[container_col] = df_filled[container_col].ffill()
 
 # --- 4. عنوان الواجهة الرئيسي ---
 st.title("📦 Logistics Dashboard — B12")
@@ -85,28 +89,25 @@ st.markdown("Interactive view of shipments by container, shipping mark, payments
 st.markdown("---")
 
 # --- 5. الشريط الأفقي السريع (Pills Filter) للكونتينرات ---
-container_options = ["الكل"] + list(df_filled[container_col].dropna().unique())
+container_options = ["الكل"] + list(df[container_col].dropna().unique())
 st.markdown("##### 🗂️ شريط تصفية الحاويات السريع:")
 selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", label_visibility="collapsed")
 
-# تصفية البيانات بناءً على الفلتر النشط
+# تصفية البيانات بناءً على الفلتر المختار
 if selected_container != "الكل":
-    filtered_df = df_filled[df_filled[container_col] == selected_container]
-    # 🌟 الحل الذكي: عند اختيار حاوية معينة، نأخذ القيم الفريدة للكراتين والحجم لمنع مضاعفتها بالجمع العشوائي
-    total_cartons = int(df[df[container_col] == selected_container][ctns_col].sum()) if ctns_col in df.columns else 0
-    total_volume = round(df[df[container_col] == selected_container][cbm_col].sum(), 3) if cbm_col in df.columns else 0.0
+    filtered_df = df[df[container_col] == selected_container]
 else:
-    filtered_df = df_filled
-    # عند اختيار الكل، نجمع القيم الأصلية مباشرة من الملف بدون تكرار الدمج
-    total_cartons = int(df[ctns_col].sum()) if ctns_col in df.columns else 0
-    total_volume = round(df[cbm_col].sum(), 3) if cbm_col in df.columns else 0.0
+    filtered_df = df
 
-# حساب بقية المؤشرات المالية والطلبات من البيانات المصفاة
+# --- 6. حساب المؤشرات الدقيقة 100% بدون أي تكرار عشوائي ---
 total_orders = len(filtered_df)
 total_containers = filtered_df[container_col].nunique()
-total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
-total_client_paid = filtered_df[client_col].sum() if client_col in filtered_df.columns else 0
-total_office_paid = filtered_df[office_col].sum() if office_col in filtered_df.columns else 0
+
+total_amount_val = filtered_df[amt_col].sum()
+total_client_paid = filtered_df[client_col].sum()
+total_office_paid = filtered_df[office_col].sum()
+total_cartons = int(filtered_df[ctns_col].sum())
+total_volume = round(filtered_df[cbm_col].sum(), 3)
 
 
 # دالة مخصصة لعرض بطاقات المؤشرات الاحترافية بالألوان والأيقونات
@@ -194,8 +195,8 @@ with chart_col2:
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
-# --- 8. عرض جدول البيانات الكامل والمعالج ---
-with st.expander("📋 عرض جدول البيانات الكاملة والمعالجة (الجدول الأم)"):
+# --- 8. عرض جدول البيانات الكامل بعد التطهير والمعالجة ---
+with st.expander("📋 عرض جدول البيانات الكاملة والنقية (الجدول الأم)"):
     st.dataframe(filtered_df, use_container_width=True)
 
 csv_data = filtered_df.to_csv(index=False).encode('utf-8')
