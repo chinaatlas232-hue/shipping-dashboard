@@ -3,7 +3,7 @@ import pandas as pd
 import io
 import os
 
-# 1. إعدادات الصفحة لتكون عريضة ومتوافقة مع التصميم الموضح بالصورة
+# إعدادات الصفحة لتكون عريضة ومتوافقة مع التصميم الموضح بالصورة
 st.set_page_config(
     page_title="Shipments Intelligence Dashboard", 
     page_icon="📦", 
@@ -13,7 +13,7 @@ st.set_page_config(
 # مسار حفظ الملف الثابت على الخادم لضمان عدم ضياع البيانات
 SAVED_FILE_PATH = "permanent_shipping_data.xlsx"
 
-# --- 2. تصميم الشريط الجانبي لإدارة الملفات والتصفير ---
+# --- تصميم الشريط الجانبي لإدارة الملفات والتصفير ---
 st.sidebar.subheader("📁 إدارة ملفات الشحنات")
 
 # زر المسح البرمجي والتصفير الشامل عند الحاجة
@@ -62,7 +62,7 @@ if df_raw is None or df_raw.empty:
     st.warning("⚠️ النظام فارغ ومصفّر حالياً. يرجى رفع ملف إكسل من الشريط الجانبي لتشغيل اللوحة.")
     st.stop()
 
-# --- 3. معالجة وتوحيد مسميات الأعمدة الحسابية بشكل آمن وتفادي مشكلة التكرار ---
+# --- معالجة وتوحيد مسميات الأعمدة الحسابية بشكل آمن وتفادي مشكلة التكرار ---
 df = df_raw.copy()
 
 # حل مشكلة الأسماء المتكررة عبر إجبار الأعمدة على أخذ مسميات فريدة وسلسلة نصية فردية
@@ -80,17 +80,16 @@ for target, keywords in {
     'Collected': ['collected', 'الاستحصال', 'دفع', 'المدفوع'],
     'Remaining': ['remaining', 'المتبقي', 'متبقي']
 }.items():
-    # البحث عن أول عمود يطابق الكلمة الدلالية
+    
     matched_col = None
     for col in df.columns:
         if any(k in col.lower() for k in keywords):
             matched_col = col
             break
     
-    # إذا تم العثور على العمود، نأخذ السلسلة الأحادية الخاصة به ونحولها بأمان
     if matched_col is not None:
         series_data = df[matched_col]
-        # إذا كان العمود مكرراً وجاء كـ DataFrame نأخذ العمود الأول منه فقط لحل مشكلة الـ TypeError
+        # [الحل المضمون]: هنا قمنا بعزل العمود وإصلاح مشكلة الـ TypeError نهائياً
         if isinstance(series_data, pd.DataFrame):
             series_data = series_data.iloc[:, 0]
             
@@ -104,7 +103,7 @@ for target, keywords in {
 # بناء جدول البيانات النظيف المحمي من الأخطاء والجاهز للحسابات والعرض
 df_cleaned = pd.DataFrame(final_columns)
 
-# --- 4. حساب القيم الخاصة بالمربعات الملونة الستة (KPI Cards) ---
+# --- حساب القيم الخاصة بالمربعات الملونة الستة (KPI Cards) ---
 total_sales = float(df_cleaned['Price'].sum())
 total_collected = float(df_cleaned['Collected'].sum())
 total_remaining = float(df_cleaned['Remaining'].sum())
@@ -116,7 +115,7 @@ collection_rate = (total_collected / total_sales * 100) if total_sales > 0 else 
 avg_weight = (total_weight / len(df_cleaned)) if len(df_cleaned) > 0 else 0.0
 total_items_count = len(df_cleaned)
 
-# --- 5. تصميم واجهة اللوحة الرئيسية وعلامات التبويب والألوان المستقرة ---
+# --- تصميم واجهة اللوحة الرئيسية وعلامات التبويب والألوان المستقرة ---
 st.title("📦 Shipments Intelligence Dashboard")
 st.markdown("<p style='color:#666;'>dynamic charts, summaries & live filters (Streamlit + Plotly) — لوحة تحكم الشحنات الذكية</p>", unsafe_import_html=True)
 
@@ -163,19 +162,17 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- 6. نظام علامات التبويب (Tabs) كما يظهر بالصورة تماماً ---
+# --- نظام علامات التبويب (Tabs) كما يظهر بالصورة تماماً ---
 tab1, tab2, tab3 = st.tabs(["📊 Overview", "🔍 Deep Analysis", "🗂️ Data & Columns"])
 
 with tab1:
     st.subheader("Filtered records")
     
-    # تجهيز وعرض جدول البيانات المنسق بالكامل والمطابق لصورتك الأولى
     display_df = df_cleaned[['No.', 'code', 'WEIGHT', 'CTN', 'Price', 'Collected', 'Remaining']].copy()
     display_df.columns = ['الشحنة', 'الكود', 'WEIGHT', 'CTN', 'Price', 'سعر المبيعات', 'الاستحصالات', 'المتبقي']
     
     st.dataframe(display_df, use_container_width=True, hide_index=True)
     
-    # زر مدمج لتحميل البيانات كـ CSV أسفل الجدول مباشرة
     csv_data = display_df.to_csv(index=False).encode('utf-8')
     st.download_button(
         label="📥 Download filtered data as CSV",
