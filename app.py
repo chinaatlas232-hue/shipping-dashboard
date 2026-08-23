@@ -10,41 +10,44 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن التنسيقات المخصصة لتقليل مسافات الجدول وجعل السكرول عريضاً
+# [تعديل الترويسة والعرض]: حقن تنسيقات مخصصة لتوسيع الأعمدة وإظهار الكلمات كاملة
 st.markdown("""
 <style>
-    /* تصغير مسافات وحجم خلايا الجداول لجعلها مضغوطة جداً */
+    /* جعل الخطوط واضحة وتوسيع الخلايا لتظهر العناوين كاملة */
     div[data-testid="stDataFrame"] table {
-        font-size: 11px !important;
+        font-size: 13px !important;
+        width: 100% !important;
     }
-    div[data-testid="stDataFrame"] td, div[data-testid="stDataFrame"] th {
-        padding: 2px 4px !important;
-        line-height: 1.1 !important;
-        height: auto !important;
+    div[data-testid="stDataFrame"] th {
+        background-color: #f8f9fa !important;
+        color: #2c3e50 !important;
+        font-weight: bold !important;
+        text-align: center !important;
+        white-space: nowrap !important; /* منع اختفاء الكلمات أو قصها */
+        padding: 8px 12px !important;
+    }
+    div[data-testid="stDataFrame"] td {
+        padding: 6px 12px !important;
+        text-align: center !important;
+        white-space: nowrap !important;
     }
     
-    /* تكبير وتوسيع شريط التمرير (Scrollbar) ليكون عريضاً وسهل الإمساك */
+    /* الحفاظ على السكرول العريض والمريح للإمساك بالماوس */
     ::-webkit-scrollbar {
-        width: 18px !important;  /* عرض السكرول العمودي */
-        height: 18px !important; /* عرض السكرول الأفقي */
+        width: 16px !important;  
+        height: 16px !important; 
     }
     ::-webkit-scrollbar-track {
         background: #f1f1f1 !important;
         border-radius: 10px !important;
     }
     ::-webkit-scrollbar-thumb {
-        background: #0077b6 !important; /* لون السكرول أزرق متناسق */
+        background: #0077b6 !important; 
         border-radius: 10px !important;
         border: 2px solid #f1f1f1 !important;
     }
     ::-webkit-scrollbar-thumb:hover {
         background: #005683 !important;
-    }
-    
-    /* تطبيق السكرول على حاويات الجداول الخاصة بـ Streamlit */
-    .stDataFrame div, .element-container div {
-        scrollbar-width: thick !important;
-        scrollbar-color: #0077b6 #f1f1f1 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -119,10 +122,7 @@ if 'Container' in df_cleaned.columns:
 st.title("📊 Logistics Dashboard")
 
 if 'Shipping_mark' in df_cleaned.columns:
-    # حل مشكلة الـ TypeError بتحويل القيم لنصوص صافية قبل فصلها
-    df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(lambda x: str(x).split('-')[0] if '-' in str(x) else str(x))
-    
-    # [تم الإصلاح هنا]: تصفية القيم وتحويلها لنصوص لتجنب خطأ الترتيب البرمجي
+    df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(lambda x: str(x).split('-') if '-' in str(x) else str(x))
     raw_unique = df_cleaned['Main_Code'].dropna().unique()
     unique_codes = sorted([str(c).strip() for c in raw_unique if str(c).strip()])
 else:
@@ -196,11 +196,13 @@ with tab1:
     st.subheader(f"📋 جدول التفاصيل التابع للكود المختار: {selected_code}")
     display_df = df_filtered[['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']].copy()
     display_df.columns = ['Container NO.', 'Shipping mark', 'Amount', 'Client paid', 'Office paid', 'Sum of Ctns', 'Sum of Cbm']
+    
+    # [تطبيق العرض الكامل]: تفعيل ميزة التمدد التلقائي للأعمدة لعدم قص الترويسة
     st.dataframe(display_df, use_container_width=True, hide_index=True)
 
 with tab2:
     st.subheader("📋 جدول ملف الإكسل الأصلي الكامل (دون تصفية)")
     full_display_df = df_raw.iloc[header_row_idx:].reset_index(drop=True)
-    full_display_df.columns = [str(c) for c in full_display_df.iloc[0]]
+    full_display_df.columns = [str(c) for c in full_display_df.iloc]
     full_display_df = full_display_df.iloc[1:].reset_index(drop=True)
     st.dataframe(full_display_df, use_container_width=True, hide_index=True)
