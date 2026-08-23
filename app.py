@@ -3,46 +3,50 @@ import pandas as pd
 import io
 import os
 
-# نسخة برمجية جديدة لكسر كاش السيرفر إجبارياً: v3.0.0
-# 1. إعدادات الصفحة لتكون عريضة
+# 1. إعدادات الصفحة لتكون عريضة ومتوافقة مع كامل الشاشة
 st.set_page_config(
     page_title="Logistics Dashboard", 
     page_icon="📦", 
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتعديل أبعاد الجداول والسكرول العريض والتنسيق الملموم
+# [تعديل فرد الجدول والترويسة بالكامل]: حقن تنسيقات مخصصة لفرد الأعمدة على كامل المساحة المتاحة
 st.markdown("""
 <style>
+    /* إجبار حاوية الجداول على التمدد والظهور بكامل عرض الشاشة لتظهر البيانات فسيحة */
+    div[data-testid="stDataFrame"] {
+        width: 100% !important;
+    }
+    div[data-testid="stDataFrame"] > div {
+        width: 100% !important;
+    }
     div[data-testid="stDataFrame"] table {
         font-size: 13px !important;
-        width: auto !important;
-        margin: 0 auto !important;
+        width: 100% !important; /* فرد الجدول بنسبة 100% على كامل عرض الشاشة البيضاء */
+        table-layout: fixed !important; /* توزيع المساحات بين الأعمدة بشكل متساوٍ ومنظم */
     }
+    
+    /* تنسيق ترويسة الجدول العلوية */
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
         color: #2c3e50 !important;
         font-weight: bold !important;
         text-align: center !important;
-        padding: 6px 14px !important;
-        max-width: 150px !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-        white-space: nowrap !important;
+        padding: 10px 16px !important;
+        white-space: nowrap !important; /* منع التفاف الكلمات أو قص الترويسة */
     }
+    
+    /* تنسيق خلايا البيانات */
     div[data-testid="stDataFrame"] td {
-        padding: 6px 14px !important;
+        padding: 8px 16px !important;
         text-align: center !important;
-        max-width: 150px !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
         white-space: nowrap !important;
     }
     
-    /* شريط التمرير (السكرول) عريض ومريح للإمساك بالماوس */
+    /* شريط التمرير (السكرول) عريض جداً ومريح للإمساك بالماوس */
     ::-webkit-scrollbar {
-        width: 14px !important;  
-        height: 14px !important; 
+        width: 15px !important;  
+        height: 15px !important; 
     }
     ::-webkit-scrollbar-track {
         background: #f1f1f1 !important;
@@ -86,6 +90,7 @@ for idx, row in df_processed.iterrows():
 df_processed.columns = [str(c).strip() for c in df_processed.iloc[header_row_idx]]
 df_data = df_processed.iloc[header_row_idx + 1:].reset_index(drop=True)
 
+# ربط الأعمدة والمسميات الحسابية تلقائياً لتطابق الجدول المرفوع
 keywords_map = {
     'Container': ['container no.', 'container', 'الحاوية', 'رقم الحاوية'],
     'Shipping_mark': ['shipping mark', 'رمز الشحن', 'ماركة', 'كود'],
@@ -171,7 +176,7 @@ total_office_paid = float(df_filtered['Office_paid'].sum())
 total_cartons = int(df_filtered['Ctns'].sum())
 total_cbm = float(df_filtered['Cbm'].sum())
 
-# --- 4. الشاشات العلوية الست الملونة التفاعلية بالترتيب المعتمد المكتوب باليد من اليمين لليسار ---
+# --- 4. الشاشات العلوية الست الملونة التفاعلية المرتبة من اليمين لليسار ---
 st.markdown(f"""
 <style>
     .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 25px; direction: rtl; }}
@@ -221,13 +226,15 @@ with col2:
 
 st.markdown("---")
 
-# --- 5. نظام التبويبات لعرض الجداول بالأبعاد الملوية والمناسبة الشاملة ---
+# --- 5. نظام التبويبات لعرض الجداول بكامل مساحة عرض الشاشة التلقائية ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
 
 with tab1:
     st.subheader(f"📋 جدول التفاصيل التابع للكود المختار: {selected_code}")
     display_df = df_filtered[['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']].copy()
     display_df.columns = ['رقم الحاوية', 'كود الشحن', 'المجموع (Amount)', 'الزبون دفع', 'المكتب دفع', 'مجموع الكراتين', 'مجموع الحجم']
+    
+    # فرد الجدول بالكامل على مساحة الشاشة 100%
     st.dataframe(display_df, use_container_width=True, hide_index=True)
 
 with tab2:
@@ -237,7 +244,6 @@ with tab2:
     raw_headers = [str(c).strip() for c in full_display_df.iloc]
     clean_headers = []
     
-    # [تم الإصلاح الجذري لحل خطأ الـ ValueError والأبعاد المتغيرة في المتغير البرمجي بالكامل]
     num_cols_fixed = full_display_df.shape[1]
     for i in range(num_cols_fixed):
         if i < len(raw_headers):
@@ -248,7 +254,3 @@ with tab2:
                 clean_headers.append(h)
         else:
             clean_headers.append(f"عمود_إضافي_{i}")
-            
-    full_display_df.columns = clean_headers
-    full_display_df = full_display_df.iloc[1:].reset_index(drop=True)
-    st.dataframe(full_display_df, use_container_width=True, hide_index=True)
