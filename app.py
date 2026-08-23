@@ -3,26 +3,23 @@ import pandas as pd
 import io
 import os
 
-# 1. إعدادات الصفحة لتكون عريضة
+# 1. إعدادات الصفحة
 st.set_page_config(
     page_title="Logistics Dashboard", 
     page_icon="📦", 
     layout="wide"
 )
 
+# تحديد اسم ثابت ومضمون للملف على الخادم
+SAVED_FILE_PATH = "permanent_shipping_data.xlsx"
+
 st.sidebar.subheader("📁 إدارة ملفات الشحنات")
 
-# البحث التلقائي عن أي ملف إكسل مخزن على السيرفر دون التقيد باسم ثابت
-all_files = os.listdir(".") if os.path.exists(".") else []
-excel_files = [f for f in all_files if f.endswith(('.xlsx', '.xls'))]
-SAVED_FILE_PATH = excel_files[0] if excel_files else "data.xlsx"
-
 # --- زر المسح البرمجي والتصفير الشامل ---
-if excel_files:
+if os.path.exists(SAVED_FILE_PATH):
     if st.sidebar.button("🗑️ مسح وتصفير البيانات المخزنة", type="primary"):
         try:
-            for f in excel_files:
-                os.remove(f)
+            os.remove(SAVED_FILE_PATH)
             if "df_raw" in st.session_state:
                 del st.session_state["df_raw"]
             st.sidebar.success("تم مسح البيانات وتصفير النظام بنجاح! 🔄")
@@ -37,15 +34,11 @@ uploaded_file = st.sidebar.file_uploader("رفع ملف اكسل الجديد ل
 if uploaded_file is not None:
     try:
         file_bytes = uploaded_file.getvalue()
-        # مسح أي ملفات قديمة منعاً للتضارب وحفظ الملف الجديد باسمه الأصلي
-        for f in excel_files:
-            os.remove(f)
-        
-        target_path = uploaded_file.name
-        with open(target_path, "wb") as f:
+        with open(SAVED_FILE_PATH, "wb") as f:
             f.write(file_bytes)
         
-        df_fresh = pd.read_excel(io.BytesIO(file_bytes))
+        # قراءة البيانات مع تخطي أول سطرين مدمجين لتبدأ القراءة من العناوين الحقيقية (Container NO.)
+        df_fresh = pd.read_excel(io.BytesIO(file_bytes), skiprows=2)
         st.session_state["df_raw"] = df_fresh
         st.sidebar.success("تم تثبيت وحفظ البيانات بنجاح! 🚀")
         st.rerun()
@@ -53,9 +46,9 @@ if uploaded_file is not None:
         st.sidebar.error(f"خطأ أثناء معالجة الملف: {e}")
 
 # قراءة الملف المخزن تلقائياً إن وجد
-if "df_raw" not in st.session_state and excel_files:
+if "df_raw" not in st.session_state and os.path.exists(SAVED_FILE_PATH):
     try:
-        st.session_state["df_raw"] = pd.read_excel(excel_files[0])
+        st.session_state["df_raw"] = pd.read_excel(SAVED_FILE_PATH, skiprows=2)
     except:
         pass
 
@@ -71,13 +64,14 @@ if df_raw is None or df_raw.empty:
 df = df_raw.copy()
 df.columns = [str(c).strip() for c in df.columns]
 
+# مطابقة المسميات مع جدولك الجديد تماماً باللغة الإنجليزية والعربية
 keywords_map = {
-    'Container': ['container', 'الحاوية', 'رقم الحاوية'],
-    'Shipping_mark': ['shipping mark', 'رمز الشحن', 'ماركة', 'code'],
-    'Amount': ['amount', 'المجموع', 'القيمة', 'السعر'],
+    'Container': ['container no.', 'container', 'الحاوية'],
+    'Shipping_mark': ['shipping mark', 'رمز الشحن', 'ماركة'],
+    'Amount': ['amount', 'المجموع', 'القيمة'],
     'Client_paid': ['client paid', 'الزبون دفع', 'المدفوع'],
     'Office_paid': ['office paid', 'المكتب دفع'],
-    'Ctns': ['sum of ctns', 'ctn', 'عدد الكارتون', 'الكراتين'],
+    'Ctns': ['sum of ctns', 'ctn', 'عدد الكارتون'],
     'Cbm': ['sum of cbm', 'cbm', 'الحجم']
 }
 
@@ -104,14 +98,16 @@ for target, keywords in keywords_map.items():
 
 df_cleaned = pd.DataFrame(final_columns)
 
+# تعبئة الخلايا الفارغة لرقم الحاوية تلقائياً نتيجة الدمج
 if 'Container' in df_cleaned.columns:
     df_cleaned['Container'] = df_cleaned['Container'].replace('', None).ffill()
 
 # --- 3. واجهة البحث التفاعلية وعملية التصفية ---
 st.title("📊 Logistics Dashboard")
 
+# استخراج الكود الرئيسي (مثل B12) لتسهيل الفلترة والبحث
 if 'Shipping_mark' in df_cleaned.columns:
-    df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(lambda x: x.split('-')[0] if '-' in str(x) else str(x))
+    df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(lambda x: str(x).split('-')[0] if '-' in str(x) else str(x))
     unique_codes = sorted([c for c in df_cleaned['Main_Code'].unique() if str(c).strip()])
 else:
     unique_codes = []
@@ -121,9 +117,10 @@ if not unique_codes:
 
 selected_code = st.selectbox("🔍 اختر أو ابحث عن كود الشحن لتجميع البيانات الخاصة به:", unique_codes)
 
+# تصفية البيانات بناءً على الكود المحدد
 df_filtered = df_cleaned[df_cleaned['Main_Code'] == selected_code].reset_index(drop=True)
 
-# حاسبة الإحصائيات التجميعية للكود المختار
+# حساب الإحصائيات التجميعية الحقيقية للكود المختار
 total_orders = len(df_filtered)
 total_containers = df_filtered['Container'].nunique() if 'Container' in df_filtered.columns else 0
 total_amount = float(df_filtered['Amount'].sum())
@@ -132,7 +129,7 @@ total_office_paid = float(df_filtered['Office_paid'].sum())
 total_cartons = int(df_filtered['Ctns'].sum())
 total_cbm = float(df_filtered['Cbm'].sum())
 
-# --- 4. تصميم الشاشات العلوية الملونة التفاعلية ---
+# --- 4. تصميم الشاشات العلوية الملونة التفاعلية المضمونة ---
 st.markdown(f"""
 <style>
     .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 25px; direction: rtl; }}
@@ -179,7 +176,8 @@ st.markdown("---")
 # --- 5. عرض جدول البيانات المصفى بالكامل بالأسفل ---
 st.subheader(f"📋 جدول التفاصيل التابع للكود المختار: {selected_code}")
 
-available_display_cols = [c for c in ['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm'] if c in df_filtered.columns]
-display_df = df_filtered[available_display_cols].copy()
+# عرض الأعمدة المنسقة للمستخدم
+display_df = df_filtered[['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']].copy()
+display_df.columns = ['Container NO.', 'Shipping mark', 'Amount', 'Client paid', 'Office paid', 'Sum of Ctns', 'Sum of Cbm']
 
 st.dataframe(display_df, use_container_width=True, hide_index=True)
