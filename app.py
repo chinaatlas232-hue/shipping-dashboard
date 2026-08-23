@@ -98,20 +98,27 @@ if df.empty:
                   st.rerun()
   st.stop()
 else:
-  # تعيين العمود مصفح العملاء بناءً على اسم "code" الموجود في ملفك حرفياً
-  client_name_col = "code"
-  
-  # بقية مسميات الأعمدة الحقيقية لجدولك النظيف
-  container_col = "رقم الحاوية"
-  shipping_mark_col = "Shipping mark"
-  amt_col = "المجموع"
-  client_col = "الزبون دفع"
-  office_col = "المكتب دفع"
-  ctns_col = "عدد الكارتون"
-  cbm_col = "حجم"
-  customs_col = "مبلغ الجمرك"
-  collected_col = "قيمة الاستحصالات"
-  remaining_col = "متبقي حقيقي"
+  # 🌟 حل ذكي ومرن للتعرف على الأعمدة وتفادي الـ KeyError تماماً 🌟
+  def find_col(possible_names, fallback):
+      for name in possible_names:
+          if name in df.columns:
+              return name
+          for col in df.columns:
+              if name.lower() in col.lower():
+                  return col
+      return fallback
+
+  client_name_col = find_col(["code", "الكود", "اسم الزبون"], "code")
+  container_col = find_col(["رقم الحاوية", "كونتينر", "Container"], "رقم الحاوية")
+  shipping_mark_col = find_col(["Shipping mark", "shipping_mark", "ماركة الشحن"], "Shipping mark")
+  amt_col = find_col(["المجموع", "Amount", "المبلغ"], "المجموع")
+  client_col = find_col(["الزبون دفع", "العميل دفع", "Client paid"], "الزبون دفع")
+  office_col = find_col(["المكتب دفع", "Office paid"], "المكتب دفع")
+  ctns_col = find_col(["عدد الكارتون", "العدد", "Cartons"], "عدد الكارتون")
+  cbm_col = find_col(["حجم", "الحجم", "Volume"], "حجم")
+  customs_col = find_col(["مبلغ الجمرك", "الجمرك", "Customs"], "مبلغ الجمرك")
+  collected_col = find_col(["قيمة الاستحصالات", "الاستحصالات", "Collected"], "قيمة الاستحصالات")
+  remaining_col = find_col(["متبقي حقيقي", "المتبقي", "Remaining"], "متبقي حقيقي")
 
   # تحويل الحقول المالية والعددية إلى قيم رقمية نظيفة لحسابات دقيقة 100% وتطهير نصوص العملات
   all_numeric_cols = [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]
@@ -120,20 +127,22 @@ else:
       df[col] = pd.to_numeric(df[col].astype(str).str.replace(r"[^\d.]", "", regex=True), errors="coerce").fillna(0)
 
   # استبعاد أسطر الإجماليات يدوية الصنع لحماية الحسابات الديناميكية
-  df = df[~df[shipping_mark_col].astype(str).str.lower().str.contains("total|grand|إجمالي", na=False)]
-  df = df[df[container_col].notna()]
+  if shipping_mark_col in df.columns:
+    df = df[~df[shipping_mark_col].astype(str).str.lower().str.contains("total|grand|إجمالي", na=False)]
+  if container_col in df.columns:
+    df = df[df[container_col].notna()]
 
   # حساب حالة الدفع بناءً على المتبقي الحقيقي
-  def check_payment_status(row):
-      if row[remaining_col] <= 0:
-          return "مدفوع بالكامل ✅"
-      else:
-          return "يوجد متبقي غير مدفوع ⏳"
-          
-  df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
+  if remaining_col in df.columns and amt_col in df.columns:
+    def check_payment_status(row):
+        if row[remaining_col] <= 0:
+            return "مدفوع بالكامل ✅"
+        else:
+            return "يوجد متبقي غير مدفوع ⏳"
+    df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
   # --- 4. نظام تسجيل الدخول الاحترافي باسم شركة أطلس وبوابة العملاء ---
-  valid_codes = list(df[client_name_col].dropna().unique())
+  valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
 
   if st.session_state.logged_in_customer is None:
       st.markdown("""
@@ -167,7 +176,7 @@ else:
   # --- 5. فلترة وعزل البيانات بناءً على تسجيل الدخول الناجح للعميل ---
   selected_client = st.session_state.logged_in_customer
   
-  if selected_client != "الكل":
+  if selected_client != "الكل" and client_name_col in df.columns:
       df_client = df[df[client_name_col] == selected_client]
       st.sidebar.markdown(f"👤 العميل الحالي: **{selected_client}**")
       if st.sidebar.button("🚪 تسجيل الخروج الآمن"):
@@ -188,24 +197,24 @@ else:
   # --- 7. أشرطة تصفية الحاويات والماركات المعزولة للعميل ---
   st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
   
-  container_options = ["الكل"] + list(df_client[container_col].dropna().unique())
+  container_options = ["الكل"] + list(df_client[container_col].dropna().unique()) if container_col in df_client.columns else ["الكل"]
   selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
 
-  if selected_container != "الكل":
+  if selected_container != "الكل" and container_col in df_client.columns:
       temp_df = df_client[df_client[container_col] == selected_container]
   else:
       temp_df = df_client
 
-  shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique())
+  shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique()) if shipping_mark_col in temp_df.columns else ["الكل"]
   selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
 
   filtered_df = temp_df
-  if selected_mark != "الكل":
+  if selected_mark != "الكل" and shipping_mark_col in filtered_df.columns:
       filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
 
   # --- 8. العمليات الحسابية والمؤشرات الديناميكية للعميل المختار ---
   total_orders = len(filtered_df)
-  total_containers = filtered_df[container_col].nunique()
+  total_containers = filtered_df[container_col].nunique() if container_col in filtered_df.columns else 0
   total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
   total_client_paid = filtered_df[client_col].sum() if client_col in filtered_df.columns else 0
   total_office_paid = filtered_df[office_col].sum() if office_col in filtered_df.columns else 0
@@ -215,27 +224,3 @@ else:
   # مجاميع الأعمدة الإضافية لشحنة الجمرك والمستخلصات
   sh_customs = filtered_df[customs_col].sum() if customs_col in filtered_df.columns else 0
   sh_collected = filtered_df[collected_col].sum() if collected_col in filtered_df.columns else 0
-  sh_remaining = filtered_df[remaining_col].sum() if remaining_col in filtered_df.columns else 0
-
-  # تحديد نص حالة الدفع بالدولار $
-  if sh_remaining <= 0:
-      payment_status_text = "مدفوعة بالكامل ✅"
-      status_card_color = "#10b981" 
-  else:
-      payment_status_text = f"متبقي غير مدفوع ($ {sh_remaining:,.2f}) ⏳"
-      status_card_color = "#ef4444" 
-
-  # 🌟 تم إصلاح وإغلاق علامات الاقتباس للـ f-string هنا بدقة 100% لإزالة الـ SyntaxError 🌟
-  def render_custom_card(title, value, icon, bg_color):
-    card_style = f"""
-        <div style="background-color: {bg_color}; padding: 18px; border-radius: 10px; color: #ffffff; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; font-family: sans-serif;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 14px; opacity: 0.95; font-weight: 500;">{title}</span>
-                <span style="font-size: 22px;">{icon}</span>
-            </div>
-            <div style="font-size: 24px; font-weight: bold; letter-spacing: 0.5px;">{value}</div>
-        </div>
-        """
-    st.markdown(card_style, unsafe_allow_html=True)
-
-  # عرض لوحة المقاييس المعزولة بالكامل للعميل المختار بالدولار $
