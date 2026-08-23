@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتصغير الفراغات العريضة بين الأعمدة وجعل الجدول ملموماً ومتناسقاً
+# [تعديل حجم وثخانة الترويسة]: حقن تنسيقات مخصصة لتكبير العناوين وجعلها عريضة وثخينة (Bold)
 st.markdown("""
 <style>
     /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه */
@@ -21,19 +21,20 @@ st.markdown("""
         table-layout: auto !important; 
     }
     
-    /* تنسيق ترويسة الجدول العلوية - مسافات مضغوطة وملمومة */
+    /* [تمت الاستجابة لطلبك]: تكبير خط الترويسة العلوية وجعلها ثخينة جداً وواضحة */
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
-        color: #2c3e50 !important;
-        font-weight: bold !important;
+        color: #1a252f !important; /* لون داكن وأكثر وضوحاً */
+        font-size: 15px !important;  /* تكبير حجم خط العناوين */
+        font-weight: 900 !important;   /* جعل الخط ثخيناً جداً وعريضاً Bold */
         text-align: center !important;
-        padding: 6px 12px !important; 
+        padding: 8px 14px !important; 
         white-space: nowrap !important; 
     }
     
-    /* تنسيق خلايا البيانات - مسافات مضغوطة وملمومة */
+    /* تنسيق خلايا البيانات بالأسفل */
     div[data-testid="stDataFrame"] td {
-        padding: 6px 12px !important; 
+        padding: 6px 14px !important; 
         text-align: center !important;
         white-space: nowrap !important;
     }
@@ -239,9 +240,6 @@ with tab2:
             
     df_data_display = df_data[[c for c in df_data.columns if not str(c).startswith('calc_') and c != 'Main_Code']].copy()
     
-    # [تم الإصلاح الدقيق هنا لإلغاء خطأ الـ Indentation والمسافات تماماً]
-    if len(clean_headers) >= df_data_display.shape[1]:
-        df_data_display.columns = clean_headers[:df_data_display.shape[1]]
+    if len(clean_headers) >= df_data_display.shape:
+        df_data_display.columns = clean_headers[:df_data_display.shape]
     else:
-        while len(clean_headers) < df_data_display.shape[1]:
-            clean_headers.append(f"إضافي_{len(clean_headers)}")
