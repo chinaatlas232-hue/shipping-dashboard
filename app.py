@@ -61,7 +61,7 @@ if df.empty:
       "👋 مرحباً بك! يرجى رفع ملف الإكسيل النظيف من الشريط الجانبي لبدء حساب وعرض البيانات فوراً."
   )
 else:
-  # 🌟 تثبيت مسميات الأعمدة الحقيقية المستخرجة من ملفك حرفياً لحسم المشكلة نهائياً
+  # تثبيت مسميات الأعمدة الحقيقية المستخرجة من ملفك
   container_col = "رقم الحاوية"
   shipping_mark_col = "Shipping mark"
   amt_col = "المجموع"
@@ -99,21 +99,37 @@ else:
   )
   st.markdown("---")
 
-  # --- 5. الشريط الأفقي السريع (Selector) للحاويات الفريدة ---
+  # --- 5. شريط التصفية والسيليكر المزدوج (الحاويات + ماركة الشحن) ---
+  st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
+  
+  # الفلتر الأول: تصفية الحاويات
   container_options = ["الكل"] + list(df[container_col].dropna().unique())
-  st.markdown("##### 🗂️ شريط تصفية الحاويات السريع:")
   selected_container = st.pills(
       "اختر الحاوية",
       options=container_options,
       default="الكل",
-      label_visibility="collapsed",
+      key="container_pill"
   )
 
-  # تصفية الجدول بناءً على خيار الفلتر السريع المختار
+  # تصفية البيانات مبدئياً بناءً على الحاوية لتحديث خيارات الفلتر الثاني
   if selected_container != "الكل":
-    filtered_df = df[df[container_col] == selected_container]
+      temp_df = df[df[container_col] == selected_container]
   else:
-    filtered_df = df
+      temp_df = df
+
+  # الفلتر الثاني الديناميكي: تصفية ماركة الشحن (تتأثر تلقائياً باختيار الحاوية)
+  shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique())
+  selected_mark = st.pills(
+      "اختر ماركة الشحن (Shipping Mark)",
+      options=shipping_mark_options,
+      default="الكل",
+      key="mark_pill"
+  )
+
+  # التصفية النهائية والنهائية للجدول بناءً على الفلترين معاً
+  filtered_df = temp_df
+  if selected_mark != "الكل":
+      filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
 
   # --- 6. العمليات الحسابية والمؤشرات الديناميكية المطابقة 100% ---
   total_orders = len(filtered_df)
