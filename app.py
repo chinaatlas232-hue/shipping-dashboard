@@ -2,6 +2,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+import os
 
 # --- 1. إعدادات الصفحة ---
 st.set_page_config(
@@ -10,9 +11,15 @@ st.set_page_config(
 
 # --- 2. الشريط الجانبي: إدارة الملفات والأمان ---
 with st.sidebar:
-  st.image(
-      "https://icons8.com", width=80
-  )  # أيقونة تعبيرية
+  # 🌟 الحل الذكي: قراءة الصورة المحلية الثابتة بدلاً من الرابط المكسور
+  if os.path.exists("logo.png"):
+      st.image("logo.png", width=120)
+  elif os.path.exists("logo.jpg"):
+      st.image("logo.jpg", width=120)
+  else:
+      # أيقونة احتياطية تظهر فقط إذا لم يتم رفع ملف الصورة بعد
+      st.markdown("<h2 style='margin:0;'>📦</h2>", unsafe_allow_html=True)
+      
   st.title("لوحة التحكم اللوجستية")
   st.markdown("---")
 
@@ -46,7 +53,6 @@ with st.sidebar:
 def load_data(file):
   if file is not None:
     raw_df = pd.read_excel(file, header=0)
-    # تنظيف مسافات العناوين لضمان المطابقة الكاملة
     raw_df.columns = raw_df.columns.str.strip()
     return raw_df
   else:
@@ -61,7 +67,6 @@ if df.empty:
       "👋 مرحباً بك! يرجى رفع ملف الإكسيل النظيف من الشريط الجانبي لبدء حساب وعرض البيانات فوراً."
   )
 else:
-  # تثبيت مسميات الأعمدة الحقيقية المستخرجة من ملفك
   container_col = "رقم الحاوية"
   shipping_mark_col = "Shipping mark"
   amt_col = "المجموع"
@@ -70,7 +75,6 @@ else:
   ctns_col = "عدد الكارتون"
   cbm_col = "حجم"
 
-  # تحويل الحقول النصية والمالية إلى قيم رقمية نظيفة لضمان حساب رياضي صائب 100%
   for col in [amt_col, client_col, office_col, ctns_col, cbm_col]:
     if col in df.columns:
       df[col] = (
@@ -83,7 +87,6 @@ else:
           .fillna(0)
       )
 
-  # استبعاد أي سطر يحتوي على كلمة إجمالي أو Total مخزنة قديماً بالأسفل
   df = df[
       ~df[shipping_mark_col]
       .astype(str)
@@ -102,7 +105,6 @@ else:
   # --- 5. شريط التصفية والسيليكر المزدوج (الحاويات + ماركة الشحن) ---
   st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
   
-  # الفلتر الأول: تصفية الحاويات
   container_options = ["الكل"] + list(df[container_col].dropna().unique())
   selected_container = st.pills(
       "اختر الحاوية",
@@ -111,13 +113,11 @@ else:
       key="container_pill"
   )
 
-  # تصفية البيانات مبدئياً بناءً على الحاوية لتحديث خيارات الفلتر الثاني
   if selected_container != "الكل":
       temp_df = df[df[container_col] == selected_container]
   else:
       temp_df = df
 
-  # الفلتر الثاني الديناميكي: تصفية ماركة الشحن
   shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique())
   selected_mark = st.pills(
       "اختر ماركة الشحن (Shipping Mark)",
@@ -126,7 +126,6 @@ else:
       key="mark_pill"
   )
 
-  # التصفية النهائية والنهائية للجدول بناءً على الفلترين معاً
   filtered_df = temp_df
   if selected_mark != "الكل":
       filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
@@ -152,7 +151,6 @@ else:
       else 0.0
   )
 
-  # دالة هندسية مخصصة لإنشاء بطاقات المؤشرات الاحترافية بالألوان الهادئة والأيقونات
   def render_custom_card(title, value, icon, bg_color):
     card_style = f"""
         <div style="
@@ -173,7 +171,6 @@ else:
         """
     st.markdown(card_style, unsafe_allow_html=True)
 
-  # توزيع شبكة المؤشرات (الصف الأول)
   row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
 
   with row1_col1:
@@ -196,7 +193,6 @@ else:
     render_custom_card(
         "Office Paid", f"¥ {total_office_paid:,.2f}", "🏢", "#6366f1")
 
-  # توزيع شبكة المؤشرات (الصف الثاني)
   row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
 
   with row2_col1:
@@ -205,7 +201,7 @@ else:
     )
 
   with row2_col2:
-    st.write("")  # الفراغ الهندسي المعتمد بصورتك الأصلية
+    st.write("")  
 
   with row2_col3:
     render_custom_card(
@@ -221,11 +217,10 @@ else:
     st.subheader("📊 Payments & Amount by Container")
     y_cols = [c for c in [amt_col, office_col, client_col] if c in filtered_df.columns]
     if y_cols and container_col in filtered_df.columns:
-      # 🌟 الحل لتناسق الألوان: تخصيص تلوين دقيق لمجموعات الأعمدة لتطابق البطاقات تماماً
       color_map = {
-          amt_col: "#10b981",    # اللون الأخضر للمجموع
-          office_col: "#6366f1", # اللون البنفسجي للمكتب دفع
-          client_col: "#f59e0b"  # اللون البرتقالي الذهبي للزبون دفع
+          amt_col: "#10b981",    
+          office_col: "#6366f1", 
+          client_col: "#f59e0b"  
       }
       fig_bar = px.bar(
           filtered_df,
@@ -250,7 +245,7 @@ else:
         values="المبلغ الكلي",
         hole=0.5,
         template="plotly_dark",
-        color_discrete_sequence=["#6366f1", "#f59e0b"] # مطابقة ألوان الدائرة مع المربعات
+        color_discrete_sequence=["#6366f1", "#f59e0b"] 
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
