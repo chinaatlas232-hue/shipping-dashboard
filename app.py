@@ -2,24 +2,42 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+import os
 
 # --- 1. إعدادات الصفحة ---
 st.set_page_config(
     page_title="Logistics Dashboard — B12", page_icon="📦", layout="wide"
 )
 
+# تعزيز حجم خط ولون الجدول ليكون أكبر وأوضح عند العرض
+st.markdown("""
+    <style>
+    .dataframe th, .dataframe td {
+        font-size: 15px !important;
+        font-weight: 500 !important;
+    }
+    div[data-testid="stDataFrame"] div {
+        font-family: sans-serif !important;
+    }
+    </style>
+"", unsafe_allow_html=True)
+
 # --- 2. الشريط الجانبي: إدارة الملفات والأمان ---
 with st.sidebar:
-  st.image(
-      "https://img.icons8.com/color/96/logistic-control.png", width=80
-  )  # أيقونة تعبيرية
+  if os.path.exists("logo.png"):
+      st.image("logo.png", width=120)
+  elif os.path.exists("logo.jpg"):
+      st.image("logo.jpg", width=120)
+  else:
+      st.markdown("<h2 style='margin:0;'>📦</h2>", unsafe_allow_html=True)
+      
   st.title("لوحة التحكم اللوجستية")
   st.markdown("---")
 
-  # أ. رفع ملف إكسل جديد
+  # أ. رفع ملف إكسل النظيف والمعدل
   st.subheader("📁 إدارة ملفات البيانات")
   uploaded_file = st.file_uploader(
-      "رفع ملف بيانات الشحنات الجديد (.xlsx)", type=["xlsx", "xls"]
+      "رفع ملف بيانات الشحنات النظيف (.xlsx)", type=["xlsx", "xls"]
   )
 
   st.markdown("---")
@@ -41,150 +59,344 @@ with st.sidebar:
         st.error("الرقم السري غير صحيح!")
 
 
-# --- 3. قراءة البيانات (مع دعم بيانات افتراضية تجريبية لضمان عمل الكود فوراً) ---
+# --- 3. قراءة البيانات الأصلية من ملف الإكسيل النظيف ---
 @st.cache_data
 def load_data(file):
   if file is not None:
-    return pd.read_excel(file)
+    raw_df = pd.read_excel(file, header=0)
+    raw_df.columns = raw_df.columns.str.strip()
+    return raw_df
   else:
-    # بيانات تجريبية مطابقة لتصميمك لتعمل اللوحة فوراً في حال عدم رفع ملف
-    data = {
-        "container": [
-            "RQ6025",
-            "RQ6027",
-            "RQ6036",
-            "RQ6026",
-            "RQ6033",
-            "RQ6028",
-            "RQ6035",
-        ],
-        "shipping_mark": [
-            "B12-116",
-            "B12-115",
-            "B12-114",
-            "B12-80",
-            "B12-52",
-            "B12-60",
-            "B12-97",
-        ],
-        "Total_Amount": [700000, 480000, 290000, 270000, 160000, 50000, 70000],
-        "Office_Paid": [550000, 400000, 100000, 220000, 100000, 40000, 50000],
-        "Client_Paid": [150000, 80000, 190000, 50000, 60000, 10000, 20000],
-        "Cartons": [50, 40, 35, 30, 25, 20, 15],
-        "Volume_CBM": [12.5, 10.0, 8.5, 7.0, 5.5, 4.0, 3.0],
-        "Orders": [12, 10, 8, 7, 6, 5, 4],
-    }
-    return pd.DataFrame(data)
+    return pd.DataFrame()
 
 
 df = load_data(uploaded_file)
 
-# --- 4. عنوان الواجهة الرئيسي ---
-st.title("📦 Logistics Dashboard — B12")
-st.markdown(
-    "Interactive view of shipments by container, shipping mark, payments and"
-    " freight"
-)
-st.markdown("---")
-
-# --- 5. الشريط الأفقي السريع (Pills Filter) للكونتينرات ---
-container_options = ["الكل"] + list(df["container"].unique())
-st.markdown("##### 🗂️ شريط التصفية السريع للكونتينرات:")
-selected_container = st.pills(
-    "اختر الكونتينر",
-    options=container_options,
-    default="الكل",
-    label_visibility="collapsed",
-)
-
-# تصفية البيانات بناءً على الاختيار
-if selected_container != "الكل":
-  filtered_df = df[df["container"] == selected_container]
+# التحقق من رفع الملف لعرض الداش بورد
+if df.empty:
+  st.info(
+      "👋 مرحباً بك! يرجى رفع ملف الإكسيل النظيف من الشريط الجانبي لبدء حساب وعرض البيانات فوراً."
+  )
 else:
-  filtered_df = df
+  # مسميات الأعمدة الأساسية والمالية الحقيقية لجدولك
+  container_col = "رقم الحاوية"
+  shipping_mark_col = "Shipping mark"
+  amt_col = "المجموع"
+  client_col = "الزبون دفع"
+  office_col = "المكتب دفع"
+  ctns_col = "عدد الكارتون"
+  cbm_col = "حجم"
+  customs_col = "مبلغ الجمرك"
+  collected_col = "قيمة الاستحصالات"
+  remaining_col = "متبقي حقيقي"
 
-# --- 6. لوحة المؤشرات العلوية (Metrics) ---
-total_orders = (
-    int(filtered_df["Orders"].sum()) if "Orders" in filtered_df else len(filtered_df)
-)
-total_containers = filtered_df["container"].nunique()
-total_amount_val = filtered_df["Total_Amount"].sum()
-total_client_paid = filtered_df["Client_Paid"].sum()
-total_office_paid = filtered_df["Office_Paid"].sum()
-total_cartons = (
-    int(filtered_df["Cartons"].sum()) if "Cartons" in filtered_df else 0
-)
-total_volume = (
-    round(filtered_df["Volume_CBM"].sum(), 2)
-    if "Volume_CBM" in filtered_df
-    else 0.0
-)
+  # تحويل الحقول إلى قيم رقمية نظيفة لحسابات دقيقة
+  all_numeric_cols = [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]
+  for col in all_numeric_cols:
+    if col in df.columns:
+      df[col] = (
+          pd.to_numeric(
+              df[col].astype(str).str.replace(r"[^\d.]", "", regex=True),
+              errors="coerce"
+          ).fillna(0)
+      )
 
-col1, col2, col3, col4, col5 = st.columns(5)
-col1.metric("Orders (الطلبات)", f"{total_orders}")
-col2.metric("Containers (الكونتينرات)", f"{total_containers}")
-col3.metric("Total Amount", f"{total_amount_val:,.0f}")
-col4.metric("Client Paid", f"{total_client_paid:,.0f}")
-col5.metric("Office Paid", f"{total_office_paid:,.0f}")
+  # استبعاد أسطر الإجماليات الصلبة من ملف الإكسيل لترك الحسابات لبايثون
+  df = df[~df[shipping_mark_col].astype(str).str.lower().str.contains("total|grand|إجمالي", na=False)]
+  df = df[df[container_col].notna()]
 
-col6, col7 = st.columns(2)
-col6.metric("Cartons (الكراتين)", f"{total_cartons}")
-col7.metric("Volume (CBM الحجم)", f"{total_volume}")
+  # حساب عمود حالة الدفع في الجدول بناءً على المتبقي الحقيقي
+  def check_payment_status(row):
+      if row[remaining_col] <= 0:
+          return "مدفوع بالكامل ✅"
+      else:
+          return "يوجد متبقي غير مدفوع ⏳"
+          
+  df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-st.markdown("---")
+  # --- 4. عنوان الواجهة الرئيسي ---
+  st.title("📦 Logistics Dashboard — B12")
+  st.markdown("Interactive view of shipments by container, shipping mark, payments and freight")
+  st.markdown("---")
 
-# --- 7. الرسوم البيانية التفاعلية (مطابقة لطلبك وتصميمك) ---
-chart_col1, chart_col2 = st.columns(2)
+  # --- 5. شريط التصفية والسيليكر المزدوج (الحاويات + ماركة الشحن) ---
+  st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
+  
+  container_options = ["الكل"] + list(df[container_col].dropna().unique())
+  selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
 
-with chart_col1:
-  st.subheader("📊 Payments & Amount by Container")
-  fig_bar = px.bar(
-      filtered_df,
-      x="container",
-      y=["Total_Amount", "Office_Paid", "Client_Paid"],
-      barmode="group",
-      template="plotly_dark",
-      labels={"value": "Value", "variable": "Payment Type"},
+  if selected_container != "الكل":
+      temp_df = df[df[container_col] == selected_container]
+  else:
+      temp_df = df
+
+  shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique())
+  selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
+
+  filtered_df = temp_df
+  if selected_mark != "الكل":
+      filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
+
+  # --- 6. العمليات الحسابية والمؤشرات الديناميكية الأساسية ---
+  total_orders = len(filtered_df)
+  total_containers = filtered_df[container_col].nunique()
+  total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
+  total_client_paid = filtered_df[client_col].sum() if client_col in filtered_df.columns else 0
+  total_office_paid = filtered_df[office_col].sum() if office_col in filtered_df.columns else 0
+  total_cartons = int(filtered_df[ctns_col].sum()) if ctns_col in filtered_df.columns else 0
+  total_volume = round(filtered_df[cbm_col].sum(), 3) if cbm_col in filtered_df.columns else 0.0
+
+  # مجاميع الأعمدة الإضافية لشحنة الجمرك والمستخلصات
+  sh_customs = filtered_df[customs_col].sum() if customs_col in filtered_df.columns else 0
+  sh_collected = filtered_df[collected_col].sum() if collected_col in filtered_df.columns else 0
+  sh_remaining = filtered_df[remaining_col].sum() if remaining_col in filtered_df.columns else 0
+
+  # تحديد نص حالة الدفع الإجمالي للتقرير بناءً على المتبقي الحقيقي
+  if sh_remaining <= 0:
+      payment_status_text = "مدفوعة بالكامل ✅"
+      status_card_color = "#10b981" 
+  else:
+      payment_status_text = f"متبقي غير مدفوع (¥ {sh_remaining:,.2f}) ⏳"
+      status_card_color = "#ef4444" 
+
+  def render_custom_card(title, value, icon, bg_color):
+    card_style = f""
+        <div style="
+            background-color: {bg_color}; padding: 18px; border-radius: 10px; color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; font-family: sans-serif;
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 14px; opacity: 0.95; font-weight: 500;">{title}</span>
+                <span style="font-size: 22px;">{icon}</span>
+            </div>
+            <div style="font-size: 24px; font-weight: bold; letter-spacing: 0.5px;">{value}</div>
+        </div>
+        """
+    st.markdown(card_style, unsafe_allow_html=True)
+
+  # عرض لوحة المقاييس الأساسية المحدثة
+  row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
+  with row1_col1: render_custom_card("Orders (الطلبات الفرعية)", f"{total_orders}", "📋", "#4f46e5")
+  with row1_col2: render_custom_card("Containers (الحاويات)", f"{total_containers}", "🚢", "#0ea5e9")
+  with row1_col3: render_custom_card("Total Amount", f"¥ {total_amount_val:,.2f}", "💵", "#10b981")
+  with row1_col4: render_custom_card("Client Paid", f"¥ {total_client_paid:,.2f}", "🤝", "#f59e0b")
+  with row1_col5: render_custom_card("Office Paid", f"¥ {total_office_paid:,.2f}", "🏢", "#6366f1")
+
+  row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
+  with row2_col1: render_custom_card("Cartons (الكراتين)", f"{total_cartons:,}", "📦", "#ec4899")
+  with row2_col2: render_custom_card("Volume (الحجم)", f"{total_volume:,}", "📐", "#14b8a6")
+  with row2_col3: render_custom_card("حالة دفع الزبون للشحنة", f"{payment_status_text}", "💳", status_card_color)
+
+  st.markdown("---")
+
+  # --- 7. قسم التحليل المالي التفصيلي للشحنة المحددة والجمارك (يفتح عند اختيار شحنة فرعية) ---
+  if selected_container != "الكل" and selected_mark != "الكل":
+      st.subheader(f"🔍 التحليل المالي التفصيلي المتقدم للشحنة: {selected_mark}")
+      
+      sub_col1, sub_col2, sub_col3 = st.columns(3)
+      with sub_col1: render_custom_card("مبلغ الجمرك للشحنة", f"¥ {sh_customs:,.2f}", "🛡️", "#ef4444")
+      with sub_col2: render_custom_card("قيمة الاستحصالات للشحنة", f"¥ {sh_collected:,.2f}", "📈", "#3b82f6")
+      with sub_col3: render_custom_card("متبقي حقيقي للشحنة", f"¥ {sh_remaining:,.2f}", "⏳", "#8b5cf6")
+          
+      st.markdown("##### 📊 المقارنة المالية التفاعلية للشحنة المحددة")
+      sh_metrics = pd.DataFrame({
+          "المؤشر": ["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"],
+          "القيمة": [sh_customs, sh_collected, sh_remaining]
+      })
+      
+      fig_sh_bar = px.bar(
+          sh_metrics, x="المؤشر", y="القيمة", color="المؤشر", template="plotly_dark",
+          color_discrete_sequence=["#ef4444", "#3b82f6", "#8b5cf6"]
+      )
+      st.plotly_chart(fig_sh_bar, use_container_width=True)
+      st.markdown("---")
+
+  # --- 8. عرض جدول البيانات الكامل بشكل مباشر (مفتوح دائماً وبخط واضح مباشرة تحت البطاقات) ---
+  st.subheader("📋 جدول البيانات الشاملة والنقية (الجدول الأم الكامل)")
+  st.dataframe(filtered_df, use_container_width=True, height=550)
+
+  csv_data = filtered_df.to_csv(index=False).encode("utf-8")
+  st.sidebar.markdown("---")
+  st.sidebar.download_button(
+      label="📥 تحميل التقرير الحالي (CSV)", 
+      data=csv_data, 
+      file_name="logistics_report.csv", 
+      mime="text/csv"
   )
-  st.plotly_chart(fig_bar, use_container_width=True)
 
-with chart_col2:
-  st.subheader("🍩 Payment Split")
-  split_data = pd.DataFrame({
-      "Type": ["Office Paid", "Client Paid"],
-      "Amount": [total_office_paid, total_client_paid],
-  })
-  fig_pie = px.pie(
-      split_data,
-      names="Type",
-      values="Amount",
-      hole=0.5,
-      template="plotly_dark",
-  )
-  st.plotly_chart(fig_pie, use_container_width=True)
 
-# رسم بياني إضافي: علامات الشحن
-st.subheader("🏷️ Top Shipping Marks by Amount")
-fig_marks = px.bar(
-    filtered_df,
-    x="Total_Amount",
-    y="shipping_mark",
-    orientation="h",
-    template="plotly_dark",
-    color="container",
-)
-st.plotly_chart(fig_marks, use_container_width=True)
 
-# --- 8. جدول عرض البيانات التفصيلية ---
-with st.expander("📋 عرض جدول البيانات الكاملة"):
-  st.dataframe(filtered_df, use_container_width=True)
 
-# زر تحميل التقرير
-csv_data = filtered_df.to_csv(index=format).encode("utf-8")
-st.sidebar.markdown("---")
-st.sidebar.download_button(
-    label="📥 تحميل التقرير (CSV)",
-    data=csv_data,
-    file_name="logistics_report.csv",
-    mime="text/csv",
-)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
