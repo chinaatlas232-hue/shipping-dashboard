@@ -189,32 +189,17 @@ else:
 
   st.markdown("---")
 
-  # --- 7. الرسوم البيانية التفاعلية الأساسية ---
-  chart_col1, chart_col2 = st.columns(2)
-
-  with chart_col1:
-    st.subheader("📊 Payments & Amount by Container")
-    y_cols = [c for c in [amt_col, office_col, client_col] if c in filtered_df.columns]
-    if y_cols and container_col in filtered_df.columns:
-      color_map = {amt_col: "#10b981", office_col: "#6366f1", client_col: "#f59e0b"}
-      fig_bar = px.bar(
-          filtered_df, x=container_col, y=y_cols, barmode="group",
-          template="plotly_dark", color_discrete_map=color_map,
-          labels={"value": "المبالغ بالين", "variable": "نوع المال"},
-      )
-      st.plotly_chart(fig_bar, use_container_width=True)
-
-  with chart_col2:
-    st.subheader("🍩 Payment Split (نسب توزيع الأموال)")
-    split_data = pd.DataFrame({
-        "نوع الدفع": ["Office Paid (المكتب دفع)", "Client Paid (الزبون دفع)"],
-        "المبلغ الكلي": [total_office_paid, total_client_paid],
-    })
-    fig_pie = px.pie(
-        split_data, names="نوع الدفع", values="المبلغ الكلي", hole=0.5,
-        template="plotly_dark", color_discrete_sequence=["#6366f1", "#f59e0b"] 
-    )
-    st.plotly_chart(fig_pie, use_container_width=True)
+  # --- 7. الرسم البياني التفاعلي الدائري فقط على كامل العرض بعد إلغاء الأعمدة ---
+  st.subheader("🍩 Payment Split (نسب توزيع الأموال الكلية)")
+  split_data = pd.DataFrame({
+      "نوع الدفع": ["Office Paid (المكتب دفع)", "Client Paid (الزبون دفع)"],
+      "المبلغ الكلي": [total_office_paid, total_client_paid],
+  })
+  fig_pie = px.pie(
+      split_data, names="نوع الدفع", values="المبلغ الكلي", hole=0.5,
+      template="plotly_dark", color_discrete_sequence=["#6366f1", "#f59e0b"] 
+  )
+  st.plotly_chart(fig_pie, use_container_width=True)
 
   st.markdown("---")
 
@@ -234,16 +219,21 @@ else:
       })
       
       fig_sh_bar = px.bar(
-          sh_metrics, 
-          x="المؤشر", 
-          y="القيمة", 
-          color="المؤشر", 
-          template="plotly_dark",
+          sh_metrics, x="المؤشر", y="القيمة", color="المؤشر", template="plotly_dark",
           color_discrete_sequence=["#ef4444", "#3b82f6", "#8b5cf6"]
       )
       st.plotly_chart(fig_sh_bar, use_container_width=True)
       st.markdown("---")
 
-  # --- 🌟 9. عرض جدول البيانات الكامل الأصلي والمضمون 100% (تم تصحيحه بالكامل ليظهر فوراً) 🌟 ---
+  # --- 9. عرض جدول البيانات الكامل بشكل مباشر (مفتوح دائماً وبخط واضح) ---
   st.subheader("📋 جدول البيانات الشاملة والنقية (الجدول الأم الكامل)")
-  
+  st.dataframe(filtered_df, use_container_width=True, height=500)
+
+  csv_data = filtered_df.to_csv(index=False).encode("utf-8")
+  st.sidebar.markdown("---")
+  st.sidebar.download_button(
+      label="📥 تحميل التقرير الحالي (CSV)", 
+      data=csv_data, 
+      file_name="logistics_report.csv", 
+      mime="text/csv"
+  )
