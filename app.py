@@ -117,7 +117,7 @@ else:
   else:
       temp_df = df
 
-  # الفلتر الثاني الديناميكي: تصفية ماركة الشحن (تتأثر تلقائياً باختيار الحاوية)
+  # الفلتر الثاني الديناميكي: تصفية ماركة الشحن
   shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique())
   selected_mark = st.pills(
       "اختر ماركة الشحن (Shipping Mark)",
@@ -186,18 +186,15 @@ else:
 
   with row1_col3:
     render_custom_card(
-        "Total Amount", f"¥ {total_amount_val:,.2f}", "💵", "#10b981"
-    )
+        "Total Amount", f"¥ {total_amount_val:,.2f}", "💵", "#10b981")
 
   with row1_col4:
     render_custom_card(
-        "Client Paid", f"¥ {total_client_paid:,.2f}", "🤝", "#f59e0b"
-    )
+        "Client Paid", f"¥ {total_client_paid:,.2f}", "🤝", "#f59e0b")
 
   with row1_col5:
     render_custom_card(
-        "Office Paid", f"¥ {total_office_paid:,.2f}", "🏢", "#6366f1"
-    )
+        "Office Paid", f"¥ {total_office_paid:,.2f}", "🏢", "#6366f1")
 
   # توزيع شبكة المؤشرات (الصف الثاني)
   row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
@@ -217,39 +214,43 @@ else:
 
   st.markdown("---")
 
-  # --- 7. الرسوم البيانية التفاعلية المدعومة بـ Plotly ---
+  # --- 7. الرسوم البيانية التفاعلية الملونة بالتناسق مع البطاقات ---
   chart_col1, chart_col2 = st.columns(2)
 
   with chart_col1:
     st.subheader("📊 Payments & Amount by Container")
-    y_cols = [
-        c
-        for c in [amt_col, office_col, client_col]
-        if c in filtered_df.columns
-    ]
+    y_cols = [c for c in [amt_col, office_col, client_col] if c in filtered_df.columns]
     if y_cols and container_col in filtered_df.columns:
+      # 🌟 الحل لتناسق الألوان: تخصيص تلوين دقيق لمجموعات الأعمدة لتطابق البطاقات تماماً
+      color_map = {
+          amt_col: "#10b981",    # اللون الأخضر للمجموع
+          office_col: "#6366f1", # اللون البنفسجي للمكتب دفع
+          client_col: "#f59e0b"  # اللون البرتقالي الذهبي للزبون دفع
+      }
       fig_bar = px.bar(
           filtered_df,
           x=container_col,
           y=y_cols,
           barmode="group",
           template="plotly_dark",
-          labels={"value": "المبالغ بالين", "variable": "نوع الدفع"},
+          color_discrete_map=color_map,
+          labels={"value": "المبالغ بالين", "variable": "نوع المال"},
       )
       st.plotly_chart(fig_bar, use_container_width=True)
 
   with chart_col2:
     st.subheader("🍩 Payment Split (نسب توزيع الأموال)")
     split_data = pd.DataFrame({
-        "Type": ["Office Paid", "Client Paid"],
-        "Amount": [total_office_paid, total_client_paid],
+        "نوع الدفع": ["Office Paid (المكتب دفع)", "Client Paid (الزبون دفع)"],
+        "المبلغ الكلي": [total_office_paid, total_client_paid],
     })
     fig_pie = px.pie(
         split_data,
-        names="Type",
-        values="Amount",
+        names="نوع الدفع",
+        values="المبلغ الكلي",
         hole=0.5,
         template="plotly_dark",
+        color_discrete_sequence=["#6366f1", "#f59e0b"] # مطابقة ألوان الدائرة مع المربعات
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
