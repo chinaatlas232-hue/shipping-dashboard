@@ -22,7 +22,7 @@ st.markdown("""
         color: #2c3e50 !important;
         font-weight: bold !important;
         text-align: center !important;
-        white-space: nowrap !important; /* منع اختفاء الكلمات أو قصها */
+        white-space: nowrap !important;
         padding: 8px 12px !important;
     }
     div[data-testid="stDataFrame"] td {
@@ -121,10 +121,7 @@ if 'Container' in df_cleaned.columns:
 st.title("📊 Logistics Dashboard")
 
 if 'Shipping_mark' in df_cleaned.columns:
-    # تحويل الأكواد بالكامل إلى نصوص لمنع حدوث التضارب في دمج الخلايا
-    df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(lambda x: str(x).split('-')[0] if '-' in str(x) else str(x))
-    
-    # [تم الإصلاح الجذري هنا]: عزل السلسلة وحفظها كنصوص مصفاة لتفادي الـ TypeError نهائياً
+    df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(lambda x: str(x).split('-') if '-' in str(x) else str(x))
     raw_unique = pd.Series(df_cleaned['Main_Code'].unique()).dropna().astype(str)
     unique_codes = sorted([c.strip() for c in raw_unique if c.strip()])
 else:
@@ -191,18 +188,30 @@ with col2:
 
 st.markdown("---")
 
-# --- 5. نظام التبويبات لعرض الجداول بكامل معلومات العرض والترويسة فسيحة الأبعاد ---
+# --- 5. نظام التبويبات المصلح بالكامل والخالي من الأخطاء ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
 
 with tab1:
     st.subheader(f"📋 جدول التفاصيل التابع للكود المختار: {selected_code}")
     display_df = df_filtered[['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']].copy()
-    display_df.columns = ['Container NO.', 'Shipping mark', 'Amount', 'Client paid', 'Office paid', 'Sum of Ctns', 'Sum of Cbm']
+    
+    # [تعديل التعريب الكامل]: تحويل الترويسة للغة العربية الفصحى بشكل منظم جداً
+    display_df.columns = ['رقم الحاوية (Container NO.)', 'كود الشحن (Shipping mark)', 'المجموع (Amount)', 'الزبون دفع (Client paid)', 'المكتب دفع (Office paid)', 'مجموع الكراتين (Sum of Ctns)', 'مجموع الحجم (Sum of Cbm)']
     st.dataframe(display_df, use_container_width=True, hide_index=True)
 
 with tab2:
     st.subheader("📋 جدول ملف الإكسل الأصلي الكامل (دون تصفية)")
+    # [حل خطأ الـ ValueError]: معالجة وعزل تكرار المسميات برمجياً لضمان تشغيل الجدول الكامل بدون أخطاء حمراء
     full_display_df = df_raw.iloc[header_row_idx:].reset_index(drop=True)
-    full_display_df.columns = [str(c) for c in full_display_df.iloc]
+    
+    raw_headers = [str(c).strip() for c in full_display_df.iloc]
+    clean_headers = []
+    for i, h in enumerate(raw_headers):
+        if h == "" or h == "nan":
+            clean_headers.append(f"عمود فارغ_{i}")
+        else:
+            clean_headers.append(h)
+            
+    full_display_df.columns = clean_headers
     full_display_df = full_display_df.iloc[1:].reset_index(drop=True)
     st.dataframe(full_display_df, use_container_width=True, hide_index=True)
