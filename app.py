@@ -141,10 +141,11 @@ else:
             return "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الاحترافي المحدث والمحصن ضد حالة الحروف ---
+  # --- 4. نظام تسجيل الدخول الاحترافي المحدث والمحصن ضد المسافات والخلايا النصية 🌟 ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
-  # تحويل كافة الأكواد المتاحة في ملف الإكسيل إلى حروف صغيرة للمقارنة العادلة والمحصنة
-  valid_codes_lower = [str(c).strip().lower() for c in valid_codes]
+  
+  # 🌟 التطهير المطلق: تحويل كافة قيم الإكسيل لنصوص صافية بدون مسافات خفية وبحروف صغيرة 🌟
+  valid_codes_clean = [str(c).strip().lower() for c in valid_codes]
 
   if st.session_state.logged_in_customer is None:
       st.markdown("""
@@ -162,16 +163,16 @@ else:
               submit_login = st.form_submit_button("تسجيل الدخول الآمن 🔓")
               
               if submit_login:
-                  clean_pwd = password_input.strip()
-                  clean_pwd_lower = clean_pwd.lower() # تحويل مدخل العميل لحروف صغيرة
+                  # تنظيف مدخلات العميل من أي مسافات زائدة وتحويلها لحروف صغيرة
+                  clean_input = str(password_input).strip().lower()
                   
-                  if clean_pwd_lower in valid_codes_lower:
-                      # جلب الاسم الحقيقي المخزن في الإكسيل بناءً على المطابقة غير الحساسة للحروف
-                      actual_code = valid_codes[valid_codes_lower.index(clean_pwd_lower)]
+                  if clean_input in valid_codes_clean:
+                      # جلب الاسم المطابق الأصلي من الإكسيل لتثبيته في الجلسة
+                      actual_code = valid_codes[valid_codes_clean.index(clean_input)]
                       st.session_state.logged_in_customer = actual_code
-                      st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم الخاصة بك...")
+                      st.success("تم التحقق بنجاح! Jاري تحميل لوحة التحكم الخاصة بك...")
                       st.rerun()
-                  elif clean_pwd == "881988": 
+                  elif password_input.strip() == "881988": 
                       st.session_state.logged_in_customer = "الكل"
                       st.success("مرحباً بك يا مدير النظام!")
                       st.rerun()
@@ -183,7 +184,9 @@ else:
   selected_client = st.session_state.logged_in_customer
   
   if selected_client != "الكل" and client_name_col in df.columns:
-      df_client = df[df[client_name_col] == selected_client]
+      # تحويل العمود لمقارنة نصية آمنة ومطابقة دقيقة للكود الحالي
+      df[client_name_col] = df[client_name_col].astype(str).str.strip()
+      df_client = df[df[client_name_col].str.lower() == str(selected_client).lower().strip()]
       st.sidebar.markdown(f"👤 العميل الحالي: **{selected_client}**")
       if st.sidebar.button("🚪 تسجيل الخروج الآمن"):
           st.session_state.logged_in_customer = None
@@ -201,7 +204,7 @@ else:
   st.markdown("---")
 
   # --- 7. أشرطة تصفية الحاويات والماركات المعزولة للعميل ---
-  st.markdown("##### 🗂️ أشرطة Tصفية السريعة الذكية:")
+  st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
   
   container_options = ["الكل"] + list(df_client[container_col].dropna().unique()) if container_col in df_client.columns else ["الكل"]
   selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
@@ -222,5 +225,3 @@ else:
   total_orders = len(filtered_df)
   total_containers = filtered_df[container_col].nunique() if container_col in filtered_df.columns else 0
   total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
-  total_client_paid = filtered_df[client_col].sum() if client_col in filtered_df.columns else 0
-  total_office_paid = filtered_df[office_col].sum() if office_col in filtered_df.columns else 0
