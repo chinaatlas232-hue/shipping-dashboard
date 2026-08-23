@@ -40,7 +40,7 @@ st.markdown("""
         font-weight: 700 !important;
     }
     
-    /* شريط التمرير (السكرول) عريض ومريح للإمساك بالماوس */
+    /* şريط التمرير (السكرول) عريض ومريح للإمساك بالماوس */
     ::-webkit-scrollbar {
         width: 14px !important;  
         height: 14px !important; 
@@ -239,5 +239,5 @@ def process_dataframe_safely(dataframe):
                 configs[col] = st.column_config.TextColumn(col, alignment="center")
     return configs
 
-# --- 5. [الحل النهائي المستقر للـ المسافات]: عرض الجداول تحت بعضها مباشرة دون نظام تبويبات مسبب للمشاكل ---
+# --- 5. [الحل النهائي المستقر]: عرض الجدولين تحت بعضهما مباشرة دون نظام تبويبات مسبب للمشاكل ---
 st.subheader(f"📊 1. جدول التفاصيل المصفى للـ 29 عموداً التابع للكود الحالي: {selected_code}")
