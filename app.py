@@ -48,13 +48,14 @@ with st.sidebar:
   st.title("إدارة النظام - أطلس")
   st.markdown("---")
 
-  # قراءة الملف الثابت data.xlsx المرفوع على GitHub لضمان استقرار الخدمة على الهواتف
-  if os.path.exists("data.xlsx"):
-      uploaded_file = "data.xlsx"
-  else:
-      uploaded_file = None
+  # 🌟 حل مرن: البحث الذكي عن الملف بمختلف الصيغ (data.xlsx أو DATA.xlsx أو data.XLSX) لضمان القراءة تماماً
+  uploaded_file = None
+  for filename in os.listdir("."):
+      if filename.lower() == "data.xlsx":
+          uploaded_file = filename
+          break
 
-  # إتاحة الرفع اليدوي للإدارة فقط عند دخول المدير بكود 881988
+  # إتاحة الرفع اليدوي والتحديث المباشر للإدارة فقط عند دخول المدير بكود 881988
   if st.session_state.logged_in_customer == "الكل":
       st.subheader("📁 تحديث قاعدة البيانات")
       new_file = st.file_uploader(
@@ -64,12 +65,15 @@ with st.sidebar:
           uploaded_file = new_file
 
 
-# --- 3. دالة قراءة وتجهيز البيانات النظيفة والمباشرة (تم إلغاء الكاش لضمان التحديث الفوري) 🌟 ---
+# --- 3. دالة قراءة وتجهيز البيانات النظيفة والمباشرة (بدون كاش) ---
 def load_data_fresh(file):
   if file is not None:
-    raw_df = pd.read_excel(file, header=0)
-    raw_df.columns = raw_df.columns.str.strip()
-    return raw_df
+    try:
+        raw_df = pd.read_excel(file, header=0)
+        raw_df.columns = raw_df.columns.str.strip()
+        return raw_df
+    except Exception as e:
+        return pd.DataFrame()
   else:
     return pd.DataFrame()
 
@@ -82,19 +86,19 @@ if df.empty:
     <div class='login-box'>
         <h2 style='color: white;'>🏛️ شركة أطلس للشحن والتجارة العامة</h2>
         <h4 style='color: #4f46e5;'>بوابة العملاء اللوجستية</h4>
-        <p style='color: #94a3b8; margin-top: 15px;'>نظام الإدارة قيد الانتظار. يرجى التأكد من رفع ملف قاعدة البيانات وتسميته <b>data.xlsx</b> داخل حساب GitHub بجانب ملف الكود app.py لكي يعمل الرابط مباشرة.</p>
+        <p style='color: #94a3b8; margin-top: 15px;'>نظام الإدارة قيد الانتظار. يرجى التأكد من رفع ملف قاعدة البيانات وتسميته <b>data.xlsx</b> داخل حساب GitHub بجانب ملف الكود لكي يعمل الرابط مباشرة.</p>
     </div>
   """, unsafe_allow_html=True)
   
-  if st.session_state.logged_in_customer is None:
-      col_space1, col_admin_login, col_space2 = st.columns(3)
-      with col_admin_login:
-          with st.form("admin_login_initial"):
-              admin_pwd = st.text_input("🔑 دخول الإدارة المباشر:", type="password")
-              admin_submit = st.form_submit_button("دخول مدير النظام 👑")
-              if admin_submit and admin_pwd.strip() == "881988":
-                  st.session_state.logged_in_customer = "الكل"
-                  st.rerun()
+  # نموذج احتياطي وسري لدخول الإدارة لتشغيل وتحديث النظام مباشرة من الهاتف 🌟
+  col_space1, col_admin_login, col_space2 = st.columns(3)
+  with col_admin_login:
+      with st.form("admin_login_initial"):
+          admin_pwd = st.text_input("🔑 دخول الإدارة المباشر للتحديث المالي:", type="password")
+          admin_submit = st.form_submit_button("دخول مدير النظام وتطهير الكاش 👑")
+          if admin_submit and admin_pwd.strip() == "881988":
+              st.session_state.logged_in_customer = "الكل"
+              st.rerun()
   st.stop()
 else:
   # حل ذكي ومرن للتعرف على الأعمدة وتفادي الـ KeyError تماماً
@@ -140,7 +144,7 @@ else:
             return "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الاحترافي المحدث والمنظف من الكاش الفاسد 🌟 ---
+  # --- 4. نظام تسجيل الدخول الاحترافي المحدث والمحصن ضد المسافات والخلايا النصية ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
   valid_codes_clean = [str(c).strip().lower() for c in valid_codes]
 
@@ -173,8 +177,6 @@ else:
                       st.rerun()
                   else:
                       st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة في النظام!")
-                      # ميزة لمساعدتك كمدير نظام لمعرفة ما يقرأه بايثون فعلياً من ملف data.xlsx إن رغبت
-                      st.info(f"نصيحة للإدارة: تأكد أن الكود مكتوب في الإكسيل في عمود {client_name_col}")
       st.stop() 
 
   # --- 5. فلترة وعزل البيانات بناءً على تسجيل الدخول الناجح للعميل ---
