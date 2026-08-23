@@ -10,16 +10,19 @@ st.set_page_config(
     layout="wide"
 )
 
-# مسار حفظ الملف الثابت على الخادم
-SAVED_FILE_PATH = "permanent_shipping_data.xlsx"
-
-# --- 2. الشريط الجانبي لإدارة الملفات والتصفير ---
 st.sidebar.subheader("📁 إدارة ملفات الشحنات")
 
-if os.path.exists(SAVED_FILE_PATH):
+# البحث التلقائي عن أي ملف إكسل مخزن على السيرفر دون التقيد باسم ثابت
+all_files = os.listdir(".") if os.path.exists(".") else []
+excel_files = [f for f in all_files if f.endswith(('.xlsx', '.xls'))]
+SAVED_FILE_PATH = excel_files[0] if excel_files else "data.xlsx"
+
+# --- زر المسح البرمجي والتصفير الشامل ---
+if excel_files:
     if st.sidebar.button("🗑️ مسح وتصفير البيانات المخزنة", type="primary"):
         try:
-            os.remove(SAVED_FILE_PATH)
+            for f in excel_files:
+                os.remove(f)
             if "df_raw" in st.session_state:
                 del st.session_state["df_raw"]
             st.sidebar.success("تم مسح البيانات وتصفير النظام بنجاح! 🔄")
@@ -28,13 +31,20 @@ if os.path.exists(SAVED_FILE_PATH):
             st.sidebar.error(f"تعذر المسح: {e}")
     st.sidebar.markdown("---")
 
+# --- أداة رفع ملف العميل الجديد ---
 uploaded_file = st.sidebar.file_uploader("رفع ملف اكسل الجديد لتثبيته في النظام", type=["xlsx", "xls"])
 
 if uploaded_file is not None:
     try:
         file_bytes = uploaded_file.getvalue()
-        with open(SAVED_FILE_PATH, "wb") as f:
+        # مسح أي ملفات قديمة منعاً للتضارب وحفظ الملف الجديد باسمه الأصلي
+        for f in excel_files:
+            os.remove(f)
+        
+        target_path = uploaded_file.name
+        with open(target_path, "wb") as f:
             f.write(file_bytes)
+        
         df_fresh = pd.read_excel(io.BytesIO(file_bytes))
         st.session_state["df_raw"] = df_fresh
         st.sidebar.success("تم تثبيت وحفظ البيانات بنجاح! 🚀")
@@ -42,20 +52,22 @@ if uploaded_file is not None:
     except Exception as e:
         st.sidebar.error(f"خطأ أثناء معالجة الملف: {e}")
 
-if "df_raw" not in st.session_state and os.path.exists(SAVED_FILE_PATH):
+# قراءة الملف المخزن تلقائياً إن وجد
+if "df_raw" not in st.session_state and excel_files:
     try:
-        st.session_state["df_raw"] = pd.read_excel(SAVED_FILE_PATH)
+        st.session_state["df_raw"] = pd.read_excel(excel_files[0])
     except:
         pass
 
 df_raw = st.session_state.get("df_raw", None)
 
+# الحالة عندما يكون النظام مصفراً
 if df_raw is None or df_raw.empty:
     st.title("📦 Logistics Dashboard")
     st.warning("⚠️ النظام فارغ ومصفّر حالياً. يرجى رفع ملف إكسل من الشريط الجانبي لتشغيل اللوحة.")
     st.stop()
 
-# --- 3. تنظيف وتجهيز الأعمدة والحسابات ---
+# --- 2. تنظيف وتجهيز الأعمدة والحسابات ---
 df = df_raw.copy()
 df.columns = [str(c).strip() for c in df.columns]
 
@@ -83,7 +95,7 @@ for target, keywords in keywords_map.items():
             series_data = series_data.iloc[:, 0]
             
         if target in ['Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']:
-            series_clean = series_data.astype(str).str.replace('¥', '').str.replace('$', '').str.replace(',', '')
+            series_clean = series_data.astype(str).str.replace('¥', '').str.replace('$', '').str.replace(',', '').str.strip()
             final_columns[target] = pd.to_numeric(series_clean, errors='coerce').fillna(0)
         else:
             final_columns[target] = series_data.fillna("").astype(str).str.strip()
@@ -95,17 +107,19 @@ df_cleaned = pd.DataFrame(final_columns)
 if 'Container' in df_cleaned.columns:
     df_cleaned['Container'] = df_cleaned['Container'].replace('', None).ffill()
 
-# --- 4. واجهة البحث التفاعلية وعملية التصفية ---
+# --- 3. واجهة البحث التفاعلية وعملية التصفية ---
 st.title("📊 Logistics Dashboard")
 
 if 'Shipping_mark' in df_cleaned.columns:
-    df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(lambda x: x.split('-')[0] if '-' in x else x)
-    unique_codes = sorted(df_cleaned['Main_Code'].unique())
-    unique_codes = [c for c in unique_codes if c]
+    df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(lambda x: x.split('-')[0] if '-' in str(x) else str(x))
+    unique_codes = sorted([c for c in df_cleaned['Main_Code'].unique() if str(c).strip()])
 else:
+    unique_codes = []
+
+if not unique_codes:
     unique_codes = ["B12"]
 
-selected_code = st.selectbox("🔍 اختر أو ابحث عن كود الشحن لتجميع البيانات الخاصه به:", unique_codes)
+selected_code = st.selectbox("🔍 اختر أو ابحث عن كود الشحن لتجميع البيانات الخاصة به:", unique_codes)
 
 df_filtered = df_cleaned[df_cleaned['Main_Code'] == selected_code].reset_index(drop=True)
 
@@ -118,7 +132,7 @@ total_office_paid = float(df_filtered['Office_paid'].sum())
 total_cartons = int(df_filtered['Ctns'].sum())
 total_cbm = float(df_filtered['Cbm'].sum())
 
-# --- 5. [تصميم الشاشات العلوية الملونة بدقة عالية] ---
+# --- 4. تصميم الشاشات العلوية الملونة التفاعلية ---
 st.markdown(f"""
 <style>
     .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 25px; direction: rtl; }}
@@ -154,7 +168,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# إضافة تفاصيل الكراتين والحجم كشاشات تكميلية بنظام الـ Metrics الافتراضي
 col1, col2 = st.columns(2)
 with col1:
     st.metric(label="📦 إجمالي عدد الكراتين المجمعة (Sum of Ctns)", value=f"{total_cartons:,} كارتون")
@@ -163,26 +176,10 @@ with col2:
 
 st.markdown("---")
 
-# --- 6. عرض جدول البيانات المصفى بالكامل بالأسفل ---
+# --- 5. عرض جدول البيانات المصفى بالكامل بالأسفل ---
 st.subheader(f"📋 جدول التفاصيل التابع للكود المختار: {selected_code}")
 
-display_df = df_filtered[['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']].copy()
-display_df.columns = ['Container NO.', 'Shipping mark', 'Amount', 'Client paid', 'Office paid', 'Sum of Ctns', 'Sum of Cbm']
+available_display_cols = [c for c in ['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm'] if c in df_filtered.columns]
+display_df = df_filtered[available_display_cols].copy()
 
 st.dataframe(display_df, use_container_width=True, hide_index=True)
-
-# زر التنزيل
-try:
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        display_df.to_excel(writer, index=False, sheet_name='Filtered_Data')
-    processed_excel_data = output.getvalue()
-    st.sidebar.markdown("---")
-    st.sidebar.download_button(
-        label="📥 تحميل التقرير المصفى (Excel)",
-        data=processed_excel_data,
-        file_name=f"{selected_code}_report.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
-except:
-    pass
