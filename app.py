@@ -148,7 +148,7 @@ else:
             return "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الفائق والمطور (المطابقة الاحتوائية المزدوجة المرنة) 🌟 ---
+  # --- 4. نظام تسجيل الدخول الفائق والمطور (المطابقة المباشرة الشاملة) 🌟 ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
 
   if st.session_state.logged_in_customer is None:
