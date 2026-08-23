@@ -96,7 +96,7 @@ with st.sidebar:
     # ميزة الحفظ الدائم التلقائي في الخادم
     uploaded_file = None
     st.subheader("📁 تحديث جدول الشحنات")
-    new_file = st.file_uploader("رفع ملف إكسيل جديد (.xlsx)", type=["xlsx", "xls"], key="admin_uploader")
+    new_file = f=st.file_uploader("رفع ملف إكسيل جديد (.xlsx)", type=["xlsx", "xls"], key="admin_uploader")
     
     if new_file is not None:
         try:
