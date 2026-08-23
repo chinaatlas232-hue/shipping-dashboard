@@ -16,7 +16,7 @@ with st.sidebar:
   st.title("لوحة التحكم اللوجستية")
   st.markdown("---")
 
-  # أ. رفع ملف إكسل الجديد النظيف بالكامل
+  # أ. رفع ملف إكسل النظيف والمعدل
   st.subheader("📁 إدارة ملفات البيانات")
   uploaded_file = st.file_uploader(
       "رفع ملف بيانات الشحنات النظيف (.xlsx)", type=["xlsx", "xls"]
@@ -41,7 +41,7 @@ with st.sidebar:
         st.error("الرقم السري غير صحيح!")
 
 
-# --- 3. قراءة البيانات الأصلية من السطر الأول مباشرة ---
+# --- 3. قراءة البيانات الأصلية من ملف الإكسيل النظيف ---
 @st.cache_data
 def load_data(file):
   if file is not None:
@@ -58,210 +58,194 @@ df = load_data(uploaded_file)
 # التحقق من رفع الملف لعرض الداش بورد
 if df.empty:
   st.info(
-      "👋 مرحباً بك! يرجى رفع ملف الإكسيل النظيف من الشريط الجانبي لبدء حساب"
-      " وعرض البيانات فوراً."
+      "👋 مرحباً بك! يرجى رفع ملف الإكسيل النظيف من الشريط الجانبي لبدء حساب وعرض البيانات فوراً."
   )
 else:
-  # 🌟 الحل الذكي: البحث عن أسماء الأعمدة باللغتين العربية أو الإنجليزية لتجنب الخطأ تماماً
-  def get_real_column(english_name, arabic_name):
-      if english_name in df.columns:
-          return english_name
-      elif arabic_name in df.columns:
-          return arabic_name
-      # إذا لم يجد الاسم يبحث عن كلمة تقريبية
-      for col in df.columns:
-          if english_name.lower() in col.lower() or arabic_name in col:
-              return col
-      return english_name
+  # 🌟 تثبيت مسميات الأعمدة الحقيقية المستخرجة من ملفك حرفياً لحسم المشكلة نهائياً
+  container_col = "رقم الحاوية"
+  shipping_mark_col = "Shipping mark"
+  amt_col = "المجموع"
+  client_col = "الزبون دفع"
+  office_col = "المكتب دفع"
+  ctns_col = "عدد الكارتون"
+  cbm_col = "حجم"
 
-  container_col = get_real_column("Container NO.", "كونتينر رقم")
-  shipping_mark_col = get_real_column("Shipping mark", "ماركة الشحن")
-  amt_col = get_real_column("Amount", "المجموع")
-  client_col = get_real_column("Client paid", "الزبون دفع")
-  office_col = get_real_column("Office paid", "المكتب دفع")
-  ctns_col = get_real_column("Sum of Ctns", "العدد")
-  cbm_col = get_real_column("Sum of Cbm", "الوزن")
+  # تحويل الحقول النصية والمالية إلى قيم رقمية نظيفة لضمان حساب رياضي صائب 100%
+  for col in [amt_col, client_col, office_col, ctns_col, cbm_col]:
+    if col in df.columns:
+      df[col] = (
+          pd.to_numeric(
+              df[col]
+              .astype(str)
+              .str.replace(r"[^\d.]", "", regex=True),
+              errors="coerce",
+          )
+          .fillna(0)
+      )
 
-  # التأكد من أن الأعمدة الأساسية للفلترة موجودة فعلاً في الملف لمنع أي خروج مفاجئ
-  if container_col not in df.columns or shipping_mark_col not in df.columns:
-      st.error(f"⚠️ لم نتمكن من تحديد الأعمدة الأساسية تلقائياً. الأعمدة الحالية في ملفك هي: {list(df.columns)}")
+  # استبعاد أي سطر يحتوي على كلمة إجمالي أو Total مخزنة قديماً بالأسفل
+  df = df[
+      ~df[shipping_mark_col]
+      .astype(str)
+      .str.lower()
+      .str.contains("total|grand|إجمالي", na=False)
+  ]
+  df = df[df[container_col].notna()]
+
+  # --- 4. عنوان الواجهة الرئيسي ---
+  st.title("📦 Logistics Dashboard — B12")
+  st.markdown(
+      "Interactive view of shipments by container, shipping mark, payments and freight"
+  )
+  st.markdown("---")
+
+  # --- 5. الشريط الأفقي السريع (Selector) للحاويات الفريدة ---
+  container_options = ["الكل"] + list(df[container_col].dropna().unique())
+  st.markdown("##### 🗂️ شريط تصفية الحاويات السريع:")
+  selected_container = st.pills(
+      "اختر الحاوية",
+      options=container_options,
+      default="الكل",
+      label_visibility="collapsed",
+  )
+
+  # تصفية الجدول بناءً على خيار الفلتر السريع المختار
+  if selected_container != "الكل":
+    filtered_df = df[df[container_col] == selected_container]
   else:
-      # تحويل الحقول النصية والمالية إلى قيم رقمية نظيفة لضمان حساب رياضي صائب
-      for col in [amt_col, client_col, office_col, ctns_col, cbm_col]:
-        if col in df.columns:
-          df[col] = (
-              pd.to_numeric(
-                  df[col]
-                  .astype(str)
-                  .str.replace(r"[^\d.]", "", regex=True),
-                  errors="coerce",
-              )
-              .fillna(0)
-          )
+    filtered_df = df
 
-      # استبعاد أي سطر يحتوي على كلمة إجمالي أو Total مخزنة قديماً بالأسفل
-      df = df[
-          ~df[shipping_mark_col]
-          .astype(str)
-          .str.lower()
-          .str.contains("total|grand|إجمالي", na=False)
-      ]
-      df = df[df[container_col].notna()]
+  # --- 6. العمليات الحسابية والمؤشرات الديناميكية المطابقة 100% ---
+  total_orders = len(filtered_df)
+  total_containers = filtered_df[container_col].nunique()
+  total_amount_val = (
+      filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
+  )
+  total_client_paid = (
+      filtered_df[client_col].sum() if client_col in filtered_df.columns else 0
+  )
+  total_office_paid = (
+      filtered_df[office_col].sum() if office_col in filtered_df.columns else 0
+  )
+  total_cartons = (
+      int(filtered_df[ctns_col].sum()) if ctns_col in filtered_df.columns else 0
+  )
+  total_volume = (
+      round(filtered_df[cbm_col].sum(), 3)
+      if cbm_col in filtered_df.columns
+      else 0.0
+  )
 
-      # --- 4. عنوان الواجهة الرئيسي ---
-      st.title("📦 Logistics Dashboard — B12")
-      st.markdown(
-          "Interactive view of shipments by container, shipping mark, payments and freight"
-      )
-      st.markdown("---")
-
-      # --- 5. الشريط الأفقي السريع (Selector) للحاويات الفريدة ---
-      container_options = ["الكل"] + list(df[container_col].dropna().unique())
-      st.markdown("##### 🗂️ شريط تصفية الحاويات السريع:")
-      selected_container = st.pills(
-          "اختر الحاوية",
-          options=container_options,
-          default="الكل",
-          label_visibility="collapsed",
-      )
-
-      # تصفية الجدول بناءً على خيار الفلتر السريع المختار
-      if selected_container != "الكل":
-        filtered_df = df[df[container_col] == selected_container]
-      else:
-        filtered_df = df
-
-      # --- 6. العمليات الحسابية والمؤشرات الديناميكية المطابقة 100% ---
-      total_orders = len(filtered_df)
-      total_containers = filtered_df[container_col].nunique()
-      total_amount_val = (
-          filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
-      )
-      total_client_paid = (
-          filtered_df[client_col].sum() if client_col in filtered_df.columns else 0
-      )
-      total_office_paid = (
-          filtered_df[office_col].sum() if office_col in filtered_df.columns else 0
-      )
-      total_cartons = (
-          int(filtered_df[ctns_col].sum()) if ctns_col in filtered_df.columns else 0
-      )
-      total_volume = (
-          round(filtered_df[cbm_col].sum(), 3)
-          if cbm_col in filtered_df.columns
-          else 0.0
-      )
-
-      # دالة هندسية مخصصة لإنشاء بطاقات المؤشرات الاحترافية بالألوان الهادئة والأيقونات
-      def render_custom_card(title, value, icon, bg_color):
-        card_style = f"""
-            <div style="
-                background-color: {bg_color};
-                padding: 18px;
-                border-radius: 10px;
-                color: #ffffff;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-                margin-bottom: 15px;
-                font-family: sans-serif;
-            ">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 14px; opacity: 0.95; font-weight: 500;">{title}</span>
-                    <span style="font-size: 22px;">{icon}</span>
-                </div>
-                <div style="font-size: 25px; font-weight: bold; letter-spacing: 0.5px;">{value}</div>
+  # دالة هندسية مخصصة لإنشاء بطاقات المؤشرات الاحترافية بالألوان الهادئة والأيقونات
+  def render_custom_card(title, value, icon, bg_color):
+    card_style = f"""
+        <div style="
+            background-color: {bg_color};
+            padding: 18px;
+            border-radius: 10px;
+            color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+            font-family: sans-serif;
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 14px; opacity: 0.95; font-weight: 500;">{title}</span>
+                <span style="font-size: 22px;">{icon}</span>
             </div>
-            """
-        st.markdown(card_style, unsafe_allow_html=True)
+            <div style="font-size: 25px; font-weight: bold; letter-spacing: 0.5px;">{value}</div>
+        </div>
+        """
+    st.markdown(card_style, unsafe_allow_html=True)
 
-      # توزيع شبكة المؤشرات (الصف الأول)
-      row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
+  # توزيع شبكة المؤشرات (الصف الأول)
+  row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
 
-      with row1_col1:
-        render_custom_card("Orders (الطلبات الفرعية)", f"{total_orders}", "📋", "#4f46e5")
+  with row1_col1:
+    render_custom_card("Orders (الطلبات الفرعية)", f"{total_orders}", "📋", "#4f46e5")
 
-      with row1_col2:
-        render_custom_card(
-            "Containers (الحاويات)", f"{total_containers}", "🚢", "#0ea5e9"
-        )
+  with row1_col2:
+    render_custom_card(
+        "Containers (الحاويات)", f"{total_containers}", "🚢", "#0ea5e9"
+    )
 
-      with row1_col3:
-        render_custom_card(
-            "Total Amount", f"¥ {total_amount_val:,.2f}", "💵", "#10b981"
-        )
+  with row1_col3:
+    render_custom_card(
+        "Total Amount", f"¥ {total_amount_val:,.2f}", "💵", "#10b981"
+    )
 
-      with row1_col4:
-        render_custom_card(
-            "Client Paid", f"¥ {total_client_paid:,.2f}", "🤝", "#f59e0b"
-        )
+  with row1_col4:
+    render_custom_card(
+        "Client Paid", f"¥ {total_client_paid:,.2f}", "🤝", "#f59e0b"
+    )
 
-      with row1_col5:
-        render_custom_card(
-            "Office Paid", f"¥ {total_office_paid:,.2f}", "🏢", "#6366f1"
-        )
+  with row1_col5:
+    render_custom_card(
+        "Office Paid", f"¥ {total_office_paid:,.2f}", "🏢", "#6366f1"
+    )
 
-      # توزيع شبكة المؤشرات (الصف الثاني)
-      row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
+  # توزيع شبكة المؤشرات (الصف الثاني)
+  row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
 
-      with row2_col1:
-        render_custom_card(
-            "Cartons (الكراتين)", f"{total_cartons:,}", "📦", "#ec4899"
-        )
+  with row2_col1:
+    render_custom_card(
+        "Cartons (الكراتين)", f"{total_cartons:,}", "📦", "#ec4899"
+    )
 
-      with row2_col2:
-        st.write("")  # الفراغ الهندسي المعتمد بصورتك الأصلية
+  with row2_col2:
+    st.write("")  # الفراغ الهندسي المعتمد بصورتك الأصلية
 
-      with row2_col3:
-        render_custom_card(
-            "Volume / Weight (الحجم / الوزن)", f"{total_volume:,}", "📐", "#14b8a6"
-        )
+  with row2_col3:
+    render_custom_card(
+        "Volume (الحجم)", f"{total_volume:,}", "📐", "#14b8a6"
+    )
 
-      st.markdown("---")
+  st.markdown("---")
 
-      # --- 7. الرسوم البيانية التفاعلية المدعومة بـ Plotly ---
-      chart_col1, chart_col2 = st.columns(2)
+  # --- 7. الرسوم البيانية التفاعلية المدعومة بـ Plotly ---
+  chart_col1, chart_col2 = st.columns(2)
 
-      with chart_col1:
-        st.subheader("📊 Payments & Amount by Container")
-        y_cols = [
-            c
-            for c in [amt_col, office_col, client_col]
-            if c in filtered_df.columns
-        ]
-        if y_cols and container_col in filtered_df.columns:
-          fig_bar = px.bar(
-              filtered_df,
-              x=container_col,
-              y=y_cols,
-              barmode="group",
-              template="plotly_dark",
-              labels={"value": "المبالغ بالين", "variable": "نوع الدفع"},
-          )
-          st.plotly_chart(fig_bar, use_container_width=True)
-
-      with chart_col2:
-        st.subheader("🍩 Payment Split (نسب توزيع الأموال)")
-        split_data = pd.DataFrame({
-            "Type": ["Office Paid", "Client Paid"],
-            "Amount": [total_office_paid, total_client_paid],
-        })
-        fig_pie = px.pie(
-            split_data,
-            names="Type",
-            values="Amount",
-            hole=0.5,
-            template="plotly_dark",
-        )
-        st.plotly_chart(fig_pie, use_container_width=True)
-
-      # --- 8. عرض جدول البيانات الكامل بعد التنظيف ---
-      with st.expander("📋 عرض جدول البيانات الكاملة والنقية (الجدول الأم)"):
-        st.dataframe(filtered_df, use_container_width=True)
-
-      csv_data = filtered_df.to_csv(index=False).encode("utf-8")
-      st.sidebar.markdown("---")
-      st.sidebar.download_button(
-          label="📥 تحميل التقرير الحالي (CSV)",
-          data=csv_data,
-          file_name="logistics_report.csv",
-          mime="text/csv",
+  with chart_col1:
+    st.subheader("📊 Payments & Amount by Container")
+    y_cols = [
+        c
+        for c in [amt_col, office_col, client_col]
+        if c in filtered_df.columns
+    ]
+    if y_cols and container_col in filtered_df.columns:
+      fig_bar = px.bar(
+          filtered_df,
+          x=container_col,
+          y=y_cols,
+          barmode="group",
+          template="plotly_dark",
+          labels={"value": "المبالغ بالين", "variable": "نوع الدفع"},
       )
+      st.plotly_chart(fig_bar, use_container_width=True)
+
+  with chart_col2:
+    st.subheader("🍩 Payment Split (نسب توزيع الأموال)")
+    split_data = pd.DataFrame({
+        "Type": ["Office Paid", "Client Paid"],
+        "Amount": [total_office_paid, total_client_paid],
+    })
+    fig_pie = px.pie(
+        split_data,
+        names="Type",
+        values="Amount",
+        hole=0.5,
+        template="plotly_dark",
+    )
+    st.plotly_chart(fig_pie, use_container_width=True)
+
+  # --- 8. عرض جدول البيانات الكامل بعد التنظيف ---
+  with st.expander("📋 عرض جدول البيانات الكاملة والنقية (الجدول الأم)"):
+    st.dataframe(filtered_df, use_container_width=True)
+
+  csv_data = filtered_df.to_csv(index=False).encode("utf-8")
+  st.sidebar.markdown("---")
+  st.sidebar.download_button(
+      label="📥 تحميل التقرير الحالي (CSV)",
+      data=csv_data,
+      file_name="logistics_report.csv",
+      mime="text/csv",
+  )
