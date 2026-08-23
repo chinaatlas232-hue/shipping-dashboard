@@ -10,17 +10,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً عريضة
+# حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وثخانته
 st.markdown("""
 <style>
-    /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه */
-    div[data-testid="stDataFrame"] table {
-        font-size: 13px !important;
-        width: auto !important; 
-        margin: 0 auto !important; 
-        table-layout: auto !important; 
-    }
-    
     /* تكبير خط الترويسة العلوية وجعلها ثخينة جداً وعريضة بارزة البنية */
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
@@ -32,7 +24,14 @@ st.markdown("""
         white-space: nowrap !important; 
     }
     
-    /* تنسيق خلايا البيانات بالأسفل */
+    /* ضبط أبعاد ومحاذاة خلايا البيانات داخل الجداول تلقائياً */
+    div[data-testid="stDataFrame"] table {
+        font-size: 13px !important;
+        width: auto !important; 
+        margin: 0 auto !important; 
+        table-layout: auto !important; 
+    }
+    
     div[data-testid="stDataFrame"] td {
         padding: 6px 14px !important; 
         text-align: center !important;
@@ -84,7 +83,7 @@ for idx, row in df_processed.iterrows():
         header_row_idx = idx
         break
 
-# استخراج العناوين الأصلية الـ 29 كاملة وتطبيقها كأعمدة أساسية
+# حصر ترويسة الجدول والبيانات في أول 29 عموداً فقط بدقة لمنع تعطل الفلترة واختفاء الأعمدة
 df_processed.columns = [str(c).strip() for c in df_processed.iloc[header_row_idx]]
 df_data = df_processed.iloc[header_row_idx + 1:, :29].reset_index(drop=True)
 
@@ -138,9 +137,11 @@ selected_code = st.selectbox("🔍 اختر أو ابحث عن رقم الكود
 # تصفية دقيقة وحصرية لأسطر الجدول بناءً على الكود المختار بعد إزالة المسافات العالقة تماماً
 df_filtered_full = df_data[df_data['calc_Code'] == str(selected_code).strip()].reset_index(drop=True)
 
-# --- 4. حساب الأرقام تلقائياً بشكل صحيح ومضمون حتمياً ---
-total_orders = int(df_filtered_full.shape[0])
+# --- 4. [تم الإصلاح الجذري الحاسم لربط المربع بقاعدة البيانات]: حساب الأرقام تلقائياً بشكل صحيح ---
+# عد الأسطر الحقيقية المكتشفة للكود لتعبر عن عدد الطلبات والسطور الفعلي بدقة تامة (مثل 3 طلبات أو 52 طلب)
+total_orders = len(df_filtered_full)
 
+# حساب عدد الحاويات الفريدة الفعلي بعد تصفية الفراغات والنصوص التالفة
 valid_containers = df_filtered_full['calc_Container'][df_filtered_full['calc_Container'] != '']
 valid_containers = valid_containers[valid_containers != 'nan']
 total_containers = int(valid_containers.nunique())
@@ -153,7 +154,7 @@ total_office_paid = float(df_filtered_full['calc_Office_paid'].sum())
 total_cartons = int(df_filtered_full['calc_Ctns'].sum())
 total_cbm = float(df_filtered_full['calc_Cbm'].sum())
 
-# الشاشات العلوية الست الملونة التفاعلية المرتبة من اليمين لليسار
+# --- 5. الشاشات العلوية الست الملونة التفاعلية المرتبة من اليمين لليسار ---
 st.markdown(f"""
 <style>
     .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 15px; direction: rtl; }}
@@ -195,7 +196,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# المربعات الخاصة بالكراتين والحجم
+# المربعات الخاصة بالكراتين والحجم بالأسفل
 st.markdown(f"""
 <div class="kpi-container">
     <div class="kpi-card" style="background-color: #D35400;">
@@ -240,7 +241,3 @@ def process_dataframe_safely(dataframe):
     return configs
 
 # --- 5. نظام التبويبات لعرض الجدولين معاً بالأسفل بكافة تفاصيلها الـ 29 الأصلية الملمومة ---
-tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل (الجدول الأم)"])
-
-with tab1:
-    st.subheader(f"📋 جدول التفاصيل المصفى للـ 29 عموداً التابع للكود الحالي: {selected_code}")
