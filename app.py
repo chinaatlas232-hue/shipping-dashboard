@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# [تعديل الأمان القاطع]: البحث عن الملف محلياً داخل المستودع مباشرة لمنع مشاكل الروابط
+# مسار الملف محلياً داخل المستودع مباشرة
 SAVED_FILE_PATH = "permanent_shipping_data.xlsx"
 
 # التحقق من وجود الملف في مجلد المشروع لتشغيل لوحة التحكم فوراً
@@ -23,7 +23,7 @@ if os.path.exists(SAVED_FILE_PATH):
         st.stop()
 else:
     st.title("📦 Logistics Dashboard")
-    st.warning("⚠️ لم يتم العثور على ملف permanent_shipping_data.xlsx في المستودع. يرجى التأكد من رفع ملف الإكسل بنفس هذا الاسم تماماً بجانب ملف app.py على GitHub.")
+    st.warning("⚠️ لم يتم العثور على ملف permanent_shipping_data.xlsx في المستودع.")
     st.stop()
 
 # --- 2. البحث التلقائي الديناميكي عن سطر العناوين الحقيقي في جدولك ---
@@ -81,7 +81,6 @@ if 'Container' in df_cleaned.columns:
 st.title("📊 Logistics Dashboard")
 
 if 'Shipping_mark' in df_cleaned.columns:
-    # استخراج الكود الرئيسي النظيف مثل (B12) لتسهيل الفلترة والتجميع
     df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(lambda x: str(x).split('-')[0] if '-' in str(x) else str(x))
     unique_codes = sorted([c for c in df_cleaned['Main_Code'].unique() if str(c).strip()])
 else:
@@ -101,7 +100,7 @@ total_office_paid = float(df_filtered['Office_paid'].sum())
 total_cartons = int(df_filtered['Ctns'].sum())
 total_cbm = float(df_filtered['Cbm'].sum())
 
-# --- 4. الشاشات العلوية الست الملونة التفاعلية المستقرة والممتازة ---
+# --- 4. الشاشات العلوية الست الملونة التفاعلية ---
 st.markdown(f"""
 <style>
     .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 25px; direction: rtl; }}
@@ -145,10 +144,20 @@ with col2:
 
 st.markdown("---")
 
-# --- 5. عرض جدول الشحنات التفصيلي المصفى بالأسفل ---
-st.subheader(f"📋 جدول التفاصيل التابع للكود المختار: {selected_code}")
+# --- 5. نظام التبويبات لعرض الجداول بالأسفل ---
+tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
 
-display_df = df_filtered[['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']].copy()
-display_df.columns = ['Container NO.', 'Shipping mark', 'Amount', 'Client paid', 'Office paid', 'Sum of Ctns', 'Sum of Cbm']
+with tab1:
+    st.subheader(f"📋 جدول التفاصيل التابع للكود المختار: {selected_code}")
+    display_df = df_filtered[['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']].copy()
+    display_df.columns = ['Container NO.', 'Shipping mark', 'Amount', 'Client paid', 'Office paid', 'Sum of Ctns', 'Sum of Cbm']
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
 
-st.dataframe(display_df, use_container_width=True, hide_index=True)
+with tab2:
+    st.subheader("📋 جدول ملف الإكسل الأصلي الكامل (دون تصفية)")
+    # تجهيز الملف الكامل ليقرأ من الترويسة المكتشفة مع الاحتفاظ بكافة الأعمدة والسطور الأصلية
+    full_display_df = df_raw.iloc[header_row_idx:].reset_index(drop=True)
+    full_display_df.columns = [str(c) for c in full_display_df.iloc[0]]
+    full_display_df = full_display_df.iloc[1:].reset_index(drop=True)
+    
+    st.dataframe(full_display_df, use_container_width=True, hide_index=True)
