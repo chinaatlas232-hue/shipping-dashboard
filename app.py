@@ -3,7 +3,7 @@ import pandas as pd
 import io
 import os
 
-# نسخة برمجية جديدة لكسر كاش السيرفر إجبارياً: v2.0.1
+# نسخة برمجية جديدة لكسر كاش السيرفر إجبارياً: v3.0.0
 # 1. إعدادات الصفحة لتكون عريضة
 st.set_page_config(
     page_title="Logistics Dashboard", 
@@ -11,7 +11,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتعديل أبعاد الجداول والسكرول العريض
+# حقن تنسيقات مخصصة لتعديل أبعاد الجداول والسكرول العريض والتنسيق الملموم
 st.markdown("""
 <style>
     div[data-testid="stDataFrame"] table {
@@ -171,7 +171,7 @@ total_office_paid = float(df_filtered['Office_paid'].sum())
 total_cartons = int(df_filtered['Ctns'].sum())
 total_cbm = float(df_filtered['Cbm'].sum())
 
-# --- 4. الشاشات العلوية الست الملونة التفاعلية بالترتيب المعتمد المكتوب باليد ---
+# --- 4. الشاشات العلوية الست الملونة التفاعلية بالترتيب المعتمد المكتوب باليد من اليمين لليسار ---
 st.markdown(f"""
 <style>
     .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 25px; direction: rtl; }}
@@ -221,7 +221,7 @@ with col2:
 
 st.markdown("---")
 
-# --- 5. نظام التبويبات لعرض الجداول بالأبعاد المنسقة والمناسبة ---
+# --- 5. نظام التبويبات لعرض الجداول بالأبعاد الملوية والمناسبة الشاملة ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
 
 with tab1:
@@ -237,8 +237,9 @@ with tab2:
     raw_headers = [str(c).strip() for c in full_display_df.iloc]
     clean_headers = []
     
-    num_cols = full_display_df.shape
-    for i in range(num_cols):
+    # [تم الإصلاح الجذري لحل خطأ الـ ValueError والأبعاد المتغيرة في المتغير البرمجي بالكامل]
+    num_cols_fixed = full_display_df.shape[1]
+    for i in range(num_cols_fixed):
         if i < len(raw_headers):
             h = raw_headers[i]
             if h == "" or h == "nan":
