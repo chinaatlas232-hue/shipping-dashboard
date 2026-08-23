@@ -48,13 +48,10 @@ with st.sidebar:
   st.title("إدارة النظام - أطلس")
   st.markdown("---")
 
-  # قراءة الملف الثابت data.xlsx المرفوع على GitHub لضمان استقرار الخدمة على الهواتف
-  if os.path.exists("data.xlsx"):
-      uploaded_file = "data.xlsx"
-  else:
-      uploaded_file = None
+  # تحديد مسار الملف الافتراضي المرفوع على السيرفر
+  uploaded_file = "data.xlsx" if os.path.exists("data.xlsx") else None
 
-  # إتاحة الرفع اليدوي للإدارة فقط عند دخول المدير بكود 881988
+  # ميزة الرفع الفوري والتحديث المباشر للإدارة عند دخول المدير بكود 881988
   if st.session_state.logged_in_customer == "الكل":
       st.subheader("📁 تحديث قاعدة البيانات")
       new_file = st.file_uploader(
@@ -64,12 +61,22 @@ with st.sidebar:
           uploaded_file = new_file
 
 
-# --- 3. دالة قراءة وتجهيز البيانات النظيفة والمباشرة (تم إصلاح بدء قراءة الأسطر) 🌟 ---
-def load_data_fresh(file):
+# --- 3. دالة ذكية لقراءة الشيت الصحيح وتفادي الجداول الفارغة 🌟 ---
+def load_data_smart(file):
   if file is not None:
     try:
-        # 🌟 قراءة الملف من السطر الأول مباشرة لضمان جلب كافة الأكواد دون تخطي
-        raw_df = pd.read_excel(file, header=0)
+        # فتح ملف الإكسيل ككائن لقراءة أسماء الصفحات المتاحة
+        xl = pd.ExcelFile(file)
+        # البحث عن أول صفحة تحتوي على بيانات وليست فارغة
+        target_sheet = xl.sheet_names[0]
+        for sheet in xl.sheet_names:
+            test_df = pd.read_excel(file, sheet_name=sheet, nrows=5)
+            if not test_df.empty and len(test_df.columns) > 2:
+                target_sheet = sheet
+                break
+        
+        # قراءة الصفحة الصحيحة المكتشفة من السطر الأول الصافي
+        raw_df = pd.read_excel(file, sheet_name=target_sheet, header=0)
         raw_df.columns = raw_df.columns.str.strip()
         return raw_df
     except Exception as e:
@@ -78,7 +85,7 @@ def load_data_fresh(file):
     return pd.DataFrame()
 
 
-df = load_data_fresh(uploaded_file)
+df = load_data_smart(uploaded_file)
 
 # التحقق من وجود بيانات لبدء العرض
 if df.empty:
@@ -86,7 +93,7 @@ if df.empty:
     <div class='login-box'>
         <h2 style='color: white;'>🏛️ شركة أطلس للشحن والتجارة العامة</h2>
         <h4 style='color: #4f46e5;'>بوابة العملاء اللوجستية</h4>
-        <p style='color: #94a3b8; margin-top: 15px;'>نظام الإدارة قيد الانتظار. يرجى التأكد من رفع ملف قاعدة البيانات وتسميته <b>data.xlsx</b> داخل حساب GitHub بجانب ملف الكود app.py لكي يعمل الرابط مباشرة.</p>
+        <p style='color: #94a3b8; margin-top: 15px;'>نظام الإدارة قيد الانتظار. يرجى من مدير النظام رفع قاعدة البيانات الشاملة من زر الرفع في الشريط الجانبي لتفعيل الخدمة للعملاء.</p>
     </div>
   """, unsafe_allow_html=True)
   
@@ -94,7 +101,7 @@ if df.empty:
       col_space1, col_admin_login, col_space2 = st.columns(3)
       with col_admin_login:
           with st.form("admin_login_initial"):
-              admin_pwd = st.text_input("🔑 دخول الإدارة المباشر:", type="password")
+              admin_pwd = st.text_input("🔑 دخول الإدارة المباشر لتفعيل الملف:", type="password")
               submit_admin = st.form_submit_button("دخول مدير النظام 👑")
               if submit_admin and admin_pwd.strip() == "881988":
                   st.session_state.logged_in_customer = "الكل"
@@ -193,6 +200,7 @@ else:
       df_client = df
       st.sidebar.markdown("👑 صلاحية: **مدير النظام**")
       
+      # عرض كاشف الأكواد الفعلي للإدارة لضمان الشفافية ومطابقة الحسابات
       st.sidebar.markdown("### 🔍 كاشف الأكواد المتاحة بالملف:")
       st.sidebar.dataframe(pd.DataFrame({"الأكواد المسجلة": valid_codes}), height=200)
       
@@ -220,9 +228,3 @@ else:
   selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
 
   filtered_df = temp_df
-  if selected_mark != "الكل" and shipping_mark_col in filtered_df.columns:
-      filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
-
-  # --- 8. العمليات الحسابية والمؤشرات الديناميكية للعميل المختار ---
-  total_orders = len(filtered_df)
-  total_containers = filtered_df[container_col].nunique() if container_col in filtered_df.columns else 0
