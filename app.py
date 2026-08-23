@@ -22,7 +22,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. الشريط الجانبي: إدارة الملفات المباشرة دون باسورد ---
+# --- 2. الشريط الجانبي: مخصص لك لرفع قاعدة البيانات الموحدة ---
 with st.sidebar:
   if os.path.exists("logo.png"):
       st.image("logo.png", width=120)
@@ -31,17 +31,17 @@ with st.sidebar:
   else:
       st.markdown("<h2 style='margin:0;'>📦</h2>", unsafe_allow_html=True)
       
-  st.title("لوحة التحكم اللوجستية")
+  st.title("إدارة النظام - B12")
   st.markdown("---")
 
-  # رفع ملف إكسل المباشر والذكي تلقائي التحديث
-  st.subheader("📁 إدارة ملفات البيانات")
+  # رفع ملف إكسل الأم الموحد الذي يحتوي على كل العملاء
+  st.subheader("📁 رفع قاعدة البيانات")
   uploaded_file = st.file_uploader(
-      "رفع ملف بيانات الشحنات النظيف (.xlsx)", type=["xlsx", "xls"]
+      "رفع ملف الإكسيل الشامل لكافة العملاء (.xlsx)", type=["xlsx", "xls"]
   )
 
 
-# --- 3. قراءة البيانات الأصلية من ملف الإكسيل النظيف ---
+# --- 3. قراءة البيانات الأصلية النظيفة ---
 @st.cache_data
 def load_data(file):
   if file is not None:
@@ -54,13 +54,14 @@ def load_data(file):
 
 df = load_data(uploaded_file)
 
-# التحقق من رفع الملف لعرض الداش بورد
+# التحقق من وجود بيانات لبدء العرض
 if df.empty:
-  st.info(
-      "👋 مرحباً بك! يرجى رفع ملف الإكسيل النظيف من الشريط الجانبي لبدء حساب وعرض البيانات فوراً."
-  )
+  st.info("👋 مرحباً بك! يرجى رفع ملف الإكسيل الشامل من الشريط الجانبي لبدء تشغيل لوحة تحكم العملاء.")
 else:
-  # مسميات الأعمدة الأساسية والمالية الحقيقية لجدولك
+  # 🌟 تعيين العمود مصفح العملاء بناءً على اسم "code" الموجود في ملفك حرفياً
+  client_name_col = "code"
+  
+  # بقية مسميات الأعمدة الحقيقية لجدولك النظيف
   container_col = "رقم الحاوية"
   shipping_mark_col = "Shipping mark"
   amt_col = "المجموع"
@@ -72,22 +73,17 @@ else:
   collected_col = "قيمة الاستحصالات"
   remaining_col = "متبقي حقيقي"
 
-  # تحويل الحقول إلى قيم رقمية نظيفة لحسابات دقيقة وتطهير العملات
+  # تحويل الحقول المالية والعددية إلى قيم رقمية نظيفة لحسابات دقيقة 100%
   all_numeric_cols = [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]
   for col in all_numeric_cols:
     if col in df.columns:
-      df[col] = (
-          pd.to_numeric(
-              df[col].astype(str).str.replace(r"[^\d.]", "", regex=True),
-              errors="coerce"
-          ).fillna(0)
-      )
+      df[col] = pd.to_numeric(df[col].astype(str).str.replace(r"[^\d.]", "", regex=True), errors="coerce").fillna(0)
 
-  # ax استبعاد أسطر الإجماليات الصلبة من ملف الإكسيل لترك الحسابات لبايثون
+  # استبعاد أسطر الإجماليات يدوية الصنع
   df = df[~df[shipping_mark_col].astype(str).str.lower().str.contains("total|grand|إجمالي", na=False)]
   df = df[df[container_col].notna()]
 
-  # حساب عمود حالة الدفع في الجدول بناءً على المتبقي الحقيقي
+  # حساب حالة الدفع بناءً على المتبقي الحقيقي
   def check_payment_status(row):
       if row[remaining_col] <= 0:
           return "مدفوع بالكامل ✅"
@@ -96,22 +92,36 @@ else:
           
   df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. عنوان الواجهة الرئيسي ---
+  # --- 4. عنوان الواجهة الرئيسي للزبائن ---
   st.title("📦 Logistics Dashboard — B12")
-  st.markdown("Interactive view of shipments by container, shipping mark, payments and freight")
+  st.markdown("Interactive view of shipments, payments and dynamic balances")
   st.markdown("---")
 
-  # --- 5. شريط التصفية والسيليكر المزدوج (الحاويات + ماركة الشحن) ---
+  # --- 5. أشرطة التصفية السريعة والذكية (سيليكر كود الزبون + الحاوية + الماركة) ---
   st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
   
-  container_options = ["الكل"] + list(df[container_col].dropna().unique())
+  # الفلتر الأول والأساسي للعملاء بناءً على عمود code
+  if client_name_col in df.columns:
+      client_options = ["الكل"] + list(df[client_name_col].dropna().unique())
+      selected_client = st.pills("اختر الكود الخاص بك (Customer Code):", options=client_options, default="الكل", key="client_pill")
+      if selected_client != "الكل":
+          df_client = df[df[client_name_col] == selected_client]
+      else:
+          df_client = df
+  else:
+      df_client = df
+      st.warning(f"⚠️ لم نجد عمود باسم '{client_name_col}' في ملفك الحالي.")
+
+  # الفلتر الثاني: تصفية الحاويات التابعة للزبون المختار فقط
+  container_options = ["الكل"] + list(df_client[container_col].dropna().unique())
   selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
 
   if selected_container != "الكل":
-      temp_df = df[df[container_col] == selected_container]
+      temp_df = df_client[df_client[container_col] == selected_container]
   else:
-      temp_df = df
+      temp_df = df_client
 
+  # الفلتر الثالث: تصفية ماركة الشحن
   shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique())
   selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
 
@@ -119,7 +129,7 @@ else:
   if selected_mark != "الكل":
       filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
 
-  # --- 6. العمليات الحسابية والمؤشرات الديناميكية الأساسية ---
+  # --- 6. العمليات الحسابية والمؤشرات الديناميكية الأساسية المعزولة بدقة ---
   total_orders = len(filtered_df)
   total_containers = filtered_df[container_col].nunique()
   total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
@@ -133,7 +143,7 @@ else:
   sh_collected = filtered_df[collected_col].sum() if collected_col in filtered_df.columns else 0
   sh_remaining = filtered_df[remaining_col].sum() if remaining_col in filtered_df.columns else 0
 
-  # التحقق من حالة دفع التقرير المصفى الحالي بالدولار الأمريكي $
+  # تحديد نص حالة الدفع بالدولار $
   if sh_remaining <= 0:
       payment_status_text = "مدفوعة بالكامل ✅"
       status_card_color = "#10b981" 
@@ -156,7 +166,7 @@ else:
         """
     st.markdown(card_style, unsafe_allow_html=True)
 
-  # عرض لوحة المقاييس الأساسية المحدثة بالدولار وبدون تعقيد
+  # عرض لوحة المقاييس الأساسية بالدولار
   row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
   with row1_col1: render_custom_card("Orders (الطلبات الفرعية)", f"{total_orders}", "📋", "#4f46e5")
   with row1_col2: render_custom_card("Containers (الحاويات)", f"{total_containers}", "🚢", "#0ea5e9")
@@ -193,7 +203,7 @@ else:
       st.plotly_chart(fig_sh_bar, use_container_width=True)
       st.markdown("---")
 
-  # --- 8. عرض جدول البيانات الكامل بشكل مباشر (مفتوح دائماً وبخط واضح) ---
+  # --- 8. عرض جدول البيانات الكامل المفتوح دائماً والمصفى حسب كود الزبون ---
   st.subheader("📋 جدول البيانات الشاملة والنقية (الجدول الأم الكامل)")
   st.dataframe(filtered_df, use_container_width=True, height=550)
 
