@@ -22,7 +22,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. الشريط الجانبي: إدارة الملفات والأمان ---
+# --- 2. الشريط الجانبي: إدارة الملفات المباشرة دون باسورد ---
 with st.sidebar:
   if os.path.exists("logo.png"):
       st.image("logo.png", width=120)
@@ -34,29 +34,11 @@ with st.sidebar:
   st.title("لوحة التحكم اللوجستية")
   st.markdown("---")
 
-  # أ. رفع ملف إكسل النظيف والمعدل
+  # رفع ملف إكسل المباشر والذكي تلقائي التحديث
   st.subheader("📁 إدارة ملفات البيانات")
   uploaded_file = st.file_uploader(
       "رفع ملف بيانات الشحنات النظيف (.xlsx)", type=["xlsx", "xls"]
   )
-
-  st.markdown("---")
-
-  # ب. زر التحديث الآمن برقم سري (881988)
-  st.subheader("🔄 تحديث النظام")
-  with st.form("refresh_form"):
-    entered_password = st.text_input(
-        "أدخل الرقم السري للتحديث:", type="password"
-    )
-    submit_refresh = st.form_submit_button("تحديث وتحميل البيانات ⚡")
-
-    if submit_refresh:
-      if entered_password == "881988":
-        st.cache_data.clear()
-        st.success("تم التحديث بنجاح! جاري إعادة التحميل...")
-        st.rerun()
-      else:
-        st.error("الرقم السري غير صحيح!")
 
 
 # --- 3. قراءة البيانات الأصلية من ملف الإكسيل النظيف ---
@@ -90,7 +72,7 @@ else:
   collected_col = "قيمة الاستحصالات"
   remaining_col = "متبقي حقيقي"
 
-  # تحويل الحقول إلى قيم رقمية نظيفة لحسابات دقيقة وتطهير العملات السابقة
+  # تحويل الحقول إلى قيم رقمية نظيفة لحسابات دقيقة وتطهير العملات
   all_numeric_cols = [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]
   for col in all_numeric_cols:
     if col in df.columns:
@@ -101,7 +83,7 @@ else:
           ).fillna(0)
       )
 
-  # استبعاد أسطر الإجماليات الصلبة من ملف الإكسيل لترك الحسابات لبايثون
+  # ax استبعاد أسطر الإجماليات الصلبة من ملف الإكسيل لترك الحسابات لبايثون
   df = df[~df[shipping_mark_col].astype(str).str.lower().str.contains("total|grand|إجمالي", na=False)]
   df = df[df[container_col].notna()]
 
@@ -151,7 +133,7 @@ else:
   sh_collected = filtered_df[collected_col].sum() if collected_col in filtered_df.columns else 0
   sh_remaining = filtered_df[remaining_col].sum() if remaining_col in filtered_df.columns else 0
 
-  # 🌟 التعديل المطلوب: تحويل نص حالة الدفع والمؤشرات لتدعم رمز الدولار الأمريكي $ بدلاً من الرمز الصيني 🌟
+  # التحقق من حالة دفع التقرير المصفى الحالي بالدولار الأمريكي $
   if sh_remaining <= 0:
       payment_status_text = "مدفوعة بالكامل ✅"
       status_card_color = "#10b981" 
@@ -174,7 +156,7 @@ else:
         """
     st.markdown(card_style, unsafe_allow_html=True)
 
-  # عرض لوحة المقاييس الأساسية المحدثة بالدولار
+  # عرض لوحة المقاييس الأساسية المحدثة بالدولار وبدون تعقيد
   row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
   with row1_col1: render_custom_card("Orders (الطلبات الفرعية)", f"{total_orders}", "📋", "#4f46e5")
   with row1_col2: render_custom_card("Containers (الحاويات)", f"{total_containers}", "🚢", "#0ea5e9")
