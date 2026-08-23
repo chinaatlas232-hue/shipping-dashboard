@@ -145,7 +145,7 @@ else:
   ctns_col = find_col(["عدد الكارتون", "العدد", "Cartons", "الكراتين"], "عدد الكارتون")
   cbm_col = find_col(["حجم", "الحجم", "Volume", "CBM"], "حجم")
   customs_col = find_col(["مبلغ الجمرك", "الجمرك", "Customs", "جمرك"], "مبلغ الجمرك")
-  collected_col = find_col(["قيمة الاستحصالات", "الاستحصالات", "Collected", "استحصالات"], "قيمة الاستحصالات")
+  collected_col = find_col(["قيمة الاستحصالات", "الاستحصالات", "Collected"], "قيمة الاستحصالات")
   remaining_col = find_col(["متبقي حقيقي", "المتبقي", "Remaining", "متبقي"], "متبقي حقيقي")
 
   # تحويل كافة قيم عمود الأكواد لنصوص صافية ممسوحة المسافات
@@ -215,7 +215,7 @@ else:
                       st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة في النظام!")
       st.stop() 
 
-  # --- 5. فلترة وعزل الحسابات الفردية لكل زبون تأميناً للسرية والخصوصية ---
+  # --- 5. عزل الحسابات الفردية لكل زبون تأميناً للسرية والخصوصية ---
   selected_client = st.session_state.logged_in_customer
   
   if selected_client != "الكل" and client_name_col in df.columns:
