@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً وعريضة
+# حقن تنسيقات مخصصة لتصغير الفراغات العريضة وتثبيت ستايل الترويسة الثخينة الكبيرة
 st.markdown("""
 <style>
     /* تكبير خط الترويسة العلوية وجعلها ثخينة جداً وعريضة بارزة البنية */
@@ -36,7 +36,7 @@ st.markdown("""
         padding: 6px 14px !important; 
         white-space: nowrap !important;
         font-weight: 700 !important;
-        text-align: center !important; /* محاذاة كافة النصوص والأرقام بشكل منسق في المنتصف تفادياً للأخطاء */
+        text-align: center !important;
     }
     
     /* شريط التمرير (السكرول) عريض ومريح للإمساك بالماوس */
@@ -127,18 +127,21 @@ st.title("📊 Logistics Dashboard")
 if 'calc_Code' in df_data.columns:
     unique_codes = sorted([str(c).strip() for c in df_data['calc_Code'].unique() if str(c).strip() and str(c).strip() != 'nan'])
 else:
-    unique_codes = ["T104"]
+    unique_codes = ["B12"]
 
 if not unique_codes:
-    unique_codes = ["T104"]
+    unique_codes = ["B12"]
 
 selected_code = st.selectbox("🔍 اختر أو ابحث عن رقم الكود لتتجمع البيانات الخاصة به تلقائياً في الأعلى:", unique_codes)
 
 # تصفية دقيقة وحصرية لأسطر الجدول بناءً على الكود المختار
 df_filtered_full = df_data[df_data['calc_Code'] == selected_code].reset_index(drop=True)
 
-# حساب الإحصائيات التجميعية الحقيقية للمربعات الستة
-total_orders = df_filtered_full['calc_Code'].nunique() if len(df_filtered_full) > 0 else 0
+# --- 4. [تم الإصلاح الجوهري هنا]: معادلة حساب الإحصائيات التجميعية الصحيحة ---
+# عدد الطلبات يحسب الآن بناءً على إجمالي عدد أسطر البيانات الفعلية المكتشفة للكود المختار بالملف (مثل 52)
+total_orders = len(df_filtered_full)
+
+# عدد الحاويات يحسب بدقة بناءً على القيم الفريدة وغير الفارغة لرقم الحاوية (مثل 7)
 valid_containers = df_filtered_full['calc_Container'][df_filtered_full['calc_Container'] != '']
 total_containers = valid_containers.nunique() if len(valid_containers) > 0 else 0
 if total_containers == 0 and len(df_filtered_full) > 0:
@@ -150,7 +153,7 @@ total_office_paid = float(df_filtered_full['calc_Office_paid'].sum())
 total_cartons = int(df_filtered_full['calc_Ctns'].sum())
 total_cbm = float(df_filtered_full['calc_Cbm'].sum())
 
-# --- 4. الشاشات العلوية الست الملونة التفاعلية المرتبة من اليمين لليسار ---
+# الشاشات العلوية الست الملونة التفاعلية المرتبة من اليمين لليسار
 st.markdown(f"""
 <style>
     .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 15px; direction: rtl; }}
@@ -208,35 +211,35 @@ st.markdown(f"""
 
 st.markdown("---")
 
-# [حل المشكلة القاطع والمستقر الحتمي لمنع اختفاء الجداول للأبد]: دالة تحويل آمنة للتواريخ دون لمس بقية خواص عرض السلاسل
-def safe_format_date_column(df, column_name):
+# دالة مخصصة آمنة لتنظيف وتنسيق خلايا الجداول والتواريخ دون حدوث انهيار صامت
+def safe_format_date_cell(x):
+    x_str = str(x).strip()
+    if x_str.isdigit() and len(x_str) >= 10:
+        try:
+            return pd.to_datetime(int(x_str), unit='ms', errors='ignore').strftime('%Y-%m-%d')
+        except:
+            return x_str
     try:
-        def fix_cell(x):
-            x_str = str(x).strip()
-            if x_str.isdigit() and len(x_str) >= 10:
-                try:
-                    return pd.to_datetime(int(x_str), unit='ms', errors='coerce').strftime('%Y-%m-%d')
-                except:
-                    return x_str
-            try:
-                return pd.to_datetime(x, errors='coerce').strftime('%Y-%m-%d')
-            except:
-                return x_str
-        df[column_name] = df[column_name].apply(fix_cell).fillna(df[column_name].astype(str))
+        return pd.to_datetime(x, errors='ignore').strftime('%Y-%m-%d')
     except:
-        pass
+        return x_str
 
-# معالجة التواريخ في الجداول تلقائياً قبل العرض دون التسبب في انهيار صامت
-for col in df_data.columns:
-    col_clean = str(col).strip().lower()
-    if 'تاريخ' in col_clean or 'date' in col_clean:
-        safe_format_date_column(df_filtered_full, col)
-        safe_format_date_column(df_data, col)
+def process_dataframe_safely(dataframe):
+    configs = {}
+    for col in dataframe.columns:
+        col_clean = str(col).strip().lower()
+        if 'تاريخ' in col_clean or 'date' in col_clean:
+            dataframe[col] = dataframe[col].apply(safe_format_date_cell).fillna(dataframe[col].astype(str))
+            configs[col] = st.column_config.TextColumn(col, alignment="center")
+        else:
+            sample = str(dataframe[col].dropna().iloc) if not dataframe[col].dropna().empty else ""
+            if dataframe[col].dtype in ['int64', 'float64'] or any(sym in sample for sym in ['¥', '$', '.']):
+                configs[col] = st.column_config.TextColumn(col, alignment="right")
+            else:
+                configs[col] = st.column_config.TextColumn(col, alignment="center")
+    return configs
 
-# --- 5. علامات التبويب المضمونة لعرض الجداول بكامل تفاصيلها الـ 29 الأصلية الملمومة ---
+# --- 5. نظام التبويبات لعرض الجدولين معاً بالأسفل بكافة تفاصيلها الـ 29 الأصلية الملمومة ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل (الجدول الأم)"])
 
 with tab1:
-    st.subheader(f"📋 جدول التفاصيل المصفى للـ 29 عموداً التابع للكود الحالي: {selected_code}")
-    # عزل الأعمدة الحسابية المؤقتة وعرض الـ 29 عموداً الأساسية الحقيقية بنجاح تام وبشكل حتمي ومستقر
-    display_cols = [c for c in df_filtered_full.columns if not str(c).startswith('calc_') and c != 'Main_Code']
