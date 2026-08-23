@@ -37,7 +37,7 @@ st.markdown("""
 if "logged_in_customer" not in st.session_state:
     st.session_state.logged_in_customer = None
 
-# --- 2. الشريط الجانبي الذكي لمدير النظام ---
+# --- 2. الشريط الجانبي الذكي لرفع وتحديث قاعدة البيانات حياً ومباشراً ---
 with st.sidebar:
   if os.path.exists("logo.png"):
       st.image("logo.png", width=120)
@@ -49,25 +49,24 @@ with st.sidebar:
   st.title("إدارة النظام - أطلس")
   st.markdown("---")
 
-  # تحديد مسار الملف الافتراضي المرفوع على السيرفر
-  uploaded_file = "data.xlsx" if os.path.exists("data.xlsx") else None
-
-  # ميزة الرفع اليدوي والتحديث المباشر للإدارة عند دخول المدير بكود 881988
-  if st.session_state.logged_in_customer == "الكل":
-      st.subheader("📁 تحديث قاعدة البيانات")
-      new_file = st.file_uploader(
-          "رفع ملف جديد لتحديث البيانات (.xlsx)", type=["xlsx", "xls"], key="admin_uploader"
-      )
-      if new_file is not None:
-          uploaded_file = new_file
+  # 🌟 إعادة خيار الرفع المباشر لضمان كسر جمود الذاكرة القديمة (Cache) على كافة المتصفحات والهواتف 🌟
+  st.subheader("📁 رفع وتحديث البيانات")
+  uploaded_file = st.file_uploader(
+      "رفع ملف الإكسيل الشامل (.xlsx)", type=["xlsx", "xls"], key="main_uploader"
+  )
+  
+  # إذا لم يقم العميل برفع ملف يدوياً، يحاول النظام قراءة الملف الثابت من GitHub كخيار احتياطي
+  if uploaded_file is None and os.path.exists("data.xlsx"):
+      uploaded_file = "data.xlsx"
 
 
 # --- 3. دالة ذكية لقراءة الشيت الصحيح وتفادي الجداول الفارغة ---
 def load_data_smart(file):
   if file is not None:
     try:
+        # قراءة مباشرة دون أي دالة كاش لضمان التحديث الفوري حياً على الهواء
         xl = pd.ExcelFile(file)
-        target_sheet = xl.sheet_names
+        target_sheet = xl.sheet_names[0]
         for sheet in xl.sheet_names:
             test_df = pd.read_excel(file, sheet_name=sheet, nrows=5)
             if not test_df.empty and len(test_df.columns) > 2:
@@ -90,19 +89,9 @@ if df.empty:
     <div class='login-box'>
         <h2 style='color: white;'>🏛️ شركة أطلس للشحن والتجارة العامة</h2>
         <h4 style='color: #4f46e5;'>بوابة العملاء اللوجستية</h4>
-        <p style='color: #94a3b8; margin-top: 15px;'>نظام الإدارة قيد الانتظار. يرجى من مدير النظام رفع قاعدة البيانات الشاملة من زر الرفع في الشريط الجانبي لتفعيل الخدمة للعملاء.</p>
+        <p style='color: #94a3b8; margin-top: 15px;'>يرجى رفع ملف قاعدة البيانات الشاملة من زر الرفع في الشريط الجانبي ⬅️ لتفعيل الخدمة وعرض لوحة الدخول فوراً.</p>
     </div>
   """, unsafe_allow_html=True)
-  
-  if st.session_state.logged_in_customer is None:
-      col_space1, col_admin_login, col_space2 = st.columns(3)
-      with col_admin_login:
-          with st.form("admin_login_initial"):
-              admin_pwd = st.text_input("🔑 دخول الإدارة المباشر لتفعيل الملف:", type="password")
-              submit_admin = st.form_submit_button("دخول مدير النظام 👑")
-              if submit_admin and admin_pwd.strip() == "881988":
-                  st.session_state.logged_in_customer = "الكل"
-                  st.rerun()
   st.stop()
 else:
   # حل مرن للتعرف على الأعمدة وتفادي أخطاء المسميات
@@ -148,7 +137,7 @@ else:
             return "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الفائق والمطور (المطابقة المباشرة الشاملة) 🌟 ---
+  # --- 4. نظام تسجيل الدخول الفائق والمطور (المطابقة الاحتوائية المزدوجة المرنة) ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
 
   if st.session_state.logged_in_customer is None:
@@ -167,7 +156,7 @@ else:
               submit_login = st.form_submit_button("تسجيل الدخول الآمن 🔓")
               
               if submit_login:
-                  # تنظيف وتحضير المدخلات والمقارنة الاحتوائية الشاملة لضمان القبول الفوري 🌟
+                  # تنظيف وتحضير المدخلات والمقارنة الاحتوائية الشاملة لضمان القبول الفوري
                   user_text = str(password_input).strip().lower()
                   user_digits = str(re.sub(r'\D', '', user_text)).strip()
                   
@@ -229,3 +218,10 @@ else:
   else:
       temp_df = df_client
 
+  shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique()) if shipping_mark_col in temp_df.columns else ["الكل"]
+  selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
+
+  filtered_df = temp_df if selected_mark == "الكل" or shipping_mark_col not in temp_df.columns else temp_df[temp_df[shipping_mark_col] == selected_mark]
+
+  # --- 8. العمليات الحسابية والمؤشرات الديناميكية للعميل المختار ---
+  total_orders = len(filtered_df)
