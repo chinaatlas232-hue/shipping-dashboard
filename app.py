@@ -10,9 +10,17 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتصغير الفراغات العريضة وتثبيت ستايل الترويسة الثخينة الكبيرة
+# حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً عريضة
 st.markdown("""
 <style>
+    /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه */
+    div[data-testid="stDataFrame"] table {
+        font-size: 13px !important;
+        width: auto !important; 
+        margin: 0 auto !important; 
+        table-layout: auto !important; 
+    }
+    
     /* تكبير خط الترويسة العلوية وجعلها ثخينة جداً وعريضة بارزة البنية */
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
@@ -24,18 +32,11 @@ st.markdown("""
         white-space: nowrap !important; 
     }
     
-    /* ضبط أبعاد ومحاذاة خلايا البيانات داخل الجداول تلقائياً */
-    div[data-testid="stDataFrame"] table {
-        font-size: 13px !important;
-        width: auto !important; 
-        margin: 0 auto !important; 
-        table-layout: auto !important; 
-    }
-    
+    /* تنسيق خلايا البيانات بالأسفل */
     div[data-testid="stDataFrame"] td {
         padding: 6px 14px !important; 
+        text-align: center !important;
         white-space: nowrap !important;
-        font-weight: 700 !important;
     }
     
     /* شريط التمرير (السكرول) عريض ومريح للإمساك بالماوس */
@@ -216,30 +217,35 @@ with col2:
 
 st.markdown("---")
 
-# [حل المشكلة الجذري]: دالة حتمية لتعديل محتوى الخلايا بشكل مباشر دون التسبب في خطأ إخفاء الجداول
+# دالة حتمية لتعديل محتوى الخلايا بشكل مباشر دون التسبب في خطأ إخفاء الجداول
+def safe_format_date_cell(x):
+    x_str = str(x).strip()
+    if x_str.isdigit() and len(x_str) >= 10:
+        try:
+            return pd.to_datetime(int(x_str), unit='ms', errors='coerce').strftime('%Y-%m-%d')
+        except:
+            return x_str
+    try:
+        return pd.to_datetime(x, errors='coerce').strftime('%Y-%m-%d')
+    except:
+        return x_str
+
 def process_dataframe_safely(dataframe):
     configs = {}
     for col in dataframe.columns:
         col_clean = str(col).strip().lower()
-        
-        # تحويل محتوى عمود التاريخ بدقة وأمان لكل خلية تالفة أو نصية
         if 'تاريخ' in col_clean or 'date' in col_clean:
-            def fix_date_cell(x):
-                x_str = str(x).strip()
-                if x_str.isdigit() and len(x_str) >= 10:
-                    try:
-                        return pd.to_datetime(int(x_str), unit='ms', errors='coerce').strftime('%Y-%m-%d')
-                    except:
-                        return x_str
-                try:
-                    return pd.to_datetime(x, errors='coerce').strftime('%Y-%m-%d')
-                except:
-                    return x_str
-            dataframe[col] = dataframe[col].apply(fix_date_cell).fillna(dataframe[col].astype(str))
+            dataframe[col] = dataframe[col].apply(fix_date_cell_wrapper).fillna(dataframe[col].astype(str))
             configs[col] = st.column_config.TextColumn(col, alignment="center")
         else:
-            # فرز المحاذاة الافتراضية
             sample = str(dataframe[col].dropna().iloc) if not dataframe[col].dropna().empty else ""
             if dataframe[col].dtype in ['int64', 'float64'] or any(sym in sample for sym in ['¥', '$', '.']):
                 configs[col] = st.column_config.TextColumn(col, alignment="right")
             else:
+                configs[col] = st.column_config.TextColumn(col, alignment="center")
+    return configs
+
+def fix_date_cell_wrapper(x):
+    return safe_format_date_cell(x)
+
+# --- 5. نظام التبويبات لعرض الجداول بكافة تفاصيلها الـ 29 الأصلية وبأبعاد مضغوطة ملمومة ---
