@@ -10,15 +10,15 @@ st.set_page_config(
     layout="wide"
 )
 
-# [تعديل تقليص المسافات]: حقن تنسيقات مخصصة لتصغير الفراغات العريضة بين الأعمدة وجعل الجدول ملموماً ومتناسقاً
+# حقن تنسيقات مخصصة لتصغير الفراغات العريضة بين الأعمدة وجعل الجدول ملموماً ومتناسقاً
 st.markdown("""
 <style>
-    /* إلغاء التمدد الإجباري العريض وجعل الجدول ملموماً بحجم نصوصه */
+    /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه */
     div[data-testid="stDataFrame"] table {
         font-size: 13px !important;
-        width: auto !important; /* السماح للجدول بأخذ الحجم الطبيعي المضغوط للبيانات */
-        margin: 0 auto !important; /* محاذاة الجدول في المنتصف بشكل أنيق */
-        table-layout: auto !important; /* جعل عرض الأعمدة يتحدد تلقائياً حسب طول الكلمات دون فراغات زائدة */
+        width: auto !important; 
+        margin: 0 auto !important; 
+        table-layout: auto !important; 
     }
     
     /* تنسيق ترويسة الجدول العلوية - مسافات مضغوطة وملمومة */
@@ -27,13 +27,13 @@ st.markdown("""
         color: #2c3e50 !important;
         font-weight: bold !important;
         text-align: center !important;
-        padding: 6px 12px !important; /* تصغير الحشوة الداخلية (Padding) لمنع الفراغات العريضة */
-        white-space: nowrap !important; /* منع التفاف الكلمات أو قص الترويسة */
+        padding: 6px 12px !important; 
+        white-space: nowrap !important; 
     }
     
     /* تنسيق خلايا البيانات - مسافات مضغوطة وملمومة */
     div[data-testid="stDataFrame"] td {
-        padding: 6px 12px !important; /* تقليص مسافات الخلايا العريضة بالكامل */
+        padding: 6px 12px !important; 
         text-align: center !important;
         white-space: nowrap !important;
     }
@@ -221,15 +221,13 @@ with col2:
 
 st.markdown("---")
 
-# --- 5. نظام التبويبات لعرض الجداول بالمساحات المضغوطة الملمومة والمثالية ---
+# --- 5. نظام التبويبات لعرض الجداول بالمساحات المضغوطة الملمومة والمثالية الحقيقية ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
 
 with tab1:
     st.subheader(f"📋 جدول التفاصيل التابع للكود المختار: {selected_code}")
     display_df = df_filtered[['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']].copy()
     display_df.columns = ['رقم الحاوية', 'كود الشحن', 'المجموع (Amount)', 'الزبون دفع', 'المكتب دفع', 'مجموع الكراتين', 'مجموع الحجم']
-    
-    # إلغاء التوسيع الإجباري وعرض الجدول بحجمه الطبيعي الملموم
     st.dataframe(display_df, use_container_width=False, hide_index=True)
 
 with tab2:
@@ -239,10 +237,18 @@ with tab2:
     raw_headers = [str(c).strip() for c in full_display_df.iloc]
     clean_headers = []
     
-    num_cols_fixed = full_display_df.shape
+    # [تم الإصلاح الحاسم للمسافات البادئة والـ Indentation بنجاح تام]
+    num_cols_fixed = full_display_df.shape[1]
     for i in range(num_cols_fixed):
         if i < len(raw_headers):
             h = raw_headers[i]
             if h == "" or h == "nan":
                 clean_headers.append(f"فارغ_{i}")
             else:
+                clean_headers.append(h)
+        else:
+            clean_headers.append(f"عمود_إضافي_{i}")
+            
+    full_display_df.columns = clean_headers
+    full_display_df = full_display_df.iloc[1:].reset_index(drop=True)
+    st.dataframe(full_display_df, use_container_width=False, hide_index=True)
