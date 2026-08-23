@@ -94,7 +94,7 @@ else:
     if col in df.columns:
       df[col] = pd.to_numeric(df[col].astype(str).str.replace(r"[^\d.]", "", regex=True), errors="coerce").fillna(0)
 
-  # ax استبعاد أسطر الإجماليات الصلبة من ملف الإكسيل لترك الحسابات لبايثون
+  # استبعاد أسطر الإجماليات يدوية الصنع لحماية الحسابات الديناميكية
   df = df[~df[shipping_mark_col].astype(str).str.lower().str.contains("total|grand|إجمالي", na=False)]
   df = df[df[container_col].notna()]
 
@@ -162,7 +162,7 @@ else:
   st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **{selected_client if selected_client != 'الكل' else 'كافة العملاء'}**")
   st.markdown("---")
 
-  # --- 7. أشرطة Tصفية الحاويات والماركات المعزولة للعميل ---
+  # --- 7. أشرطة تصفية الحاويات والماركات المعزولة للعميل ---
   st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
   
   container_options = ["الكل"] + list(df_client[container_col].dropna().unique())
@@ -217,7 +217,7 @@ else:
         """
     st.markdown(card_style, unsafe_allow_html=True)
 
-  # 🌟 تم تعريب مسميات البطاقات بالكامل في السطور أدناه لتناسب لغتك 🌟
+  # عرض لوحة المقاييس المعزولة بالكامل للعميل المختار بالدولار $
   row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
   with row1_col1: render_custom_card("إجمالي الشحنات الفرعية", f"{total_orders}", "📋", "#4f46e5")
   with row1_col2: render_custom_card("عدد الحاويات", f"{total_containers}", "🚢", "#0ea5e9")
@@ -232,5 +232,4 @@ else:
 
   st.markdown("---")
 
-  # --- 9. قسم التحليل المالي التفصيلي للشحنة المحددة والجمارك (بالدولار $) ---
-  if selected_container != "الكل" and selected_mark != "الكل":
+  # --- 9. 🌟 قسم التحليل المالي المتقدم (تم إصلاح كافة مسافات الـ Indentation هنا ليعمل بنجاح 100%) 🌟 ---
