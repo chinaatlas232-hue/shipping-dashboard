@@ -3,6 +3,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 import os
+import re
 
 # --- 1. إعدادات الصفحة ---
 st.set_page_config(
@@ -147,9 +148,11 @@ else:
             return "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الاحترافي المحدث والمحصن بالكامل ---
+  # --- 4. نظام تسجيل الدخول الاحترافي الذكي المطور (تطهير الأرقام الصافي) 🌟 ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
-  valid_codes_clean = [str(c).strip().lower().replace('b', '') for c in valid_codes]
+  
+  # 🌟 سحب الأرقام فقط من كود الإكسيل وتفريغه من أي نصوص خفية (مثل تحويل 'kb130' أو '130' إلى '130' فقط)
+  valid_codes_clean = [str(re.sub(r'\D', '', str(c))).strip() for c in valid_codes]
 
   if st.session_state.logged_in_customer is None:
       st.markdown("""
@@ -163,13 +166,14 @@ else:
       col_space1, col_login, col_space2 = st.columns(3)
       with col_login:
           with st.form("login_form"):
-              password_input = st.text_input("🔑 أدخل كلمة المرور الخاصة بك (كود العميل):", type="password", help="كلمة المرور هي كود العميل الخاص بك مثل B4729")
+              password_input = st.text_input("🔑 أدخل كلمة المرور الخاصة بك (كود العميل):", type="password", help="كلمة المرور هي كود العميل الخاص بك مثل kb130")
               submit_login = st.form_submit_button("تسجيل الدخول الآمن 🔓")
               
               if submit_login:
-                  clean_input = str(password_input).strip().lower().replace('b', '')
+                  # 🌟 سحب الأرقام فقط من مدخلات الزبون (إذا كتب kb130 يسحب 130 فقط) لتفادي أي خطأ مطابقة 🌟
+                  clean_input = str(re.sub(r'\D', '', str(password_input))).strip()
                   
-                  if clean_input in valid_codes_clean:
+                  if clean_input and clean_input in valid_codes_clean:
                       actual_code = valid_codes[valid_codes_clean.index(clean_input)]
                       st.session_state.logged_in_customer = actual_code
                       st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم الخاصة بك...")
@@ -186,8 +190,8 @@ else:
   selected_client = st.session_state.logged_in_customer
   
   if selected_client != "الكل" and client_name_col in df.columns:
-      df_client = df[df[client_name_col].astype(str).str.strip().str.lower() == str(selected_client).lower().strip()]
-      st.sidebar.markdown(f"👤 العميل الحالي: **B{selected_client}**")
+      df_client = df[df[client_name_col].astype(str).str.strip() == str(selected_client).strip()]
+      st.sidebar.markdown(f"👤 العميل الحالي: **{selected_client}**")
       if st.sidebar.button("🚪 تسجيل الخروج الآمن"):
           st.session_state.logged_in_customer = None
           st.rerun()
@@ -204,7 +208,7 @@ else:
 
   # --- 6. عنوان الواجهة الرئيسي للزبون بعد تسجيل الدخول ---
   st.title("📦 Logistics Dashboard — أطلس")
-  st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **B{selected_client if selected_client != 'الكل' else 'كافة العملاء'}**")
+  st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **{selected_client if selected_client != 'الكل' else 'كافة العملاء'}**")
   st.markdown("---")
 
   # --- 7. أشرطة تصفية الحاويات والماركات المعزولة للعميل ---
@@ -222,7 +226,4 @@ else:
   selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
 
   filtered_df = temp_df
-  # 🌟 تم إصلاح مسافات الإزاحة البرمجية (Indentation) هنا وفي الأسطر التالية ليعود النظام للعمل فوراً 🌟
   if selected_mark != "الكل" and shipping_mark_col in filtered_df.columns:
-      filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
-
