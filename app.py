@@ -13,7 +13,7 @@ st.set_page_config(
 st.markdown("""
     <style>
     .dataframe th, .dataframe td {
-        font-size: 16px !important;
+        font-size: 15px !important;
         font-weight: 500 !important;
     }
     div[data-testid="stDataFrame"] div {
@@ -87,7 +87,7 @@ else:
   ctns_col = "عدد الكارتون"
   cbm_col = "حجم"
   
-  # مسميات الأعمدة المالية الجديدة المستخرجة من صورتك بدقة
+  # مسميات الأعمدة المالية الخاصة بالجمارك والمستخلصات
   customs_col = "مبلغ الجمرك"
   collected_col = "قيمة الاستحصالات"
   remaining_col = "متبقي حقيقي"
@@ -106,7 +106,7 @@ else:
           .fillna(0)
       )
 
-  # استبعاد أسطر الإجماليات الصلبة
+  # استبعاد أسطر الإجماليات الصلبة من ملف الإكسيل لترك الحسابات لبايثون
   df = df[
       ~df[shipping_mark_col]
       .astype(str)
@@ -114,6 +114,15 @@ else:
       .str.contains("total|grand|إجمالي", na=False)
   ]
   df = df[df[container_col].notna()]
+
+  # 🌟 خطوة إضافية حاسمة: حساب عمود حالة الدفع في الجدول بناءً على المتبقي الحقيقي
+  def check_payment_status(row):
+      if row[remaining_col] <= 0:
+          return "مدفوع بالكامل ✅"
+      else:
+          return "يوجد متبقي غير مدفوع ⏳"
+          
+  df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
   # --- 4. عنوان الواجهة الرئيسي ---
   st.title("📦 Logistics Dashboard — B12")
@@ -159,6 +168,19 @@ else:
   total_cartons = int(filtered_df[ctns_col].sum()) if ctns_col in filtered_df.columns else 0
   total_volume = round(filtered_df[cbm_col].sum(), 3) if cbm_col in filtered_df.columns else 0.0
 
+  # مجاميع الأعمدة الإضافية
+  sh_customs = filtered_df[customs_col].sum() if customs_col in filtered_df.columns else 0
+  sh_collected = filtered_df[collected_col].sum() if collected_col in filtered_df.columns else 0
+  sh_remaining = filtered_df[remaining_col].sum() if remaining_col in filtered_df.columns else 0
+
+  # تحديد نص حالة الدفع الإجمالي للتقرير بناءً على المتبقي الحقيقي
+  if sh_remaining <= 0:
+      payment_status_text = "مدفوعة بالكامل ✅"
+      status_card_color = "#10b981" # أخضر
+  else:
+      payment_status_text = f"متبقي غير مدفوع (¥ {sh_remaining:,.2f}) ⏳"
+      status_card_color = "#ef4444" # أحمر
+
   def render_custom_card(title, value, icon, bg_color):
     card_style = f"""
         <div style="
@@ -174,12 +196,12 @@ else:
                 <span style="font-size: 14px; opacity: 0.95; font-weight: 500;">{title}</span>
                 <span style="font-size: 22px;">{icon}</span>
             </div>
-            <div style="font-size: 25px; font-weight: bold; letter-spacing: 0.5px;">{value}</div>
+            <div style="font-size: 24px; font-weight: bold; letter-spacing: 0.5px;">{value}</div>
         </div>
         """
     st.markdown(card_style, unsafe_allow_html=True)
 
-  # عرض لوحة المقاييس الأساسية
+  # عرض لوحة المقاييس الأساسية المحدثة
   row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
   with row1_col1: render_custom_card("Orders (الطلبات الفرعية)", f"{total_orders}", "📋", "#4f46e5")
   with row1_col2: render_custom_card("Containers (الحاويات)", f"{total_containers}", "🚢", "#0ea5e9")
@@ -189,8 +211,9 @@ else:
 
   row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
   with row2_col1: render_custom_card("Cartons (الكراتين)", f"{total_cartons:,}", "📦", "#ec4899")
-  with row2_col2: st.write("")  
-  with row2_col3: render_custom_card("Volume (الحجم)", f"{total_volume:,}", "📐", "#14b8a6")
+  with row2_col2: render_custom_card("Volume (الحجم)", f"{total_volume:,}", "📐", "#14b8a6")
+  # 🌟 إضافة بطاقة حالة دفع الشحنة الجديدة في الصف الثاني لتظهر بوضوح تام حسب الفلتر
+  with row2_col3: render_custom_card("حالة دفع الزبون للشحنة", f"{payment_status_text}", "💳", status_card_color)
 
   st.markdown("---")
 
@@ -223,21 +246,14 @@ else:
 
   st.markdown("---")
 
-  # --- 8. قسم التحليل المالي التفصيلي للشحنة المحددة ---
+  # --- 8. قسم التحليل المالي التفصيلي للشحنة المحددة والجمارك ---
   if selected_container != "الكل" and selected_mark != "الكل":
-      st.subheader(f"🔍 التحليل المالي التفصيلي للشحنة: {selected_mark} داخل الحاوية {selected_container}")
-      
-      sh_customs = filtered_df[customs_col].sum() if customs_col in filtered_df.columns else 0
-      sh_collected = filtered_df[collected_col].sum() if collected_col in filtered_df.columns else 0
-      sh_remaining = filtered_df[remaining_col].sum() if remaining_col in filtered_df.columns else 0
+      st.subheader(f"🔍 التحليل المالي التفصيلي المتقدم للشحنة: {selected_mark}")
       
       sub_col1, sub_col2, sub_col3 = st.columns(3)
-      with sub_col1:
-          render_custom_card("مبلغ الجمرك للشحنة", f"¥ {sh_customs:,.2f}", "🛡️", "#ef4444")
-      with sub_col2:
-          render_custom_card("قيمة الاستحصالات للشحنة", f"¥ {sh_collected:,.2f}", "📈", "#3b82f6")
-      with sub_col3:
-          render_custom_card("متبقي حقيقي للشحنة", f"¥ {sh_remaining:,.2f}", "⏳", "#8b5cf6")
+      with sub_col1: render_custom_card("مبلغ الجمرك للشحنة", f"¥ {sh_customs:,.2f}", "🛡️", "#ef4444")
+      with sub_col2: render_custom_card("قيمة الاستحصالات للشحنة", f"¥ {sh_collected:,.2f}", "📈", "#3b82f6")
+      with sub_col3: render_custom_card("متبقي حقيقي للشحنة", f"¥ {sh_remaining:,.2f}", "⏳", "#8b5cf6")
           
       st.markdown("##### 📊 المقارنة المالية التفاعلية للشحنة المحددة")
       sh_metrics = pd.DataFrame({
@@ -247,21 +263,3 @@ else:
       fig_sh_bar = px.bar(
           sh_metrics, x="المؤشر المالي", y="القيمة بالين", 
           color="المؤشر المالي", template="plotly_dark",
-          color_discrete_map={"مبلغ الجمرك": "#ef4444", "قيمة الاستحصالات": "#3b82f6", "متبقي حقيقي": "#8b5cf6"}
-      )
-      st.plotly_chart(fig_sh_bar, use_container_width=True)
-      st.markdown("---")
-
-  # --- 9. عرض جدول البيانات الكامل بشكل مباشر (مفتوح دائماً) ---
-  st.subheader("📋 جدول البيانات الشاملة والنقية (الجدول الأم)")
-  st.dataframe(filtered_df, use_container_width=True, height=450)
-
-  # 🌟 تم إصلاح إغلاق القوس البرمجي لزر التحميل هنا بنجاح ليعود التطبيق للعمل فوراً 🌟
-  csv_data = filtered_df.to_csv(index=False).encode("utf-8")
-  st.sidebar.markdown("---")
-  st.sidebar.download_button(
-      label="📥 تحميل التقرير الحالي (CSV)", 
-      data=csv_data, 
-      file_name="logistics_report.csv", 
-      mime="text/csv"
-  )
