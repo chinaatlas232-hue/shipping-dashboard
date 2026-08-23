@@ -67,7 +67,7 @@ def load_data_smart(file):
   if file is not None:
     try:
         xl = pd.ExcelFile(file)
-        target_sheet = xl.sheet_names[0]
+        target_sheet = xl.sheet_names
         for sheet in xl.sheet_names:
             test_df = pd.read_excel(file, sheet_name=sheet, nrows=5)
             if not test_df.empty and len(test_df.columns) > 2:
@@ -148,10 +148,8 @@ else:
             return "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الاحترافي الذكي المطور (تطهير الأرقام الصافي) 🌟 ---
+  # --- 4. نظام تسجيل الدخول الاحترافي الذكي المطور (تطهير الأرقام الصافي) ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
-  
-  # 🌟 سحب الأرقام فقط من كود الإكسيل وتفريغه من أي نصوص خفية (مثل تحويل 'kb130' أو '130' إلى '130' فقط)
   valid_codes_clean = [str(re.sub(r'\D', '', str(c))).strip() for c in valid_codes]
 
   if st.session_state.logged_in_customer is None:
@@ -170,13 +168,12 @@ else:
               submit_login = st.form_submit_button("تسجيل الدخول الآمن 🔓")
               
               if submit_login:
-                  # 🌟 سحب الأرقام فقط من مدخلات الزبون (إذا كتب kb130 يسحب 130 فقط) لتفادي أي خطأ مطابقة 🌟
                   clean_input = str(re.sub(r'\D', '', str(password_input))).strip()
                   
                   if clean_input and clean_input in valid_codes_clean:
                       actual_code = valid_codes[valid_codes_clean.index(clean_input)]
                       st.session_state.logged_in_customer = actual_code
-                      st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم الخاصة بك...")
+                      st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم...")
                       st.rerun()
                   elif password_input.strip() == "881988": 
                       st.session_state.logged_in_customer = "الكل"
@@ -225,5 +222,7 @@ else:
   shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique()) if shipping_mark_col in temp_df.columns else ["الكل"]
   selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
 
-  filtered_df = temp_df
-  if selected_mark != "الكل" and shipping_mark_col in filtered_df.columns:
+  # 🌟 حل سحري ومسطح: تم إلغاء الـ if المسببة للخطأ تماماً ليعمل الكود بشكل فوري دون أي IndentationError 🌟
+  filtered_df = temp_df if selected_mark == "الكل" or shipping_mark_col not in temp_df.columns else temp_df[temp_df[shipping_mark_col] == selected_mark]
+
+  # --- 8. العمليات الحسابية والمؤشرات الديناميكية للعميل المختار ---
