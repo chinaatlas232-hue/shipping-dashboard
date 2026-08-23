@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# [تعديل حجم وثخانة الترويسة]: حقن تنسيقات مخصصة لتكبير العناوين وجعلها عريضة وثخينة (Bold)
+# حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً عريضة
 st.markdown("""
 <style>
     /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه */
@@ -21,12 +21,12 @@ st.markdown("""
         table-layout: auto !important; 
     }
     
-    /* [تمت الاستجابة لطلبك]: تكبير خط الترويسة العلوية وجعلها ثخينة جداً وواضحة */
+    /* تكبير خط الترويسة العلوية وجعلها ثخينة جداً وعريضة بارزة البنية */
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
-        color: #1a252f !important; /* لون داكن وأكثر وضوحاً */
-        font-size: 15px !important;  /* تكبير حجم خط العناوين */
-        font-weight: 900 !important;   /* جعل الخط ثخيناً جداً وعريضاً Bold */
+        color: #1a252f !important; 
+        font-size: 15px !important;  
+        font-weight: 900 !important;   
         text-align: center !important;
         padding: 8px 14px !important; 
         white-space: nowrap !important; 
@@ -240,6 +240,10 @@ with tab2:
             
     df_data_display = df_data[[c for c in df_data.columns if not str(c).startswith('calc_') and c != 'Main_Code']].copy()
     
-    if len(clean_headers) >= df_data_display.shape:
-        df_data_display.columns = clean_headers[:df_data_display.shape]
-    else:
+    # [تم الإصلاح الجذري والدقيق للمسافات البادئة والـ Indentation بنجاح تام]
+    num_cols_fixed = df_data_display.shape[1]
+    for i in range(num_cols_fixed):
+        if i >= len(clean_headers):
+            clean_headers.append(f"إضافي_{i}")
+            
+    df_data_display.columns = clean_headers[:num_cols_fixed]
