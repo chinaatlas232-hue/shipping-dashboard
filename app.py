@@ -94,7 +94,7 @@ else:
     if col in df.columns:
       df[col] = pd.to_numeric(df[col].astype(str).str.replace(r"[^\d.]", "", regex=True), errors="coerce").fillna(0)
 
-  # استبعاد أسطر الإجماليات يدوية الصنع لحماية الحسابات الديناميكية
+  # ax استبعاد أسطر الإجماليات الصلبة من ملف الإكسيل لترك الحسابات لبايثون
   df = df[~df[shipping_mark_col].astype(str).str.lower().str.contains("total|grand|إجمالي", na=False)]
   df = df[df[container_col].notna()]
 
@@ -107,51 +107,45 @@ else:
           
   df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 🌟 4. نظام تسجيل الدخول الاحترافي بكود العميل (الباسورد) 🌟 ---
-  # جلب قائمة بكافة الأكواد الصحيحة الموجودة في ملف الإكسيل المرفوع
+  # --- 4. نظام تسجيل الدخول الاحترافي بكود العميل (الباسورد) ---
   valid_codes = list(df[client_name_col].dropna().unique())
   
-  # إدارة جلسة تسجيل الدخول بذاكرة المتصفح للزبون
   if "logged_in_customer" not in st.session_state:
       st.session_state.logged_in_customer = None
 
   if st.session_state.logged_in_customer is None:
-      # عرض شاشة الدخول الأنيقة للزبون
       st.markdown("""
         <div style='text-align: center; margin-top: 30px;'>
-            <h1 style='color: #4f46e5; font-family: sans-serif; font-weight: bold;'>B12 Logistics Portal</h1>
-            <p style='color: gray;'>مرحباً بك في بوابة العميل الآمنة - يرجى تسجيل الدخول لمتابعة حساباتك</p>
+            <h1 style='color: #4f46e5; font-family: sans-serif; font-weight: bold;'>بوابة عملاء B12 اللوجستية</h1>
+            <p style='color: gray;'>مرحباً بك في بوابة العميل الآمنة - يرجى تسجيل الدخول لمتابعة حساباتك وشحناتك</p>
         </div>
       """, unsafe_allow_html=True)
       
-      # صندوق إدخال الباسورد (كود العميل)
-      col_space1, col_login, col_space2 = st.columns([1, 2, 1])
+      col_space1, col_login, col_space2 = st.columns()
       with col_login:
           with st.form("login_form"):
-              password_input = st.text_input("🔑 أدخل كلمة المرور الخاصة بك (Customer Code):", type="password", help="كلمة المرور هي كود العميل الخاص بك مثل B12")
+              password_input = st.text_input("🔑 أدخل كلمة المرور الخاصة بك (كود العميل):", type="password", help="كلمة المرور هي كود العميل الخاص بك مثل B12")
               submit_login = st.form_submit_button("تسجيل الدخول الآمن 🔓")
               
               if submit_login:
-                  # تنظيف النص المدخل من أي مسافات
                   clean_pwd = password_input.strip()
                   if clean_pwd in valid_codes:
                       st.session_state.logged_in_customer = clean_pwd
                       st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم الخاصة بك...")
                       st.rerun()
-                  elif clean_pwd == "881988": # كود دخول الماستر لك لتشاهد لوحة التحكم كاملة
+                  elif clean_pwd == "881988": 
                       st.session_state.logged_in_customer = "الكل"
                       st.success("مرحباً بك يا مدير النظام!")
                       st.rerun()
                   else:
                       st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة في النظام!")
-      st.stop() # إيقاف الكود هنا وعدم عرض أي بيانات حتى يتم تسجيل الدخول
+      st.stop() 
 
   # --- 5. فلترة وعزل البيانات بناءً على تسجيل الدخول الناجح للعميل ---
   selected_client = st.session_state.logged_in_customer
   
   if selected_client != "الكل":
       df_client = df[df[client_name_col] == selected_client]
-      # زر تسجيل الخروج للزبون لحماية خصوصيته
       st.sidebar.markdown(f"👤 العميل الحالي: **{selected_client}**")
       if st.sidebar.button("🚪 تسجيل الخروج الآمن"):
           st.session_state.logged_in_customer = None
@@ -165,13 +159,12 @@ else:
 
   # --- 6. عنوان الواجهة الرئيسي للزبون بعد تسجيل الدخول ---
   st.title("📦 Logistics Dashboard — B12")
-  st.markdown(f"Secure session for Client Code: **{selected_client if selected_client != 'الكل' else 'ALL'}**")
+  st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **{selected_client if selected_client != 'الكل' else 'كافة العملاء'}**")
   st.markdown("---")
 
-  # --- 7. أشرطة التصفية السريعة المتبقية (الحاوية + الماركة) معزولة تماماً للعميل ---
+  # --- 7. أشرطة Tصفية الحاويات والماركات المعزولة للعميل ---
   st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
   
-  # فلاتر الحاويات والماركات تعرض فقط ما يخص العميل المسجل دخول حالياً
   container_options = ["الكل"] + list(df_client[container_col].dropna().unique())
   selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
 
@@ -187,7 +180,7 @@ else:
   if selected_mark != "الكل":
       filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
 
-  # --- 8. العمليات الحسابية والمؤشرات الديناميكية المعزولة والمطابقة 100% ---
+  # --- 8. العمليات الحسابية والمؤشرات الديناميكية للعميل المختار ---
   total_orders = len(filtered_df)
   total_containers = filtered_df[container_col].nunique()
   total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
@@ -224,12 +217,20 @@ else:
         """
     st.markdown(card_style, unsafe_allow_html=True)
 
-  # عرض لوحة المقاييس المعزولة بالكامل للعميل المختار بالدولار $
+  # 🌟 تم تعريب مسميات البطاقات بالكامل في السطور أدناه لتناسب لغتك 🌟
   row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
-  with row1_col1: render_custom_card("Orders (الطلبات الفرعية)", f"{total_orders}", "📋", "#4f46e5")
-  with row1_col2: render_custom_card("Containers (الحاويات)", f"{total_containers}", "🚢", "#0ea5e9")
-  with row1_col3: render_custom_card("Total Amount", f"$ {total_amount_val:,.2f}", "💵", "#10b981")
-  with row1_col4: render_custom_card("Client Paid", f"$ {total_client_paid:,.2f}", "🤝", "#f59e0b")
-  with row1_col5: render_custom_card("Office Paid", f"$ {total_office_paid:,.2f}", "🏢", "#6366f1")
+  with row1_col1: render_custom_card("إجمالي الشحنات الفرعية", f"{total_orders}", "📋", "#4f46e5")
+  with row1_col2: render_custom_card("عدد الحاويات", f"{total_containers}", "🚢", "#0ea5e9")
+  with row1_col3: render_custom_card("إجمالي المبالغ المطلوبة", f"$ {total_amount_val:,.2f}", "💵", "#10b981")
+  with row1_col4: render_custom_card("إجمالي مدفوعات الزبون", f"$ {total_client_paid:,.2f}", "🤝", "#f59e0b")
+  with row1_col5: render_custom_card("إجمالي المدفوع للمكتب", f"$ {total_office_paid:,.2f}", "🏢", "#6366f1")
 
   row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
+  with row2_col1: render_custom_card("إجمالي عدد الكراتين", f"{total_cartons:,}", "📦", "#ec4899")
+  with row2_col2: render_custom_card("إجمالي الحجم الكلي (CBM)", f"{total_volume:,}", "📐", "#14b8a6")
+  with row2_col3: render_custom_card("حالة دفع الزبون الحالية", f"{payment_status_text}", "💳", status_card_color)
+
+  st.markdown("---")
+
+  # --- 9. قسم التحليل المالي التفصيلي للشحنة المحددة والجمارك (بالدولار $) ---
+  if selected_container != "الكل" and selected_mark != "الكل":
