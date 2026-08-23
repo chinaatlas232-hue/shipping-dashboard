@@ -3,85 +3,102 @@ import pandas as pd
 import io
 import os
 
-# إعدادات صفحة لوحة التحكم
-st.set_page_config(
-    page_title="Logistics Dashboard", page_icon="📦", layout="wide"
-)
+# إعدادات الصفحة الأساسية
+st.set_page_config(page_title="Shipping Data Viewer", page_icon="📦", layout="wide")
 
 # مسار حفظ الملف الثابت على الخادم
 SAVED_FILE_PATH = "permanent_shipping_data.xlsx"
 
-st.sidebar.subheader("📁 إدارة ملفات العملاء")
+st.sidebar.subheader("📁 إدارة ملفات الشحنات")
 
-# --- 1. زر المسح البرمجي والتصفير الشامل ---
+# --- 1. زر المسح البرمجي والتصفير الشامل عند الحاجة ---
 if os.path.exists(SAVED_FILE_PATH):
     if st.sidebar.button("🗑️ مسح وتصفير البيانات المخزنة", type="primary"):
         try:
-            os.remove(SAVED_FILE_PATH)  # حذف الملف من السيرفر
-            st.cache_data.clear()      # مسح الكاش
-            st.sidebar.success("تم مسح الملف وتصفير النظام بنجاح! 🔄")
+            os.remove(SAVED_FILE_PATH)
+            if "df_data" in st.session_state:
+                del st.session_state["df_data"]
+            st.sidebar.success("تم مسح البيانات وتصفير النظام بنجاح! 🔄")
             st.rerun()                 
         except Exception as e:
             st.sidebar.error(f"تعذر المسح: {e}")
     st.sidebar.markdown("---")
 
-# --- 2. أداة رفع ملف العميل الجديد ---
-uploaded_file = st.sidebar.file_uploader(
-    "رفع ملف اكسل العميل الجديد", type=["xlsx", "xls"]
-)
+# --- 2. أداة رفع ملف الإكسل الجديد لتحديث البيانات وتثبيتها ---
+uploaded_file = st.sidebar.file_uploader("رفع ملف اكسل جديد لتثبيته", type=["xlsx", "xls"])
 
 if uploaded_file is not None:
-    with open(SAVED_FILE_PATH, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    st.cache_data.clear()
-    st.rerun()  
-
-# --- 3. دالة قراءة وتجهيز البيانات المثبتة مباشرة ---
-def load_and_clean_data(path):
     try:
-        # قراءة ملف الإكسل كما هو بدون أي شروط مسبقة
-        df = pd.read_excel(path, header=None)
+        file_bytes = uploaded_file.getvalue()
+        # حفظ الملف على القرص الصلب للسيرفر لضمان استقراره عند إغلاق المتصفح
+        with open(SAVED_FILE_PATH, "wb") as f:
+            f.write(file_bytes)
         
-        # الاحتفاظ بأول 15 سطراً لضمان شمول صندوق ملخص الشحنات والأكواد كاملة
-        cleaned_df = df.iloc[0:15, :]
-        return cleaned_df
+        # قراءة البيانات وتعيين الأعمدة الحقيقية الـ 29
+        df_fresh = pd.read_excel(io.BytesIO(file_bytes), header=None)
+        st.session_state["df_data"] = df_fresh
+        st.sidebar.success("تم تثبيت وحفظ البيانات بنجاح على الخادم! 🚀")
+        st.rerun()
     except Exception as e:
-        return None
+        st.sidebar.error(f"خطأ أثناء معالجة الملف: {e}")
 
-# التحقق من وجود الملف الثابت لقراءته
-df = None
-if os.path.exists(SAVED_FILE_PATH):
-    df = load_and_clean_data(SAVED_FILE_PATH)
-    if df is not None:
-        st.info("📌 يتم الآن عرض بيانات الملخص المثبتة والمخزنة مسبقاً على الخادم.")
+# --- 3. قراءة الملف المخزن تلقائياً عند فتح الصفحة مجدداً ---
+if "df_data" not in st.session_state and os.path.exists(SAVED_FILE_PATH):
+    try:
+        df_stored = pd.read_excel(SAVED_FILE_PATH, header=None)
+        st.session_state["df_data"] = df_stored
+    except:
+        pass
 
-# إذا كان النظام مصفراً
+df = st.session_state.get("df_data", None)
+
+# الحالة عند تصفير النظام أو عدم رفع ملف مسبقاً
 if df is None or df.empty:
-    st.title("📦 Logistics Dashboard")
-    st.warning("⚠️ النظام فارغ ومصفّر تماماً الآن. يرجى رفع ملف إكسل من الشريط الجانبي لتثبيته في النظام للمرة الأولى.")
+    st.title("📦 Shipping Data Viewer")
+    st.warning("⚠️ النظام فارغ حالياً. يرجى رفع ملف إكسل من الشريط الجانبي لتثبيته للمرة الأولى.")
     st.stop()
 
-# --- 4. تصميم واجهة لوحة التحكم وعرض الجدول ---
-st.title("📦 Logistics Dashboard")
-st.markdown("Interactive view of shipments by container, shipping mark, payments and freight")
+# --- 4. تطبيق أسماء الأعمدة الـ 29 بدقة وحذف الأسطر الفارغة الأولى إن وجدت ---
+dashboard_columns = [
+    "No.", "code", "Shipping mark", "رقم مخزن الشحن", "نوع البضاعة", 
+    "عدد الكارتون", "الوزن", "حجم", "رقم الحاوية", "Staff", 
+    "المجموع", "الزبون دفع", "المكتب دفع", "نقل داخلي", "%", 
+    "قيمة الفاتورة", "رقم قيد الإدخال", "رقم الفاتورة", "سعر البيع", "مبلغ الجمارك", 
+    "قيمة الاستحقاقات", "متبقي حقيقي", "تخليص", "شرح تفصيلي", "تاريخ التوزيع", 
+    "عدد الأيام", "رقم فورود زينب", "وصل الاستلام", "رقم فورود سينيا"
+]
+
+try:
+    # محاذاة البيانات لتطابق الأعمدة بدقة بحسب شكل الجدول المرسل
+    if df.shape[1] >= len(dashboard_columns):
+        # قطع الأعمدة الزائدة إن وجدت وتسمية الـ 29 عموداً الأساسية
+        final_df = df.iloc[:, :len(dashboard_columns)]
+        final_df.columns = dashboard_columns
+    else:
+        final_df = df
+except:
+    final_df = df
+
+# --- 5. عرض البيانات الثابتة والنظيفة على الشاشة للمعاينة ---
+st.title("📦 Shipping Data Viewer")
+st.info("📌 يتم الآن عرض البيانات المثبتة بشكل دائم على الخادم (لن تختفي أو تتأثر بإغلاق الصفحة).")
 st.markdown("---")
 
-# عرض ملخص البيانات النظيفة والأكواد بشكل مباشر ومضمون
-st.subheader("📋 صندوق ملخص الشحنات والأكواد المكتشفة")
-st.dataframe(df, use_container_width=True)
+st.subheader("📋 جدول بيانات الشحنات والأكواد المخزنة")
+st.dataframe(final_df, use_container_width=True)
 
-# --- 5. إعداد زر تحميل الملف النظيف ---
+# --- 6. زر تحميل نسخة نظيفة من ملف الإكسل المحفوظ ---
 try:
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, header=False, sheet_name='Summary')
+        final_df.to_excel(writer, index=False, sheet_name='Shipping_Data')
     processed_excel_data = output.getvalue()
 
     st.sidebar.markdown("---")
     st.sidebar.download_button(
-        label="📥 تحميل التقرير النظيف الحالي (Excel)",
+        label="📥 تحميل نسخة Excel النظيفة الحالية",
         data=processed_excel_data,
-        file_name="cleaned_shipment_report.xlsx",
+        file_name="permanent_shipment_report.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 except Exception as e:
