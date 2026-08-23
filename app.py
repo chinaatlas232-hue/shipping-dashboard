@@ -6,7 +6,7 @@ import os
 
 # --- 1. إعدادات الصفحة ---
 st.set_page_config(
-    page_title="Logistics Dashboard — B12", page_icon="📦", layout="wide"
+    page_title="شركة أطلس للشحن والتجارة العامة", page_icon="📦", layout="wide"
 )
 
 # تعزيز حجم خط ولون الجدول ليكون أكبر وأوضح عند العرض
@@ -25,7 +25,7 @@ st.markdown("""
         padding: 30px;
         border-radius: 12px;
         box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        max-width: 500px;
+        max-width: 550px;
         margin: 50px auto;
         text-align: center;
     }
@@ -41,10 +41,10 @@ with st.sidebar:
   else:
       st.markdown("<h2 style='margin:0;'>📦</h2>", unsafe_allow_html=True)
       
-  st.title("إدارة النظام - B12")
+  st.title("إدارة النظام - أطلس")
   st.markdown("---")
 
-  # رفع ملف إكسل الأم الموحد الذي يحتوي على كل العملاء والشحنات
+  # رفع ملف إكسل الشامل
   st.subheader("📁 رفع قاعدة البيانات")
   uploaded_file = st.file_uploader(
       "رفع ملف الإكسيل الشامل لكافة العملاء (.xlsx)", type=["xlsx", "xls"]
@@ -68,8 +68,9 @@ df = load_data(uploaded_file)
 if df.empty:
   st.markdown("""
     <div class='login-box'>
-        <h2 style='color: white;'>📦 منصة B12 اللوجستية الذكية</h2>
-        <p style='color: #94a3b8;'>نظام الإدارة قيد الانتظار. يرجى من مدير النظام رفع قاعدة البيانات الشاملة من الشريط الجانبي لتفعيل الخدمة للعملاء.</p>
+        <h2 style='color: white;'>🏛️ شركة أطلس للشحن والتجارة العامة</h2>
+        <h4 style='color: #4f46e5;'>بوابة العملاء اللوجستية</h4>
+        <p style='color: #94a3b8; margin-top: 15px;'>نظام الإدارة قيد الانتظار. يرجى من مدير النظام رفع قاعدة البيانات الشاملة من الشريط الجانبي لتفعيل الخدمة للعملاء.</p>
     </div>
   """, unsafe_allow_html=True)
 else:
@@ -107,21 +108,22 @@ else:
           
   df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الاحترافي بكود العميل (الباسورد) ---
+  # --- 4. نظام تسجيل الدخول الاحترافي باسم شركة أطلس وبوابة العملاء ---
   valid_codes = list(df[client_name_col].dropna().unique())
   
   if "logged_in_customer" not in st.session_state:
       st.session_state.logged_in_customer = None
 
   if st.session_state.logged_in_customer is None:
+      # 🌟 تفعيل الهوية البصرية الرسمية لشركة أطلس في شاشة تسجيل الدخول المباشرة 🌟
       st.markdown("""
         <div style='text-align: center; margin-top: 30px;'>
-            <h1 style='color: #4f46e5; font-family: sans-serif; font-weight: bold;'>بوابة عملاء B12 اللوجستية</h1>
+            <h1 style='color: #4f46e5; font-family: sans-serif; font-weight: bold;'>شركة أطلس للشحن والتجارة العامة</h1>
+            <h3 style='color: #10b981; font-family: sans-serif;'>بوابة العملاء اللوجستية</h3>
             <p style='color: gray;'>مرحباً بك في بوابة العميل الآمنة - يرجى تسجيل الدخول لمتابعة حساباتك وشحناتك</p>
         </div>
       """, unsafe_allow_html=True)
       
-      # 🌟 تم إصلاح دالة رسم الأعمدة وإضافة الرقم 3 لإزالة الـ TypeError نهائياً 🌟
       col_space1, col_login, col_space2 = st.columns(3)
       with col_login:
           with st.form("login_form"):
@@ -159,7 +161,7 @@ else:
           st.rerun()
 
   # --- 6. عنوان الواجهة الرئيسي للزبون بعد تسجيل الدخول ---
-  st.title("📦 Logistics Dashboard — B12")
+  st.title("📦 Logistics Dashboard — أطلس")
   st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **{selected_client if selected_client != 'الكل' else 'كافة العملاء'}**")
   st.markdown("---")
 
@@ -177,7 +179,6 @@ else:
   shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique())
   selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
 
-  # إصلاح منطق التصفية النهائي لضمان عدم اختفاء الجدول عند اختيار "الكل"
   filtered_df = temp_df
   if selected_mark != "الكل":
       filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
@@ -230,7 +231,3 @@ else:
   row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
   with row2_col1: render_custom_card("إجمالي عدد الكراتين", f"{total_cartons:,}", "📦", "#ec4899")
   with row2_col2: render_custom_card("إجمالي الحجم الكلي (CBM)", f"{total_volume:,}", "📐", "#14b8a6")
-  with row2_col3: render_custom_card("حالة دفع الزبون الحالية", f"{payment_status_text}", "💳", status_card_color)
-
-  st.markdown("---")
-
