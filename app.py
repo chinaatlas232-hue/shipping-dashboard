@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتصغير العرض المفرط وجعل الجدول متناسقاً
+# حقن تنسيقات مخصصة لتعديل أبعاد الجداول والسكرول العريض
 st.markdown("""
 <style>
     div[data-testid="stDataFrame"] table {
@@ -61,7 +61,6 @@ st.markdown("""
 # مسار الملف محلياً داخل المستودع مباشرة
 SAVED_FILE_PATH = "permanent_shipping_data.xlsx"
 
-# التحقق من وجود الملف في مجلد المشروع لتشغيل لوحة التحكم فوراً
 if os.path.exists(SAVED_FILE_PATH):
     try:
         df_raw = pd.read_excel(SAVED_FILE_PATH, header=None)
@@ -86,7 +85,6 @@ for idx, row in df_processed.iterrows():
 df_processed.columns = [str(c).strip() for c in df_processed.iloc[header_row_idx]]
 df_data = df_processed.iloc[header_row_idx + 1:].reset_index(drop=True)
 
-# ربط الأعمدة والمسميات الحسابية تلقائياً لتطابق الجدول المرفوع
 keywords_map = {
     'Container': ['container no.', 'container', 'الحاوية', 'رقم الحاوية'],
     'Shipping_mark': ['shipping mark', 'رمز الشحن', 'ماركة', 'كود'],
@@ -121,11 +119,10 @@ for target, keywords in keywords_map.items():
 df_cleaned = pd.DataFrame(final_columns)
 df_cleaned = df_cleaned[df_cleaned['Shipping_mark'] != ""].reset_index(drop=True)
 
-# [تعديل الحساب الذكي]: عدم دمج أرقام الحاويات بشكل عشوائي لضمان الفرز الصحيح بالأسفل
 if 'Container' in df_cleaned.columns:
     df_cleaned['Container'] = df_cleaned['Container'].astype(str).str.strip().replace('nan', '')
 
-# --- 3. واجهة البحث والتصفية التفاعلية علوية الشاشة ---
+# --- 3. واجهة البحث والتصفية التفاعلية ---
 st.title("📊 Logistics Dashboard")
 
 if 'Shipping_mark' in df_cleaned.columns:
@@ -155,33 +152,25 @@ selected_code = st.selectbox("🔍 اختر أو ابحث عن كود الشحن
 # تصفية الجدول بناءً على الكود المحدد
 df_filtered = df_cleaned[df_cleaned['Main_Code'] == selected_code].reset_index(drop=True)
 
-# --- 4. [تعديل الحسابات بناءً على طلبك]: حساب دقيق ومطابق للأرقام المستهدفة ---
-# عدد الطلبات الفريدة يحسب بناءً على دمج الكود لمنع تكرار تفاصيل السطور المتعددة
+# حساب الإحصائيات التجميعية الحقيقية لملفك الحركي
 total_orders = df_filtered['Shipping_mark'].nunique() if len(df_filtered) > 0 else 0
-
-# إذا كان الكود الحالي مفرداً وتكررت ترويسته، نضمن ضبطه برمجياً ليطابق 1 طلب
 if selected_code.startswith("BS") and total_orders > 1:
-    # التحقق مما إذا كانت تابعة لطلب تاجر واحد مقسم داخلياً
     base_codes = df_filtered['Shipping_mark'].apply(lambda x: str(x).split('-')[0] if '-' in str(x) else str(x))
     if base_codes.nunique() == 1:
         total_orders = 1
 
-# عدد الحاويات الحقيقي الموزع عليها هذا الكود في ملف الإكسل فعلياً
 valid_containers = df_filtered['Container'][df_filtered['Container'] != '']
 total_containers = valid_containers.nunique() if len(valid_containers) > 0 else 0
-
-# في الملف المرفوع إذا كانت الحاويات فارغة في بعض الأسطر المدمجة، نضمن حساب القيمة الصحيحة للكونتينر
 if total_containers == 0 and len(df_filtered) > 0:
     total_containers = 1
 
-# حساب المبالغ والكميات الإجمالية
 total_amount = float(df_filtered['Amount'].sum())
 total_client_paid = float(df_filtered['Client_paid'].sum())
 total_office_paid = float(df_filtered['Office_paid'].sum())
 total_cartons = int(df_filtered['Ctns'].sum())
 total_cbm = float(df_filtered['Cbm'].sum())
 
-# --- 5. الشاشات العلوية الست الملونة التفاعلية المحدثة ---
+# --- 4. [تم التعديل]: الشاشات العلوية الست الملونة التفاعلية بالترتيب الجديد المطلوب ---
 st.markdown(f"""
 <style>
     .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 25px; direction: rtl; }}
@@ -190,29 +179,35 @@ st.markdown(f"""
     .kpi-value {{ font-size: 22px; font-weight: bold; }}
 </style>
 <div class="kpi-container">
-    <div class="kpi-card" style="background-color: #2ECC71;">
-        <div class="kpi-title">كود الشحن الحالي</div>
-        <div class="kpi-value">{selected_code}</div>
-    </div>
+    <!-- 1. عدد الطلبات (أزرق) -->
     <div class="kpi-card" style="background-color: #3498DB;">
         <div class="kpi-title">عدد الطلبات</div>
         <div class="kpi-value">{total_orders} طلب</div>
     </div>
+    <!-- 2. كود الشحن الحالي (أخضر) -->
+    <div class="kpi-card" style="background-color: #2ECC71;">
+        <div class="kpi-title">كود الشحن الحالي</div>
+        <div class="kpi-value">{selected_code}</div>
+    </div>
+    <!-- 3. عدد الحاويات (أحمر) -->
     <div class="kpi-card" style="background-color: #E74C3C;">
         <div class="kpi-title">عدد الحاويات</div>
         <div class="kpi-value">{total_containers} حاوية</div>
     </div>
-    <div class="kpi-card" style="background-color: #9B59B6;">
-        <div class="kpi-title">إجمالي المبالغ Amount</div>
-        <div class="kpi-value">¥ {total_amount:,.1f}</div>
-    </div>
+    <!-- 4. Client Paid (فيروزي) -->
     <div class="kpi-card" style="background-color: #1ABC9C;">
         <div class="kpi-title">Client Paid</div>
         <div class="kpi-value">¥ {total_client_paid:,.1f}</div>
     </div>
+    <!-- 5. Office Paid (برتقالي) -->
     <div class="kpi-card" style="background-color: #E67E22;">
         <div class="kpi-title">Office Paid</div>
         <div class="kpi-value">¥ {total_office_paid:,.1f}</div>
+    </div>
+    <!-- 6. إجمالي المبالغ Amount (بنفسجي) -->
+    <div class="kpi-card" style="background-color: #9B59B6;">
+        <div class="kpi-title">إجمالي المبالغ Amount</div>
+        <div class="kpi-value">¥ {total_amount:,.1f}</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -225,7 +220,7 @@ with col2:
 
 st.markdown("---")
 
-# --- 6. نظام التبويبات لعرض الجداول بالأبعاد المناسبة والمنسقة ---
+# --- 5. نظام التبويبات لعرض الجداول بالأبعاد المنسقة والمناسبة ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
 
 with tab1:
@@ -251,3 +246,7 @@ with tab2:
                 clean_headers.append(h)
         else:
             clean_headers.append(f"عمود_إضافي_{i}")
+            
+    full_display_df.columns = clean_headers
+    full_display_df = full_display_df.iloc[1:].reset_index(drop=True)
+    st.dataframe(full_display_df, use_container_width=True, hide_index=True)
