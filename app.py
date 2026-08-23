@@ -3,7 +3,6 @@ import pandas as pd
 import io
 import os
 
-# نسخة برمجية جديدة ومحمية 100%: v6.0.0
 # 1. إعدادات الصفحة لتكون عريضة
 st.set_page_config(
     page_title="Logistics Dashboard", 
@@ -11,9 +10,17 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتصغير الفراغات العريضة وتثبيت ستايل الترويسة الثخينة الكبيرة
+# حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً عريضة
 st.markdown("""
 <style>
+    /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه */
+    div[data-testid="stDataFrame"] table {
+        font-size: 13px !important;
+        width: auto !important; 
+        margin: 0 auto !important; 
+        table-layout: auto !important; 
+    }
+    
     /* تكبير خط الترويسة العلوية وجعلها ثخينة جداً وعريضة بارزة البنية */
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
@@ -25,19 +32,12 @@ st.markdown("""
         white-space: nowrap !important; 
     }
     
-    /* ضبط أبعاد ومحاذاة خلايا البيانات داخل الجداول تلقائياً */
-    div[data-testid="stDataFrame"] table {
-        font-size: 13px !important;
-        width: auto !important; 
-        margin: 0 auto !important; 
-        table-layout: auto !important; 
-    }
-    
+    /* تنسيق خلايا البيانات بالأسفل */
     div[data-testid="stDataFrame"] td {
         padding: 6px 14px !important; 
+        text-align: center !important;
         white-space: nowrap !important;
         font-weight: 700 !important;
-        text-align: center !important;
     }
     
     /* شريط التمرير (السكرول) عريض ومريح للإمساك بالماوس */
@@ -84,7 +84,7 @@ for idx, row in df_processed.iterrows():
         header_row_idx = idx
         break
 
-# حصر ترويسة الجدول والبيانات في أول 29 عموداً فقط بدقة لمنع تعطل الفلترة واختفاء الأعمدة
+# استخراج العناوين الأصلية الـ 29 كاملة وتطبيقها كأعمدة أساسية
 df_processed.columns = [str(c).strip() for c in df_processed.iloc[header_row_idx]]
 df_data = df_processed.iloc[header_row_idx + 1:, :29].reset_index(drop=True)
 
@@ -111,7 +111,6 @@ for target, keywords in keywords_map.items():
         if target in ['Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']:
             df_data[f'calc_{target}'] = pd.to_numeric(df_data[matched_col].astype(str).str.replace('¥', '').str.replace('$', '').str.replace(',', '').str.strip(), errors='coerce').fillna(0)
         else:
-            # [تعديل الحماية الصارم]: تنظيف عمود الأكواد تماماً من المسافات المخفية لضمان تجميع كافة السطور الـ 52 بدقة
             df_data[f'calc_{target}'] = df_data[matched_col].astype(str).str.strip()
     else:
         df_data[f'calc_{target}'] = 0
@@ -139,11 +138,9 @@ selected_code = st.selectbox("🔍 اختر أو ابحث عن رقم الكود
 # تصفية دقيقة وحصرية لأسطر الجدول بناءً على الكود المختار بعد إزالة المسافات العالقة تماماً
 df_filtered_full = df_data[df_data['calc_Code'] == str(selected_code).strip()].reset_index(drop=True)
 
-# --- 4. [المعادلة الحتمية والمضمونة]: حساب الأرقام تلقائياً بشكل صحيح ---
-# عد الأسطر الحقيقية المكتشفة للكود لتعبر عن الـ 52 طلب بدقة تامة وبشكل نهائي حاسم
+# --- 4. حساب الأرقام تلقائياً بشكل صحيح ومضمون حتمياً ---
 total_orders = int(df_filtered_full.shape[0])
 
-# حساب عدد الحاويات الفريدة الفعلي لـ B12 (يساوي 7) بعد تصفية الفراغات والنصوص التالفة
 valid_containers = df_filtered_full['calc_Container'][df_filtered_full['calc_Container'] != '']
 valid_containers = valid_containers[valid_containers != 'nan']
 total_containers = int(valid_containers.nunique())
@@ -198,7 +195,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# المربعات الملونة الخاصة بالكراتين والحجم
+# المربعات الخاصة بالكراتين والحجم
 st.markdown(f"""
 <div class="kpi-container">
     <div class="kpi-card" style="background-color: #D35400;">
@@ -239,3 +236,11 @@ def process_dataframe_safely(dataframe):
             if dataframe[col].dtype in ['int64', 'float64'] or any(sym in sample for sym in ['¥', '$', '.']):
                 configs[col] = st.column_config.TextColumn(col, alignment="right")
             else:
+                configs[col] = st.column_config.TextColumn(col, alignment="center")
+    return configs
+
+# --- 5. نظام التبويبات لعرض الجدولين معاً بالأسفل بكافة تفاصيلها الـ 29 الأصلية الملمومة ---
+tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل (الجدول الأم)"])
+
+with tab1:
+    st.subheader(f"📋 جدول التفاصيل المصفى للـ 29 عموداً التابع للكود الحالي: {selected_code}")
