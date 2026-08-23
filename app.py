@@ -54,6 +54,17 @@ st.markdown("""
         font-weight: bold;
         letter-spacing: 0.5px;
     }
+    /* تنسيق الشعار الرقمي البديل الفخم */
+    .brand-logo {
+        background: linear-gradient(135deg, #4f46e5 0%, #10b981 100%);
+        padding: 15px;
+        border-radius: 12px;
+        color: white;
+        font-weight: bold;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        margin-bottom: 20px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -61,15 +72,24 @@ st.markdown("""
 if "logged_in_customer" not in st.session_state:
     st.session_state.logged_in_customer = None
 
-# --- 2. الشريط الجانبي الذكي لإدارة شركة أطلس ---
-with st.sidebar:
+# دالة ذكية لعرض الشعار الثابت في أي مكان بناءً على توفر الصورة بـ GitHub
+def display_brand_logo(width_param=150):
     if os.path.exists("logo.png"):
-        st.image("logo.png", width=120)
+        st.image("logo.png", width=width_param)
     elif os.path.exists("logo.jpg"):
-        st.image("logo.jpg", width=120)
+        st.image("logo.jpg", width=width_param)
     else:
-        st.markdown("<h2 style='margin:0; text-align:center;'>🏛️</h2>", unsafe_allow_html=True)
-        
+        st.markdown(f"""
+        <div class="brand-logo" style="max-width: {width_param}px; margin: 0 auto 20px auto;">
+            <div style="font-size: 24px;">📦</div>
+            <div style="font-size: 14px; letter-spacing: 1px;">ATLAS</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+# --- 2. الشريط الجانبي الذكي لإدارة شركة أطلس (شعار ثابت بالـ Sidebar) ---
+with st.sidebar:
+    st.markdown("<br>", unsafe_allow_html=True)
+    display_brand_logo(width_param=130) # الشعار الثابت في القائمة الجانبية
     st.title("لوحة تحكم أطلس")
     st.markdown("---")
 
@@ -94,7 +114,7 @@ def load_data_smart(file):
     if file is not None:
         try:
             xl = pd.ExcelFile(file)
-            target_sheet = xl.sheet_names[0]
+            target_sheet = xl.sheet_names
             for sheet in xl.sheet_names:
                 test_df = pd.read_excel(file, sheet_name=sheet, nrows=5)
                 if not test_df.empty and len(test_df.columns) > 2:
@@ -146,7 +166,7 @@ remaining_col = find_col(["متبقي حقيقي", "المتبقي", "Remaining"
 if client_name_col in df.columns:
     df[client_name_col] = df[client_name_col].astype(str).str.strip()
 
-# تصفية وفحص القيم المالية بشكل آمن وسلس جداً دون تعليق السيرفر 🌟
+# تصفية وفحص القيم المالية بشكل آمن وسلس جداً دون تعليق السيرفر
 for col in [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col].astype(str).str.replace(r"[^\d.]", "", regex=True), errors="coerce").fillna(0)
@@ -155,10 +175,15 @@ for col in [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, col
 valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
 valid_codes_clean = [str(re.sub(r'\D', '', str(c))).strip() for c in valid_codes]
 
-# --- 4. شاشة بوابة تسجيل الدخول الموحدة ---
+# --- 4. شاشة بوابة تسجيل الدخول الموحدة (شعار ثابت بأعلى الصندوق) ---
 if st.session_state.logged_in_customer is None:
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    col_logo1, col_logo2, col_logo3 = st.columns([1.5, 1, 1.5])
+    with col_logo2:
+        display_brand_logo(width_param=160) # الشعار الثابت أعلى صفحة تسجيل الدخول
+        
     st.markdown("""
-      <div style='text-align: center; margin-top: 30px;'>
+      <div style='text-align: center; margin-top: 10px;'>
           <h1 style='color: #4f46e5; font-family: sans-serif; font-weight: bold;'>شركة أطلس للشحن والتجارة العامة</h1>
           <h3 style='color: #10b981; font-family: sans-serif;'>بوابة العملاء اللوجستية</h3>
           <p style='color: gray;'>مرحباً بك في بوابة العميل الآمنة - يرجى تسجيل الدخول لمتابعة حساباتك وشحناتك</p>
@@ -200,10 +225,8 @@ selected_client = st.session_state.logged_in_customer
 if selected_client != "الكل":
     selected_client_digits = str(re.sub(r'\D', '', str(selected_client))).strip()
     df_client = df[(df[client_name_col].astype(str).str.lower() == str(selected_client).lower().strip()) | (df[client_name_col].astype(str).str.replace(r'\D', '', regex=True) == selected_client_digits)]
-    st.sidebar.markdown(f"👤 العميل الحالي: **{selected_client}**")
 else:
     df_client = df
-    st.sidebar.markdown("👑 صلاحية: **مدير النظام**")
     st.sidebar.markdown("### 🔍 كاشف الأكواد المتاحة بالملف:")
     st.sidebar.dataframe(pd.DataFrame({"الأكواد المسجلة": valid_codes}), height=150)
 
@@ -216,16 +239,4 @@ st.title("📦 Logistics Dashboard — أطلس")
 st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **{selected_client if selected_client != 'الكل' else 'كافة العملاء (لوحة المدير)'}**")
 st.markdown("---")
 
-# 🌟 أشرطة التصفية المفتوحة الحرة المباشرة 🌟
-container_options = ["الكل"] + list(df_client[container_col].dropna().unique()) if (container_col in df_client.columns and not df_client.empty) else ["الكل"]
-selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
-
-temp_df = df_client if selected_container == "الكل" or container_col not in df_client.columns or df_client.empty else df_client[df_client[container_col] == selected_container]
-
-shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique()) if (shipping_mark_col in temp_df.columns and not temp_df.empty) else ["الكل"]
-selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
-
-filtered_df = temp_df if selected_mark == "الكل" or shipping_mark_col not in temp_df.columns or temp_df.empty else temp_df[temp_df[shipping_mark_col] == selected_mark]
-
-# 🌟 ميزة العرض المباشر الصافي الحاسم: الحسابات تقرأ وتجمع حياً وتلقائياً دون أي حجب 🌟
-total_orders = len(filtered_df)
+# أشرطة التصفية المفتوحة الحرة المباشرة
