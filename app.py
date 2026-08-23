@@ -10,17 +10,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً عريضة
+# حقن تنسيقات مخصصة لتصغير الفراغات العريضة وتثبيت ستايل الترويسة الثخينة الكبيرة
 st.markdown("""
 <style>
-    /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه */
-    div[data-testid="stDataFrame"] table {
-        font-size: 13px !important;
-        width: auto !important; 
-        margin: 0 auto !important; 
-        table-layout: auto !important; 
-    }
-    
     /* تكبير خط الترويسة العلوية وجعلها ثخينة جداً وعريضة بارزة البنية */
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
@@ -32,10 +24,16 @@ st.markdown("""
         white-space: nowrap !important; 
     }
     
-    /* تنسيق خلايا البيانات بالأسفل */
+    /* ضبط أبعاد ومحاذاة خلايا البيانات داخل الجداول تلقائياً */
+    div[data-testid="stDataFrame"] table {
+        font-size: 13px !important;
+        width: auto !important; 
+        margin: 0 auto !important; 
+        table-layout: auto !important; 
+    }
+    
     div[data-testid="stDataFrame"] td {
         padding: 6px 14px !important; 
-        text-align: center !important;
         white-space: nowrap !important;
         font-weight: 700 !important;
     }
@@ -84,14 +82,15 @@ for idx, row in df_processed.iterrows():
         header_row_idx = idx
         break
 
-# استخراج العناوين الأصلية الـ 29 كاملة وتطبيقها كأعمدة أساسية
+# [تعديل الحصر الحاسم]: تعيين ترويسة الجدول وقص وحصر البيانات في أول 29 عموداً فقط بدقة لمنع تعطل الفلترة
 df_processed.columns = [str(c).strip() for c in df_processed.iloc[header_row_idx]]
-df_data = df_processed.iloc[header_row_idx + 1:].reset_index(drop=True)
+df_data = df_processed.iloc[header_row_idx + 1:, :29].reset_index(drop=True)
 
 # ربط الكلمات المفتاحية فقط لحساب المربعات الإحصائية العلوية الستة دون المساس بحجم الجدول
 keywords_map = {
     'Container': ['container no.', 'container', 'الحاوية', 'رقم الحاوية'],
-    'Shipping_mark': ['shipping mark', 'رمز الشحن', 'ماركة', 'كود'],
+    'Shipping_mark': ['shipping mark', 'رمز الشحن', 'ماركة'],
+    'Code': ['code', 'الكود', 'كود', 'رقم الطلب'],
     'Amount': ['amount', 'المجموع', 'القيمة', 'السعر', 'أجور الشحن'],
     'Client_paid': ['client paid', 'الزبون دفع', 'المدفوع', 'دفع'],
     'Office_paid': ['office paid', 'المكتب دفع'],
@@ -115,7 +114,7 @@ for target, keywords in keywords_map.items():
         df_data[f'calc_{target}'] = 0
 
 # تصفية الأسطر الفارغة من ملفك
-df_data = df_data[df_data['calc_Shipping_mark'] != ""].reset_index(drop=True)
+df_data = df_data[df_data['calc_Code'] != ""].reset_index(drop=True)
 
 if 'calc_Container' in df_data.columns:
     df_data['calc_Container'] = df_data['calc_Container'].astype(str).str.strip().replace('nan', '')
@@ -123,40 +122,22 @@ if 'calc_Container' in df_data.columns:
 # --- 3. واجهة البحث والتصفية التفاعلية ---
 st.title("📊 Logistics Dashboard")
 
-if 'calc_Shipping_mark' in df_data.columns:
-    def extract_main_code(val):
-        val_str = str(val).strip()
-        if '-' in val_str:
-            parts = val_str.split('-')
-            return str(parts).strip()
-        return val_str
-
-    df_data['Main_Code'] = df_data['calc_Shipping_mark'].apply(extract_main_code)
-    
-    unique_codes_list = []
-    for c in df_data['Main_Code'].dropna():
-        c_clean = str(c).strip()
-        if c_clean and c_clean != "nan" and c_clean not in unique_codes_list:
-            unique_codes_list.append(c_clean)
-    unique_codes = sorted(unique_codes_list)
+# [تبديل الفلترة الجذري]: البحث واستخراج الأكواد من عمود "رقم الكود / الطلب" (code) وليس الماركة
+if 'calc_Code' in df_data.columns:
+    unique_codes = sorted([str(c).strip() for c in df_data['calc_Code'].unique() if str(c).strip() and str(c).strip() != 'nan'])
 else:
-    unique_codes = ["B12"]
+    unique_codes = ["B2569"]
 
 if not unique_codes:
-    unique_codes = ["B12"]
+    unique_codes = ["B2569"]
 
-selected_code = st.selectbox("🔍 اختر أو ابحث عن كود الشحن لتتجمع البيانات الخاصة به تلقائياً:", unique_codes)
+selected_code = st.selectbox("🔍 اختر أو ابحث عن رقم الكود (Order/Client Code) لتجميع شحناته تلقائياً:", unique_codes)
 
-# [تعديل التصفية المستقرة المضمونة للجدول الأول]: تصفية بناءً على الأكواد الأصلية والكاملة لمنع الاختفاء
-df_filtered_full = df_data[df_data['Main_Code'] == selected_code].reset_index(drop=True)
+# [تصفية دقيقة وحصرية للأعمدة الـ 29]: تصفية بناءً على عمود الكود (code) المختار
+df_filtered_full = df_data[df_data['calc_Code'] == selected_code].reset_index(drop=True)
 
 # حساب الإحصائيات التجميعية الحقيقية للمربعات الستة
-total_orders = df_filtered_full['calc_Shipping_mark'].nunique() if len(df_filtered_full) > 0 else 0
-if selected_code.startswith("BS") and total_orders > 1:
-    base_codes = df_filtered_full['calc_Shipping_mark'].apply(lambda x: str(x).split('-') if '-' in str(x) else str(x))
-    if base_codes.nunique() == 1:
-        total_orders = 1
-
+total_orders = df_filtered_full['calc_Code'].nunique() if len(df_filtered_full) > 0 else 0
 valid_containers = df_filtered_full['calc_Container'][df_filtered_full['calc_Container'] != '']
 total_containers = valid_containers.nunique() if len(valid_containers) > 0 else 0
 if total_containers == 0 and len(df_filtered_full) > 0:
@@ -182,9 +163,9 @@ st.markdown(f"""
         <div class="kpi-title">عدد الطلبات</div>
         <div class="kpi-value">{total_orders} طلب</div>
     </div>
-    <!-- 2. كود الشحن الحالي (أخضر) -->
+    <!-- 2. الكود الحالي (أخضر) -->
     <div class="kpi-card" style="background-color: #2ECC71;">
-        <div class="kpi-title">كود الشحن الحالي</div>
+        <div class="kpi-title">رقم الكود المختار</div>
         <div class="kpi-value">{selected_code}</div>
     </div>
     <!-- 3. عدد الحاويات (أحمر) -->
@@ -210,15 +191,13 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# تحويل الكراتين والحجم إلى مربعات ملونة متناسقة بالكامل
+# المربعات الخاصة بالكراتين والحجم
 st.markdown(f"""
 <div class="kpi-container">
-    <!-- مربع إجمالي عدد الكراتين المجمعة (بني/وردي داكن متناسق) -->
     <div class="kpi-card" style="background-color: #D35400;">
         <div class="kpi-title">📦 إجمالي عدد الكراتين المجمعة (Sum of Ctns)</div>
         <div class="kpi-value">{total_cartons:,} كارتون</div>
     </div>
-    <!-- مربع إجمالي الحجم الكلي المجمع (رمادي داكن متناسق) -->
     <div class="kpi-card" style="background-color: #34495E;">
         <div class="kpi-title">📐 إجمالي الحجم الكلي المجمع (Sum of Cbm)</div>
         <div class="kpi-value">{total_cbm:,.3f} Cbm</div>
@@ -237,7 +216,6 @@ def safe_format_date_cell(x):
         except:
             return x_str
     try:
-        # فحص محاذاة التواريخ بصيغتها العادية
         return pd.to_datetime(x, errors='ignore').strftime('%Y-%m-%d')
     except:
         return x_str
@@ -247,5 +225,19 @@ def process_dataframe_safely(dataframe):
     for col in dataframe.columns:
         col_clean = str(col).strip().lower()
         if 'تاريخ' in col_clean or 'date' in col_clean:
-            # معالجة خلايا التاريخ برفق خلية خلية لتفادي فشل الكود
             dataframe[col] = dataframe[col].apply(safe_format_date_cell).fillna(dataframe[col].astype(str))
+            configs[col] = st.column_config.TextColumn(col, alignment="center")
+        else:
+            sample = str(dataframe[col].dropna().iloc) if not dataframe[col].dropna().empty else ""
+            if dataframe[col].dtype in ['int64', 'float64'] or any(sym in sample for sym in ['¥', '$', '.']):
+                configs[col] = st.column_config.TextColumn(col, alignment="right")
+            else:
+                configs[col] = st.column_config.TextColumn(col, alignment="center")
+    return configs
+
+# --- 5. علامات التبويب المنظمة لحصر عرض الـ 29 عموداً بالكامل ودون فواتير مدمجة معلقة ---
+tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل (الجدول الأم)"])
+
+with tab1:
+    st.subheader(f"📋 جدول التفاصيل المصفى للـ 29 عموداً التابع للكود: {selected_code}")
+    # حصر وتصفية الـ 29 عموداً الصافية دون أي زوائد خارجية قد تخفي الجدول
