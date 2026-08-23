@@ -61,21 +61,17 @@ with st.sidebar:
           uploaded_file = new_file
 
 
-# --- 3. دالة ذكية لقراءة الشيت الصحيح وتفادي الجداول الفارغة 🌟 ---
+# --- 3. دالة ذكية لقراءة الشيت الصحيح وتفادي الجداول الفارغة ---
 def load_data_smart(file):
   if file is not None:
     try:
-        # فتح ملف الإكسيل ككائن لقراءة أسماء الصفحات المتاحة
         xl = pd.ExcelFile(file)
-        # البحث عن أول صفحة تحتوي على بيانات وليست فارغة
         target_sheet = xl.sheet_names[0]
         for sheet in xl.sheet_names:
             test_df = pd.read_excel(file, sheet_name=sheet, nrows=5)
             if not test_df.empty and len(test_df.columns) > 2:
                 target_sheet = sheet
                 break
-        
-        # قراءة الصفحة الصحيحة المكتشفة من السطر الأول الصافي
         raw_df = pd.read_excel(file, sheet_name=target_sheet, header=0)
         raw_df.columns = raw_df.columns.str.strip()
         return raw_df
@@ -151,9 +147,11 @@ else:
             return "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الاحترافي المحدث والمحصن ضد حالة الحروف والأسطر المفردة ---
+  # --- 4. نظام تسجيل الدخول الاحترافي المحدث والمحصن بالكامل 🌟 ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
-  valid_codes_clean = [str(c).strip().lower() for c in valid_codes]
+  
+  # 🌟 تنظيف الأكواد الأصلية في الإكسيل (حذف حرف B/b إن وجد وتحويلها لنصوص صافية ممسوحة المسافات)
+  valid_codes_clean = [str(c).strip().lower().replace('b', '') for c in valid_codes]
 
   if st.session_state.logged_in_customer is None:
       st.markdown("""
@@ -167,14 +165,15 @@ else:
       col_space1, col_login, col_space2 = st.columns(3)
       with col_login:
           with st.form("login_form"):
-              password_input = st.text_input("🔑 أدخل كلمة المرور الخاصة بك (كود العميل):", type="password", help="كلمة المرور هي كود العميل الخاص بك مثل B12")
+              password_input = st.text_input("🔑 أدخل كلمة المرور الخاصة بك (كود العميل):", type="password", help="كلمة المرور هي كود العميل الخاص بك مثل B4729")
               submit_login = st.form_submit_button("تسجيل الدخول الآمن 🔓")
               
               if submit_login:
-                  clean_pwd = str(password_input).strip().lower()
+                  # 🌟 التطهير الذكي لمدخلات الزبون: إزالة أي حرف b أو B ومسح المسافات تلقائياً 🌟
+                  clean_input = str(password_input).strip().lower().replace('b', '')
                   
-                  if clean_pwd in valid_codes_clean:
-                      actual_code = valid_codes[valid_codes_clean.index(clean_pwd)]
+                  if clean_input in valid_codes_clean:
+                      actual_code = valid_codes[valid_codes_clean.index(clean_input)]
                       st.session_state.logged_in_customer = actual_code
                       st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم الخاصة بك...")
                       st.rerun()
@@ -190,9 +189,8 @@ else:
   selected_client = st.session_state.logged_in_customer
   
   if selected_client != "الكل" and client_name_col in df.columns:
-      df[client_name_col] = df[client_name_col].astype(str).str.strip()
-      df_client = df[df[client_name_col].str.lower() == str(selected_client).lower().strip()]
-      st.sidebar.markdown(f"👤 العميل الحالي: **{selected_client}**")
+      df_client = df[df[client_name_col].astype(str).str.strip().str.lower() == str(selected_client).lower().strip()]
+      st.sidebar.markdown(f"👤 العميل الحالي: **B{selected_client}**")
       if st.sidebar.button("🚪 تسجيل الخروج الآمن"):
           st.session_state.logged_in_customer = None
           st.rerun()
@@ -200,7 +198,6 @@ else:
       df_client = df
       st.sidebar.markdown("👑 صلاحية: **مدير النظام**")
       
-      # عرض كاشف الأكواد الفعلي للإدارة لضمان الشفافية ومطابقة الحسابات
       st.sidebar.markdown("### 🔍 كاشف الأكواد المتاحة بالملف:")
       st.sidebar.dataframe(pd.DataFrame({"الأكواد المسجلة": valid_codes}), height=200)
       
@@ -210,7 +207,7 @@ else:
 
   # --- 6. عنوان الواجهة الرئيسي للزبون بعد تسجيل الدخول ---
   st.title("📦 Logistics Dashboard — أطلس")
-  st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **{selected_client if selected_client != 'الكل' else 'كافة العملاء'}**")
+  st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **B{selected_client if selected_client != 'الكل' else 'كافة العملاء'}**")
   st.markdown("---")
 
   # --- 7. أشرطة تصفية الحاويات والماركات المعزولة للعميل ---
@@ -228,3 +225,4 @@ else:
   selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
 
   filtered_df = temp_df
+  if selected_mark != "الكل" and shipping_mark_col in filtered_df.columns:
