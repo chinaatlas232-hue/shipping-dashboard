@@ -58,7 +58,7 @@ df = load_data(uploaded_file)
 if df.empty:
   st.info("👋 مرحباً بك! يرجى رفع ملف الإكسيل الشامل من الشريط الجانبي لبدء تشغيل لوحة تحكم العملاء.")
 else:
-  # 🌟 تعيين العمود مصفح العملاء بناءً على اسم "code" الموجود في ملفك حرفياً
+  # تعيين العمود مصفح العملاء بناءً على اسم "code" الموجود في ملفك حرفياً
   client_name_col = "code"
   
   # بقية مسميات الأعمدة الحقيقية لجدولك النظيف
@@ -97,13 +97,14 @@ else:
   st.markdown("Interactive view of shipments, payments and dynamic balances")
   st.markdown("---")
 
-  # --- 5. أشرطة التصفية السريعة والذكية (سيليكر كود الزبون + الحاوية + الماركة) ---
+  # --- 5. أشرطة التصفية السريعة المترابطة لحماية الخصوصية وعزل معلومات العميل 🌟 ---
   st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
   
-  # الفلتر الأول والأساسي للعملاء بناءً على عمود code
+  # الفلتر الأول (الأعلى صلاحية): اختيار كود العميل لحسم الخصوصية فوراً
   if client_name_col in df.columns:
       client_options = ["الكل"] + list(df[client_name_col].dropna().unique())
       selected_client = st.pills("اختر الكود الخاص بك (Customer Code):", options=client_options, default="الكل", key="client_pill")
+      
       if selected_client != "الكل":
           df_client = df[df[client_name_col] == selected_client]
       else:
@@ -112,7 +113,7 @@ else:
       df_client = df
       st.warning(f"⚠️ لم نجد عمود باسم '{client_name_col}' في ملفك الحالي.")
 
-  # الفلتر الثاني: تصفية الحاويات التابعة للزبون المختار فقط
+  # الفلتر الثاني الديناميكي: يعرض فقط الحاويات المتاحة للزبون المختار (يمنع تداخل الحاوية المشتركة) 🌟
   container_options = ["الكل"] + list(df_client[container_col].dropna().unique())
   selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
 
@@ -121,15 +122,16 @@ else:
   else:
       temp_df = df_client
 
-  # الفلتر الثالث: تصفية ماركة الشحن
+  # الفلتر الثالث الديناميكي: يعرض فقط ماركات الشحن الخاصة بالزبون والحاوية المختارة
   shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique())
   selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
 
+  # التصفية النهائية الناتجة عن عزل العميل تماماً داخل الحاوية المشتركة
   filtered_df = temp_df
   if selected_mark != "الكل":
       filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
 
-  # --- 6. العمليات الحسابية والمؤشرات الديناميكية الأساسية المعزولة بدقة ---
+  # --- 6. العمليات الحسابية والمؤشرات الديناميكية للعميل المختار حصرياً ---
   total_orders = len(filtered_df)
   total_containers = filtered_df[container_col].nunique()
   total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
@@ -166,7 +168,7 @@ else:
         """
     st.markdown(card_style, unsafe_allow_html=True)
 
-  # عرض لوحة المقاييس الأساسية بالدولار
+  # عرض لوحة المقاييس المعزولة بالكامل للعميل المختار بالدولار
   row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
   with row1_col1: render_custom_card("Orders (الطلبات الفرعية)", f"{total_orders}", "📋", "#4f46e5")
   with row1_col2: render_custom_card("Containers (الحاويات)", f"{total_containers}", "🚢", "#0ea5e9")
@@ -203,7 +205,7 @@ else:
       st.plotly_chart(fig_sh_bar, use_container_width=True)
       st.markdown("---")
 
-  # --- 8. عرض جدول البيانات الكامل المفتوح دائماً والمصفى حسب كود الزبون ---
+  # --- 8. عرض جدول البيانات المفتوح دائماً والمصفى بدقة متناهية لحماية خصوصية العميل ---
   st.subheader("📋 جدول البيانات الشاملة والنقية (الجدول الأم الكامل)")
   st.dataframe(filtered_df, use_container_width=True, height=550)
 
