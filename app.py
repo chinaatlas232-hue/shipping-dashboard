@@ -3,14 +3,14 @@ import pandas as pd
 import io
 import os
 
-# 1. إعدادات الصفحة لتكون عريضة ومتوافقة مع التصميم الموضح بالصورة
+# 1. إعدادات الصفحة لتكون عريضة
 st.set_page_config(
     page_title="Logistics Dashboard", 
     page_icon="📦", 
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً وعريضة
+# حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً عريضة
 st.markdown("""
 <style>
     /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه */
@@ -40,7 +40,7 @@ st.markdown("""
         font-weight: 700 !important;
     }
     
-    /* şريط التمرير (السكرول) عريض ومريح للإمساك بالماوس */
+    /* شريط التمرير (السكرول) عريض ومريح للإمساك بالماوس */
     ::-webkit-scrollbar {
         width: 14px !important;  
         height: 14px !important; 
@@ -85,8 +85,17 @@ for idx, row in df_processed.iterrows():
         break
 
 # استخراج العناوين الأصلية الـ 29 كاملة وتطبيقها كأعمدة أساسية
-df_processed.columns = [str(c).strip() for c in df_processed.iloc[header_row_idx]]
-df_data = df_processed.iloc[header_row_idx + 1:, :29].reset_index(drop=True)
+detected_headers = [str(c).strip() for c in df_processed.iloc[header_row_idx]]
+clean_headers = []
+for i, h in enumerate(detected_headers):
+    if h == "" or h == "nan" or h.startswith('Unnamed:'):
+        clean_headers.append(f"عمود_{i}")
+    else:
+        clean_headers.append(h)
+
+# قص البيانات الصافية وحصرها في الأعمدة الـ 29 الأساسية الأولى فقط
+df_data = df_processed.iloc[header_row_idx + 1:, :len(clean_headers)].reset_index(drop=True)
+df_data.columns = clean_headers[:df_data.shape[1]]
 
 # ربط الكلمات المفتاحية بالكامل وتوسيع مسميات الـ CBM لتفعيل مربع الحجم
 keywords_map = {
@@ -211,7 +220,7 @@ st.markdown(f"""
 
 st.markdown("---")
 
-# دالة مخصصة آمنة لتنظيف وتنسيق خلايا الجداول والتواريخ دون حدوث انهيار صامت
+# دالة مخصصة آمنة لتنظيف وتنسيق خلايا الجداول والتواريخ دون حدوث تضارب
 def safe_format_date_cell(x):
     x_str = str(x).strip()
     if x_str.isdigit() and len(x_str) >= 10:
@@ -236,8 +245,3 @@ def process_dataframe_safely(dataframe):
             if dataframe[col].dtype in ['int64', 'float64'] or any(sym in sample for sym in ['¥', '$', '.']):
                 configs[col] = st.column_config.TextColumn(col, alignment="right")
             else:
-                configs[col] = st.column_config.TextColumn(col, alignment="center")
-    return configs
-
-# --- 5. [الحل النهائي المستقر]: عرض الجدولين تحت بعضهما مباشرة دون نظام تبويبات مسبب للمشاكل ---
-st.subheader(f"📊 1. جدول التفاصيل المصفى للـ 29 عموداً التابع للكود الحالي: {selected_code}")
