@@ -10,10 +10,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# [تعديل الترويسة والعرض]: حقن تنسيقات مخصصة لتوسيع الأعمدة وإظهار الكلمات كاملة
+# حقن تنسيقات مخصصة لتوسيع الجداول وإظهار الترويسة كاملة بدون التواء كلمات
 st.markdown("""
 <style>
-    /* جعل الخطوط واضحة وتوسيع الخلايا لتظهر العناوين كاملة */
     div[data-testid="stDataFrame"] table {
         font-size: 13px !important;
         width: 100% !important;
@@ -32,7 +31,7 @@ st.markdown("""
         white-space: nowrap !important;
     }
     
-    /* الحفاظ على السكرول العريض والمريح للإمساك بالماوس */
+    /* الحفاظ على السكرول عريضاً ومريحاً للإمساك بالماوس */
     ::-webkit-scrollbar {
         width: 16px !important;  
         height: 16px !important; 
@@ -122,9 +121,12 @@ if 'Container' in df_cleaned.columns:
 st.title("📊 Logistics Dashboard")
 
 if 'Shipping_mark' in df_cleaned.columns:
-    df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(lambda x: str(x).split('-') if '-' in str(x) else str(x))
-    raw_unique = df_cleaned['Main_Code'].dropna().unique()
-    unique_codes = sorted([str(c).strip() for c in raw_unique if str(c).strip()])
+    # تحويل الأكواد بالكامل إلى نصوص لمنع حدوث التضارب في دمج الخلايا
+    df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(lambda x: str(x).split('-')[0] if '-' in str(x) else str(x))
+    
+    # [تم الإصلاح الجذري هنا]: عزل السلسلة وحفظها كنصوص مصفاة لتفادي الـ TypeError نهائياً
+    raw_unique = pd.Series(df_cleaned['Main_Code'].unique()).dropna().astype(str)
+    unique_codes = sorted([c.strip() for c in raw_unique if c.strip()])
 else:
     unique_codes = ["B12"]
 
@@ -189,15 +191,13 @@ with col2:
 
 st.markdown("---")
 
-# --- 5. نظام التبويبات لعرض الجداول المدمجة والمضغوطة بالأسفل ---
+# --- 5. نظام التبويبات لعرض الجداول بكامل معلومات العرض والترويسة فسيحة الأبعاد ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
 
 with tab1:
     st.subheader(f"📋 جدول التفاصيل التابع للكود المختار: {selected_code}")
     display_df = df_filtered[['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']].copy()
     display_df.columns = ['Container NO.', 'Shipping mark', 'Amount', 'Client paid', 'Office paid', 'Sum of Ctns', 'Sum of Cbm']
-    
-    # [تطبيق العرض الكامل]: تفعيل ميزة التمدد التلقائي للأعمدة لعدم قص الترويسة
     st.dataframe(display_df, use_container_width=True, hide_index=True)
 
 with tab2:
