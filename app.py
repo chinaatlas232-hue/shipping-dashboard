@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import io
-import requests
+import os
 
 # 1. إعدادات الصفحة لتكون عريضة
 st.set_page_config(
@@ -10,26 +10,20 @@ st.set_page_config(
     layout="wide"
 )
 
-# [الحل الجذري]: قراءة الملف مباشرة وثابتة من مستودع GitHub الخاص بك
-GITHUB_RAW_URL = "https://githubusercontent.com"
+# [تعديل الأمان القاطع]: البحث عن الملف محلياً داخل المستودع مباشرة لمنع مشاكل الروابط
+SAVED_FILE_PATH = "permanent_shipping_data.xlsx"
 
-@st.cache_data(ttl=60)  # تحديث البيانات تلقائياً كل دقيقة إذا تغير الملف على جيت هاب
-def fetch_data_from_github(url):
+# التحقق من وجود الملف في مجلد المشروع لتشغيل لوحة التحكم فوراً
+if os.path.exists(SAVED_FILE_PATH):
     try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            return pd.read_excel(io.BytesIO(response.content), header=None)
-        return None
-    except:
-        return None
-
-# جلب البيانات الحية المضمونة
-df_raw = fetch_data_from_github(GITHUB_RAW_URL)
-
-# الحالة عندما لا يجد السيرفر الملف على جيت هاب (حماية الكود من التوقف)
-if df_raw is None or df_raw.empty:
+        # قراءة البيانات الخام كاملاً لتبدأ المعالجة الذكية
+        df_raw = pd.read_excel(SAVED_FILE_PATH, header=None)
+    except Exception as e:
+        st.error(f"خطأ في قراءة ملف البيانات: {e}")
+        st.stop()
+else:
     st.title("📦 Logistics Dashboard")
-    st.warning("⚠️ لم يتم العثور على ملف البيانات على الخادم. تأكد من وجود ملف permanent_shipping_data.xlsx داخل مستودع GitHub الخاص بك.")
+    st.warning("⚠️ لم يتم العثور على ملف permanent_shipping_data.xlsx في المستودع. يرجى التأكد من رفع ملف الإكسل بنفس هذا الاسم تماماً بجانب ملف app.py على GitHub.")
     st.stop()
 
 # --- 2. البحث التلقائي الديناميكي عن سطر العناوين الحقيقي في جدولك ---
@@ -45,7 +39,7 @@ for idx, row in df_processed.iterrows():
 df_processed.columns = [str(c).strip() for c in df_processed.iloc[header_row_idx]]
 df_data = df_processed.iloc[header_row_idx + 1:].reset_index(drop=True)
 
-# ربط الأعمدة والمسميات الحسابية تلقائياً
+# ربط الأعمدة والمسميات الحسابية تلقائياً لتطابق الجدول المرفوع
 keywords_map = {
     'Container': ['container no.', 'container', 'الحاوية', 'رقم الحاوية'],
     'Shipping_mark': ['shipping mark', 'رمز الشحن', 'ماركة', 'كود'],
@@ -107,7 +101,7 @@ total_office_paid = float(df_filtered['Office_paid'].sum())
 total_cartons = int(df_filtered['Ctns'].sum())
 total_cbm = float(df_filtered['Cbm'].sum())
 
-# --- 4. الشاشات العلوية الست الملونة كما تظهر في تصميم جدولك الأصلي ---
+# --- 4. الشاشات العلوية الست الملونة التفاعلية المستقرة والممتازة ---
 st.markdown(f"""
 <style>
     .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 25px; direction: rtl; }}
