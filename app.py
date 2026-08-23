@@ -94,7 +94,7 @@ def load_data_smart(file):
     if file is not None:
         try:
             xl = pd.ExcelFile(file)
-            target_sheet = xl.sheet_names[0]
+            target_sheet = xl.sheet_names
             for sheet in xl.sheet_names:
                 test_df = pd.read_excel(file, sheet_name=sheet, nrows=5)
                 if not test_df.empty and len(test_df.columns) > 2:
@@ -216,7 +216,7 @@ else:
     df_client = df
     st.sidebar.markdown("👑 صلاحية: **مدير النظام**")
     st.sidebar.markdown("### 🔍 كاشف الأكواد المتاحة بالملف:")
-    st.sidebar.dataframe(pd.DataFrame({"الأكواد المسجلة": valid_codes}), height=150)
+    st.sidebar.dataframe(pd.DataFrame({"An الأكواد المسجلة": valid_codes}), height=150)
 
 if st.sidebar.button("🚪 تسجيل الخروج"):
     st.session_state.logged_in_customer = None
