@@ -10,17 +10,9 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً عريضة
+# حقن تنسيقات مخصصة لتصغير الفراغات العريضة وتثبيت ستايل الترويسة الثخينة
 st.markdown("""
 <style>
-    /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه */
-    div[data-testid="stDataFrame"] table {
-        font-size: 13px !important;
-        width: auto !important; 
-        margin: 0 auto !important; 
-        table-layout: auto !important; 
-    }
-    
     /* تكبير خط الترويسة العلوية وجعلها ثخينة جداً وعريضة بارزة البنية */
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
@@ -32,11 +24,18 @@ st.markdown("""
         white-space: nowrap !important; 
     }
     
-    /* تنسيق خلايا البيانات بالأسفل */
+    /* ضبط أبعاد ومحاذاة خلايا البيانات داخل الجداول تلقائياً */
+    div[data-testid="stDataFrame"] table {
+        font-size: 13px !important;
+        width: auto !important; 
+        margin: 0 auto !important; 
+        table-layout: auto !important; 
+    }
+    
     div[data-testid="stDataFrame"] td {
         padding: 6px 14px !important; 
-        text-align: center !important;
         white-space: nowrap !important;
+        font-weight: 700 !important;
     }
     
     /* شريط التمرير (السكرول) عريض ومريح للإمساك بالماوس */
@@ -217,35 +216,30 @@ with col2:
 
 st.markdown("---")
 
-# دالة حتمية لتعديل محتوى الخلايا بشكل مباشر دون التسبب في خطأ إخفاء الجداول
-def safe_format_date_cell(x):
-    x_str = str(x).strip()
-    if x_str.isdigit() and len(x_str) >= 10:
-        try:
-            return pd.to_datetime(int(x_str), unit='ms', errors='coerce').strftime('%Y-%m-%d')
-        except:
-            return x_str
-    try:
-        return pd.to_datetime(x, errors='coerce').strftime('%Y-%m-%d')
-    except:
-        return x_str
-
-def process_dataframe_safely(dataframe):
+# دالة مخصصة تضمن عمل المحاذاة حسب نوع العمود بدقة (الأرقام لليمين، النصوص في المنتصف)
+def get_column_alignments(dataframe):
     configs = {}
     for col in dataframe.columns:
-        col_clean = str(col).strip().lower()
-        if 'تاريخ' in col_clean or 'date' in col_clean:
-            dataframe[col] = dataframe[col].apply(fix_date_cell_wrapper).fillna(dataframe[col].astype(str))
-            configs[col] = st.column_config.TextColumn(col, alignment="center")
+        # فحص محتوى العمود لتوجيهه بشكل صحيح
+        sample = str(dataframe[col].dropna().iloc[0]) if not dataframe[col].dropna().empty else ""
+        if dataframe[col].dtype in ['int64', 'float64'] or any(sym in sample for sym in ['¥', '$', '.']):
+            configs[col] = st.column_config.TextColumn(col, alignment="right")
         else:
-            sample = str(dataframe[col].dropna().iloc) if not dataframe[col].dropna().empty else ""
-            if dataframe[col].dtype in ['int64', 'float64'] or any(sym in sample for sym in ['¥', '$', '.']):
-                configs[col] = st.column_config.TextColumn(col, alignment="right")
-            else:
-                configs[col] = st.column_config.TextColumn(col, alignment="center")
+            configs[col] = st.column_config.TextColumn(col, alignment="center")
     return configs
 
-def fix_date_cell_wrapper(x):
-    return safe_format_date_cell(x)
+# --- 5. نظام التبويبات لعرض الجداول بالتنسيق الذكي الشامل والمسافات البرمجية الدقيقة ---
+tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
 
-# --- 5. نظام التبويبات لعرض الجداول بكافة تفاصيلها الـ 29 الأصلية وبأبعاد مضغوطة ملمومة ---
+with tab1:
+    st.subheader(f"📋 جدول التفاصيل الكامل والمثبت التابع للكود المختار: {selected_code}")
+    display_cols = [c for c in df_filtered_full.columns if not str(c).startswith('calc_') and c != 'Main_Code']
+    final_filtered_display = df_filtered_full[display_cols].copy()
+    
+    align_configs_1 = get_column_alignments(final_filtered_display)
+    st.dataframe(final_filtered_display, use_container_width=False, hide_index=True, column_config=align_configs_1)
+
+with tab2:
+    st.subheader("📋 جدول ملف الإكسل الأصلي الكامل (دون تصفية)")
+    full_display_df = df_raw.iloc[header_row_idx:].reset_index(drop=True)
+    raw_headers = [str(c).strip() for c in full_display_df.iloc]
