@@ -98,7 +98,7 @@ if df.empty:
                   st.rerun()
   st.stop()
 else:
-  # 🌟 حل ذكي ومرن للتعرف على الأعمدة وتفادي الـ KeyError تماماً 🌟
+  # حل ذكي ومرن للتعرف على الأعمدة وتفادي الـ KeyError تماماً
   def find_col(possible_names, fallback):
       for name in possible_names:
           if name in df.columns:
@@ -141,8 +141,10 @@ else:
             return "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الاحترافي باسم شركة أطلس وبوابة العملاء ---
+  # --- 4. نظام تسجيل الدخول الاحترافي المحدث والمحصن ضد حالة الحروف ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
+  # تحويل كافة الأكواد المتاحة في ملف الإكسيل إلى حروف صغيرة للمقارنة العادلة والمحصنة
+  valid_codes_lower = [str(c).strip().lower() for c in valid_codes]
 
   if st.session_state.logged_in_customer is None:
       st.markdown("""
@@ -161,8 +163,12 @@ else:
               
               if submit_login:
                   clean_pwd = password_input.strip()
-                  if clean_pwd in valid_codes:
-                      st.session_state.logged_in_customer = clean_pwd
+                  clean_pwd_lower = clean_pwd.lower() # تحويل مدخل العميل لحروف صغيرة
+                  
+                  if clean_pwd_lower in valid_codes_lower:
+                      # جلب الاسم الحقيقي المخزن في الإكسيل بناءً على المطابقة غير الحساسة للحروف
+                      actual_code = valid_codes[valid_codes_lower.index(clean_pwd_lower)]
+                      st.session_state.logged_in_customer = actual_code
                       st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم الخاصة بك...")
                       st.rerun()
                   elif clean_pwd == "881988": 
@@ -195,7 +201,7 @@ else:
   st.markdown("---")
 
   # --- 7. أشرطة تصفية الحاويات والماركات المعزولة للعميل ---
-  st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
+  st.markdown("##### 🗂️ أشرطة Tصفية السريعة الذكية:")
   
   container_options = ["الكل"] + list(df_client[container_col].dropna().unique()) if container_col in df_client.columns else ["الكل"]
   selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
@@ -218,9 +224,3 @@ else:
   total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
   total_client_paid = filtered_df[client_col].sum() if client_col in filtered_df.columns else 0
   total_office_paid = filtered_df[office_col].sum() if office_col in filtered_df.columns else 0
-  total_cartons = int(filtered_df[ctns_col].sum()) if ctns_col in filtered_df.columns else 0
-  total_volume = round(filtered_df[cbm_col].sum(), 3) if cbm_col in filtered_df.columns else 0.0
-
-  # مجاميع الأعمدة الإضافية لشحنة الجمرك والمستخلصات
-  sh_customs = filtered_df[customs_col].sum() if customs_col in filtered_df.columns else 0
-  sh_collected = filtered_df[collected_col].sum() if collected_col in filtered_df.columns else 0
