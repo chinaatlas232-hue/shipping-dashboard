@@ -216,30 +216,28 @@ with col2:
 
 st.markdown("---")
 
-# دالة مخصصة تضمن عمل المحاذاة حسب نوع العمود بدقة (الأرقام لليمين، النصوص في المنتصف)
-def get_column_alignments(dataframe):
+# دالة مخصصة تضمن عمل المحاذاة وتحويل التواريخ بشكل سليم
+def format_and_align_columns(dataframe):
     configs = {}
     for col in dataframe.columns:
-        # فحص محتوى العمود لتوجيهه بشكل صحيح
-        sample = str(dataframe[col].dropna().iloc[0]) if not dataframe[col].dropna().empty else ""
-        if dataframe[col].dtype in ['int64', 'float64'] or any(sym in sample for sym in ['¥', '$', '.']):
-            configs[col] = st.column_config.TextColumn(col, alignment="right")
-        else:
+        col_clean = str(col).strip().lower()
+        
+        # [تلبية طلبك المفتاحى الحاسم]: التعرف على عمود تاريخ التوزيع وتحويله إلى صيغة تقويم حقيقية
+        if 'تاريخ' in col_clean or 'date' in col_clean:
+            # تحويل القيم الرقمية الطويلة إلى تواريخ تقويم واضحة
+            dataframe[col] = pd.to_datetime(dataframe[col], unit='ms', errors='coerce').dt.strftime('%Y-%m-%d').fillna(dataframe[col].astype(str))
             configs[col] = st.column_config.TextColumn(col, alignment="center")
+        else:
+            sample = str(dataframe[col].dropna().iloc) if not dataframe[col].dropna().empty else ""
+            if dataframe[col].dtype in ['int64', 'float64'] or any(sym in sample for sym in ['¥', '$', '.']):
+                configs[col] = st.column_config.TextColumn(col, alignment="right")
+            else:
+                configs[col] = st.column_config.TextColumn(col, alignment="center")
     return configs
 
-# --- 5. نظام التبويبات لعرض الجداول بالتنسيق الذكي الشامل والمسافات البرمجية الدقيقة ---
+# --- 5. نظام التبويبات لعرض الجداول بالتنسيق الذكي الشامل ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
 
 with tab1:
     st.subheader(f"📋 جدول التفاصيل الكامل والمثبت التابع للكود المختار: {selected_code}")
     display_cols = [c for c in df_filtered_full.columns if not str(c).startswith('calc_') and c != 'Main_Code']
-    final_filtered_display = df_filtered_full[display_cols].copy()
-    
-    align_configs_1 = get_column_alignments(final_filtered_display)
-    st.dataframe(final_filtered_display, use_container_width=False, hide_index=True, column_config=align_configs_1)
-
-with tab2:
-    st.subheader("📋 جدول ملف الإكسل الأصلي الكامل (دون تصفية)")
-    full_display_df = df_raw.iloc[header_row_idx:].reset_index(drop=True)
-    raw_headers = [str(c).strip() for c in full_display_df.iloc]
