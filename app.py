@@ -3,7 +3,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# --- 1. إعدادات الصفحة ---
+# --- 1. إعدادات الصفحة واجهة المستخدم ---
 st.set_page_config(
     page_title="Logistics Dashboard — B12", page_icon="📦", layout="wide"
 )
@@ -35,33 +35,16 @@ with st.sidebar:
                 st.error("الرقم السري غير صحيح!")
 
 
-# --- 3. دالة قراءة وتجهيز البيانات وحذف الإجماليات الصلبة ---
+# --- 3. دالة قراءة وتجهيز البيانات الأصلية النظيفة ---
 @st.cache_data
 def load_data(file):
     if file is not None:
         raw_df = pd.read_excel(file)
-        
-        # تنظيف مسافات العناوين
+        # تنظيف مسافات العناوين فقط
         raw_df.columns = raw_df.columns.str.strip()
-        
-        # تعيين المسميات الأساسية
-        c_col = "Container NO." if "Container NO." in raw_df.columns else "container"
-        s_col = "Shipping mark" if "Shipping mark" in raw_df.columns else "shipping_mark"
-        
-        # 🌟 حذف سطر الـ Grand Total أو أي أسطر فارغة تماماً من أسفل الجدول لعدم تدمير الحسابات
-        if s_col in raw_df.columns:
-            raw_df = raw_df[raw_df[s_col].notna()]
-            raw_df = raw_df[~raw_df[s_col].astype(str).str.contains('Total|إجمالي|Grand|cbm|ctns', case=False, na=False)]
-            
-        if c_col in raw_df.columns:
-            # حذف السطور التي تحتوي على كلمة إجمالي في عمود الحاوية أيضاً
-            raw_df = raw_df[~raw_df[c_col].astype(str).str.contains('Total|إجمالي|Grand', case=False, na=False)]
-            # فك دمج خلايا عمود الحاوية بشكل سليم للأسفل
-            raw_df[c_col] = raw_df[c_col].ffill()
-            
         return raw_df
     else:
-        # بيانات افتراضية سليمة لتشغيل التطبيق المبدئي
+        # بيانات افتراضية مؤقتة تعمل فقط في حال عدم رفع الملف
         rows = [
             {"Container NO.": "RQ6025", "Shipping mark": "B12-102", "Amount": 12500, "Client paid": 100, "Office paid": 12400, "Sum of Ctns": 3, "Sum of Cbm": 0.513},
             {"Container NO.": "RQ6035", "Shipping mark": "B12-114", "Amount": 70800, "Client paid": 0, "Office paid": 70800, "Sum of Ctns": 13, "Sum of Cbm": 3.211},
@@ -71,7 +54,7 @@ def load_data(file):
 
 df = load_data(uploaded_file)
 
-# تعيين أسماء الأعمدة للعمليات الحسابية
+# تعيين مسميات الأعمدة الحقيقية المتطابقة مع ملف الإكسيل الخاص بك
 container_col = "Container NO." if "Container NO." in df.columns else "container"
 shipping_mark_col = "Shipping mark" if "Shipping mark" in df.columns else "shipping_mark"
 ctns_col = "Sum of Ctns" if "Sum of Ctns" in df.columns else "Cartons"
@@ -80,7 +63,7 @@ amt_col = "Amount" if "Amount" in df.columns else "Total_Amount"
 client_col = "Client paid" if "Client paid" in df.columns else "Client_Paid"
 office_col = "Office paid" if "Office paid" in df.columns else "Office_Paid"
 
-# تحويل كافة الأعمدة إلى قيم رقمية نظيفة وحذف الفواصل ورموز العملات لتجنب الأخطاء
+# تنظيف وتطهير البيانات المالية والعددية من أي رموز نصية (مثل ¥ أو $) وتحويلها لأرقام
 for col in [amt_col, client_col, office_col, ctns_col, cbm_col]:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col].astype(str).str.replace(r'[^\d.]', '', regex=True), errors='coerce').fillna(0)
@@ -91,7 +74,11 @@ st.markdown("Interactive view of shipments by container, shipping mark, payments
 st.markdown("---")
 
 # --- 5. الشريط الأفقي السريع (Pills Filter) للكونتينرات ---
+# جلب الحاويات الحقيقية الفريدة بدون أي تكرار أو أسطر فارغة
 container_options = ["الكل"] + list(df[container_col].dropna().unique())
+# تصفية وإزالة أي أسطر إجماليات من خيارات الفلتر السريع
+container_options = [opt for opt in container_options if not any(word in str(opt).lower() for word in ['total', 'grand', 'إجمالي'])]
+
 st.markdown("##### 🗂️ شريط تصفية الحاويات السريع:")
 selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", label_visibility="collapsed")
 
@@ -101,15 +88,24 @@ if selected_container != "الكل":
 else:
     filtered_df = df
 
-# --- 6. حساب المؤشرات الدقيقة والمطابقة 100% بدون سطر الإجمالي القديم ---
-total_orders = len(filtered_df)
-total_containers = filtered_df[container_col].nunique()
+# --- 6. حساب المؤشرات الدقيقة والمطابقة 100% للملف الحقيقي الأصلي ---
+# استبعاد سطر الإجمالي الكلي المكتوب داخل الإكسيل (Grand Total) من الحسابات البرمجية لتجنب تضاعف الأرقام
+calc_df = filtered_df[~filtered_df[shipping_mark_col].astype(str).str.lower().str.contains('total|grand|إجمالي', na=False)]
+if selected_container == "الكل":
+    calc_master = df[~df[shipping_mark_col].astype(str).str.lower().str.contains('total|grand|إجمالي', na=False)]
+else:
+    calc_master = calc_df
 
-total_amount_val = filtered_df[amt_col].sum()
-total_client_paid = filtered_df[client_col].sum()
-total_office_paid = filtered_df[office_col].sum()
-total_cartons = int(filtered_df[ctns_col].sum())
-total_volume = round(filtered_df[cbm_col].sum(), 3)
+total_orders = len(calc_df)
+total_containers = calc_df[container_col].dropna().nunique()
+
+total_amount_val = calc_df[amt_col].sum()
+total_client_paid = calc_df[client_col].sum()
+total_office_paid = calc_df[office_col].sum()
+
+# 🌟 الحل الجذري: قراءة وحساب قيم الكراتين والحجم مباشرة من الملف الأصلي الصافي بدون زيادة
+total_cartons = int(calc_df[ctns_col].sum())
+total_volume = round(calc_df[cbm_col].sum(), 3)
 
 
 # دالة مخصصة لعرض بطاقات المؤشرات الاحترافية بالألوان والأيقونات
@@ -151,7 +147,7 @@ with row1_col4:
 with row1_col5:
     render_custom_card("Office Paid", f"¥ {total_office_paid:,.2f}", "🏢", "#6366f1")
 
-# توزيع شبكة المؤشرات (الصف الثاني المتطابق مع التصميم الجغرافي المطلوب)
+# توزيع شبكة المؤشرات (الصف الثاني المتطابق مع التصميم المطلوب)
 row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
 
 with row2_col1:
@@ -170,10 +166,10 @@ chart_col1, chart_col2 = st.columns(2)
 
 with chart_col1:
     st.subheader("📊 Payments & Amount by Container")
-    y_cols = [c for c in [amt_col, office_col, client_col] if c in filtered_df.columns]
-    if y_cols:
+    y_cols = [c for c in [amt_col, office_col, client_col] if c in calc_df.columns]
+    if y_cols and container_col in calc_df.columns:
         fig_bar = px.bar(
-            filtered_df,
+            calc_df,
             x=container_col,
             y=y_cols,
             barmode="group",
@@ -197,7 +193,7 @@ with chart_col2:
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
-# --- 8. عرض جدول البيانات الكامل بعد التنظيف الصارم ---
+# --- 8. عرض جدول البيانات الكاملة والنقية الأصيلة ---
 with st.expander("📋 عرض جدول البيانات الكاملة والنقية (الجدول الأم)"):
     st.dataframe(filtered_df, use_container_width=True)
 
