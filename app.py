@@ -10,18 +10,10 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً عريضة
+# [تعديل المحاذاة الديناميكية حسب نوع العمود]: حقن تنسيقات مخصصة لتنظيم العرض والمحاذاة تلقائياً
 st.markdown("""
 <style>
-    /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه */
-    div[data-testid="stDataFrame"] table {
-        font-size: 13px !important;
-        width: auto !important; 
-        margin: 0 auto !important; 
-        table-layout: auto !important; 
-    }
-    
-    /* تكبير خط الترويسة العلوية وجعلها ثخينة جداً وعريضة بارزة البنية */
+    /* تنسيق ترويسة الجدول العلوية - ثابتة وعريضة وثخينة */
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
         color: #1a252f !important; 
@@ -32,10 +24,16 @@ st.markdown("""
         white-space: nowrap !important; 
     }
     
-    /* تنسيق خلايا البيانات بالأسفل */
+    /* جعل الجدول يأخذ أبعاده الطبيعية الملمومة دون تمدد مفرط */
+    div[data-testid="stDataFrame"] table {
+        font-size: 13px !important;
+        width: auto !important; 
+        margin: 0 auto !important; 
+        table-layout: auto !important; 
+    }
+    
     div[data-testid="stDataFrame"] td {
         padding: 6px 14px !important; 
-        text-align: center !important;
         white-space: nowrap !important;
     }
     
@@ -217,33 +215,29 @@ with col2:
 
 st.markdown("---")
 
-# --- 5. نظام التبويبات لعرض الجداول بكافة تفاصيلها الـ 29 الأصلية وبأبعاد مضغوطة ملمومة ---
+# --- 5. نظام التبويبات لعرض الجداول بالتنسيق والمحاذاة الديناميكية المخصصة لكل عمود ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
+
+# دالة ذكية لتطبيق تنسيق ومحاذاة الأعمدة (الأرقام لليمين، النصوص في المنتصف)
+def apply_dynamic_alignment(st_df, source_df):
+    # مصفوفة التنسيق لكل عمود بناءً على نوع البيانات الحقيقي فيه
+    column_configs = {}
+    for col in source_df.columns:
+        # إذا كان العمود يحتوي على قيم رقمية أو مبالغ تبدأ برمز العملة
+        sample_val = str(source_df[col].dropna().iloc[0]) if not source_df[col].dropna().empty else ""
+        if source_df[col].dtype in ['int64', 'float64'] or any(sym in sample_val for sym in ['¥', '$', '.']):
+            column_configs[col] = st.column_config.TextColumn(col, alignment="right") # محاذاة المبالغ لليمين
+        else:
+            column_configs[col] = st.column_config.TextColumn(col, alignment="center") # محاذاة النصوص للمنتصف
+    return column_configs
 
 with tab1:
     st.subheader(f"📋 جدول التفاصيل الكامل والمثبت التابع للكود المختار: {selected_code}")
     display_cols = [c for c in df_filtered_full.columns if not str(c).startswith('calc_') and c != 'Main_Code']
     final_filtered_display = df_filtered_full[display_cols].copy()
-    st.dataframe(final_filtered_display, use_container_width=False, hide_index=True)
+    
+    # تطبيق التنسيق والمحاذاة الديناميكية حسب العمود تلقائياً
+    configs_tab1 = apply_dynamic_alignment(st, final_filtered_display)
+    st.dataframe(final_filtered_display, use_container_width=False, hide_index=True, column_config=configs_tab1)
 
 with tab2:
-    st.subheader("📋 جدول ملف الإكسل الأصلي الكامل (دون تصفية)")
-    full_display_df = df_raw.iloc[header_row_idx:].reset_index(drop=True)
-    raw_headers = [str(c).strip() for c in full_display_df.iloc]
-    clean_headers = []
-    
-    for i, h in enumerate(raw_headers):
-        if h == "" or h == "nan" or h.startswith('Unnamed:'):
-            clean_headers.append(f"عمود_{i}")
-        else:
-            clean_headers.append(h)
-            
-    df_data_display = df_data[[c for c in df_data.columns if not str(c).startswith('calc_') and c != 'Main_Code']].copy()
-    
-    # [تم الإصلاح الجذري والدقيق للمسافات البادئة والـ Indentation بنجاح تام]
-    num_cols_fixed = df_data_display.shape[1]
-    for i in range(num_cols_fixed):
-        if i >= len(clean_headers):
-            clean_headers.append(f"إضافي_{i}")
-            
-    df_data_display.columns = clean_headers[:num_cols_fixed]
