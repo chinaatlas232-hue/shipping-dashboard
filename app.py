@@ -10,7 +10,7 @@ st.set_page_config(
     page_title="شركة أطلس للشحن والتجارة العامة", page_icon="📦", layout="wide"
 )
 
-# تعزيز الأنماط المرئية وأحجام خطوط الجداول الأم لتكون واضحة جداً على شاشات الهواتف
+# تعزيز الأنماط المرئية وأحجام خطوط الجداول الأم لتكون واضحة جداً
 st.markdown("""
     <style>
     .dataframe th, .dataframe td {
@@ -73,19 +73,27 @@ with st.sidebar:
   st.title("لوحة تحكم أطلس")
   st.markdown("---")
 
-  # قراءة قاعدة البيانات الموحدة والثابتة المرفوعة على مستودع GitHub
+  # 🌟 ميزة الحفظ الدائم التلقائي في الخادم 🌟
   uploaded_file = None
-  if os.path.exists("data.xlsx"):
-      uploaded_file = "data.xlsx"
-
-  # ميزة تحديث قاعدة البيانات للإدارة والمدير (رقم الماستر السري: 881988)
-  if st.session_state.logged_in_customer == "الكل":
-      st.subheader("📁 تحديث جدول الشحنات الموحد")
-      new_file = st.file_uploader(
-          "رفع ملف إكسيل جديد لتحديث كافة الحسابات (.xlsx)", type=["xlsx", "xls"], key="admin_uploader"
-      )
-      if new_file is not None:
+  
+  # زر الرفع يظهر دائماً في الشريط الجانبي لتتمكن من تحديث الحسابات حياً في أي وقت
+  st.subheader("📁 تحديث جدول الشحنات الموحد")
+  new_file = st.file_uploader(
+      "رفع ملف إكسيل جديد (.xlsx)", type=["xlsx", "xls"], key="admin_uploader"
+  )
+  
+  if new_file is not None:
+      # بمجرد رفع ملف جديد، يقوم بايثون بحفظ نسخة دائمة منه داخل السيرفر باسم data.xlsx
+      try:
+          with open("data.xlsx", "wb") as f:
+              f.write(new_file.getbuffer())
+          st.sidebar.success("✅ تم حفظ وتثبيت الملف في خادم المنصة بنجاح حسي!")
+          uploaded_file = "data.xlsx"
+      except Exception as e:
           uploaded_file = new_file
+  elif os.path.exists("data.xlsx"):
+      # إذا لم يتم رفع ملف جديد حالياً، يقرأ النظام تلقائياً من النسخة المحفوظة مسبقاً
+      uploaded_file = "data.xlsx"
 
 
 # --- 3. دالة معالجة الجداول والملفات البرمجية بذكاء ---
@@ -116,19 +124,9 @@ if df.empty:
     <div class='login-box'>
         <h2 style='color: white;'>🏛️ شركة أطلس للشحن والتجارة العامة</h2>
         <h4 style='color: #4f46e5; margin-top: 10px;'>بوابة العملاء اللوجستية</h4>
-        <p style='color: #94a3b8; margin-top: 15px;'>النظام قيد المزامنة الآمنة. يرجى من إدارة شركة أطلس التأكد من رفع ملف قاعدة البيانات وتسميته <b>data.xlsx</b> في حساب GitHub لتنشيط الخدمة فوراً.</p>
+        <p style='color: #94a3b8; margin-top: 15px;'>النظام قيد المزامنة الآمنة. يرجى رفع ملف قاعدة البيانات الشاملة من زر الرفع في الشريط الجانبي ⬅️ لتفعيل وتثبيت الخدمة فوراً.</p>
     </div>
   """, unsafe_allow_html=True)
-  
-  if st.session_state.logged_in_customer is None:
-      col_space1, col_admin_login, col_space2 = st.columns(3)
-      with col_admin_login:
-          with st.form("admin_login_initial"):
-              admin_pwd = st.text_input("🔑 دخول لوحة الإدارة:", type="password")
-              submit_admin = st.form_submit_button("تحميل لوحة التحكم الإدارية 👑")
-              if submit_admin and admin_pwd.strip() == "881988":
-                  st.session_state.logged_in_customer = "الكل"
-                  st.rerun()
   st.stop()
 else:
   # مطابقة مسميات الأعمدة بمرونة كاملة وتلافي أي أخطاء في الإكسيل
@@ -171,7 +169,7 @@ else:
         return "مدفوع بالكامل ✅" if row[remaining_col] <= 0 else "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام التحقق وتطهير الأرقام الصافي لكلمات مرور العملاء ---
+  # --- 4. نظام تسجيل الدخول الفائق والمطور (المطابقة الاحتوائية المزدوجة المرنة) ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
   valid_codes_clean = [str(re.sub(r'\D', '', str(c))).strip() for c in valid_codes]
 
@@ -187,20 +185,30 @@ else:
       col_space1, col_login, col_space2 = st.columns(3)
       with col_login:
           with st.form("login_form"):
-              password_input = st.text_input("🔑 أدخل كلمة المرور الخاصة بك (كود العميل):", type="password", help="كلمة المرور هي كود العميل الخاص بك مثل kb130")
+              password_input = st.text_input("🔑 أدخل كلمة المرور الخاصة بك (كود العميل):", type="password", help="كلمة المرور هي كود العميل الخاص بك")
               submit_login = st.form_submit_button("تسجيل الدخول الآمن 🔓")
               
               if submit_login:
                   clean_input = str(re.sub(r'\D', '', str(password_input))).strip()
                   
-                  if clean_input and clean_input in valid_codes_clean:
-                      actual_code = valid_codes[valid_codes_clean.index(clean_input)]
-                      st.session_state.logged_in_customer = actual_code
-                      st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم الخاصة بك...")
-                      st.rerun()
-                  elif password_input.strip() == "881988": 
+                  # كود الدخول الماستر لمدير النظام
+                  if password_input.strip() == "881988": 
                       st.session_state.logged_in_customer = "الكل"
                       st.success("مرحباً بك يا مدير النظام!")
+                      st.rerun()
+                  
+                  matched_code = None
+                  for original_code in valid_codes:
+                      code_str = str(original_code).strip().lower()
+                      code_digits = str(re.sub(r'\D', '', code_str)).strip()
+                      
+                      if (user_text := str(password_input).strip().lower()) == code_str or (clean_input and clean_input == code_digits) or (user_text in code_str) or (code_str in user_text):
+                          matched_code = original_code
+                          break
+                  
+                  if matched_code is not None:
+                      st.session_state.logged_in_customer = matched_code
+                      st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم...")
                       st.rerun()
                   else:
                       st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة في النظام!")
@@ -232,6 +240,3 @@ else:
   # --- 7. أشرطة التصفية المزدوجة والمترابطة للحاويات والماركات ---
   st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
   
-  container_options = ["الكل"] + list(df_client[container_col].dropna().unique()) if container_col in df_client.columns else ["الكل"]
-  selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
-
