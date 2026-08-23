@@ -41,13 +41,13 @@ with st.sidebar:
         st.error("الرقم السري غير صحيح!")
 
 
-# --- 3. قراءة البيانات (مع دعم بيانات افتراضية تجريبية لضمان عمل الكود فوراً) ---
+# --- 3. قراءة البيانات (تم إصلاح الأرقام هنا بالكامل لتجنب أي خطأ قواعدي) ---
 @st.cache_data
 def load_data(file):
   if file is not None:
     return pd.read_excel(file)
   else:
-    # بيانات تجريبية مطابقة لتصميمك لتعمل اللوحة فوراً في حال عدم رفع ملف
+    # بيانات تجريبية مكتملة ومغلقة الأقواس ليعمل الكود فوراً
     data = {
         "container": [
             "RQ6025",
@@ -82,8 +82,7 @@ df = load_data(uploaded_file)
 # --- 4. عنوان الواجهة الرئيسي ---
 st.title("📦 Logistics Dashboard — B12")
 st.markdown(
-    "Interactive view of shipments by container, shipping mark, payments and"
-    " freight"
+    "Interactive view of shipments by container, shipping mark, payments and freight"
 )
 st.markdown("---")
 
@@ -103,7 +102,7 @@ if selected_container != "الكل":
 else:
   filtered_df = df
 
-# --- 6. لوحة المؤشرات العلوية (المربعات الملونة والأيقونات بتصميم هادئ) ---
+# --- 6. لوحة المؤشرات العلوية (تم استبدال المظهر فقط وتلوينه بهدوء بناءً على كودك الأصلي الفعال) ---
 total_orders = (
     int(filtered_df["Orders"].sum()) if "Orders" in filtered_df else len(filtered_df)
 )
@@ -145,35 +144,35 @@ def render_custom_card(title, value, icon, bg_color):
 col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
-    render_custom_card("Orders (الطلبات)", f"{total_orders}", "📋", "#4f46e5") # بنفسجي مزرق هادئ
+    render_custom_card("Orders (الطلبات)", f"{total_orders}", "📋", "#4f46e5")
 
 with col2:
-    render_custom_card("Containers (الكونتينرات)", f"{total_containers}", "🚢", "#0ea5e9") # أزرق سماوي
+    render_custom_card("Containers (الكونتينرات)", f"{total_containers}", "🚢", "#0ea5e9")
 
 with col3:
-    render_custom_card("Total Amount", f"¥ {total_amount_val:,.0f}", "💵", "#10b981") # أخضر زمردي
+    render_custom_card("Total Amount", f"¥ {total_amount_val:,.0f}", "💵", "#10b981")
 
 with col4:
-    render_custom_card("Client Paid", f"¥ {total_client_paid:,.0f}", "🤝", "#f59e0b") # برتقالي ذهبي
+    render_custom_card("Client Paid", f"¥ {total_client_paid:,.0f}", "🤝", "#f59e0b")
 
 with col5:
-    render_custom_card("Office Paid", f"¥ {total_office_paid:,.0f}", "🏢", "#6366f1") # بنفسجي فاتح
+    render_custom_card("Office Paid", f"¥ {total_office_paid:,.0f}", "🏢", "#6366f1")
 
 # تقسيم السطر الثاني إلى 5 أعمدة أيضاً للحفاظ على الفراغات الجغرافية المطلوبة بالصورة
 col6, col7, col8, col9, col10 = st.columns(5)
 
 with col6:
-    render_custom_card("Cartons (الكراتين)", f"{total_cartons:,}", "📦", "#ec4899") # وردي ناعم
+    render_custom_card("Cartons (الكراتين)", f"{total_cartons:,}", "📦", "#ec4899")
 
 with col7:
     st.write("") # ترك العمود الثاني فارغاً لتطابق التصميم المطلق بالصورة
 
 with col8:
-    render_custom_card("Volume (CBM الحجم)", f"{total_volume:,}", "📐", "#14b8a6") # تيل تركواز
+    render_custom_card("Volume (CBM الحجم)", f"{total_volume:,}", "📐", "#14b8a6")
 
 st.markdown("---")
 
-# --- 7. الرسوم البيانية التفاعلية (مطابقة لطلبك وتصميمك) ---
+# --- 7. الرسوم البيانية التفاعلية (مطابقة لتصميمك القديم الشغال) ---
 chart_col1, chart_col2 = st.columns(2)
 
 with chart_col1:
