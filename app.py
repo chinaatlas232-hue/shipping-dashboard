@@ -10,9 +10,17 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتصغير الفراغات العريضة وتثبيت ستايل الترويسة الثخينة
+# حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً عريضة
 st.markdown("""
 <style>
+    /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه */
+    div[data-testid="stDataFrame"] table {
+        font-size: 13px !important;
+        width: auto !important; 
+        margin: 0 auto !important; 
+        table-layout: auto !important; 
+    }
+    
     /* تكبير خط الترويسة العلوية وجعلها ثخينة جداً وعريضة بارزة البنية */
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
@@ -24,18 +32,11 @@ st.markdown("""
         white-space: nowrap !important; 
     }
     
-    /* ضبط أبعاد ومحاذاة خلايا البيانات داخل الجداول تلقائياً */
-    div[data-testid="stDataFrame"] table {
-        font-size: 13px !important;
-        width: auto !important; 
-        margin: 0 auto !important; 
-        table-layout: auto !important; 
-    }
-    
+    /* تنسيق خلايا البيانات بالأسفل */
     div[data-testid="stDataFrame"] td {
         padding: 6px 14px !important; 
+        text-align: center !important;
         white-space: nowrap !important;
-        font-weight: 700 !important;
     }
     
     /* شريط التمرير (السكرول) عريض ومريح للإمساك بالماوس */
@@ -169,7 +170,7 @@ total_cbm = float(df_filtered_full['calc_Cbm'].sum())
 # --- 4. الشاشات العلوية الست الملونة التفاعلية المرتبة من اليمين لليسار ---
 st.markdown(f"""
 <style>
-    .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 25px; direction: rtl; }}
+    .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 15px; direction: rtl; }}
     .kpi-card {{ flex: 1; min-width: 170px; padding: 18px; border-radius: 10px; color: white; box-shadow: 2px 2px 8px rgba(0,0,0,0.15); text-align: center; }}
     .kpi-title {{ font-size: 13px; font-weight: bold; margin-bottom: 8px; opacity: 0.95; }}
     .kpi-value {{ font-size: 22px; font-weight: bold; }}
@@ -208,38 +209,43 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-col1, col2 = st.columns(2)
-with col1:
-    st.metric(label="📦 إجمالي عدد الكراتين المجمعة (Sum of Ctns)", value=f"{total_cartons:,} كارتون")
-with col2:
-    st.metric(label="📐 إجمالي الحجم الكلي المجمع (Sum of Cbm)", value=f"{total_cbm:,.3f} Cbm")
+# [تعديل وضع القيم في مربعات]: تحويل الكراتين والحجم إلى مربعات ملونة متناسقة بالكامل
+st.markdown(f"""
+<div class="kpi-container">
+    <!-- مربع إجمالي عدد الكراتين المجمعة (بني/وردي داكن متناسق) -->
+    <div class="kpi-card" style="background-color: #D35400;">
+        <div class="kpi-title">📦 إجمالي عدد الكراتين المجمعة (Sum of Ctns)</div>
+        <div class="kpi-value">{total_cartons:,} كارتون</div>
+    </div>
+    <!-- مربع إجمالي الحجم الكلي المجمع (رمادي داكن متناسق) -->
+    <div class="kpi-card" style="background-color: #34495E;">
+        <div class="kpi-title">📐 إجمالي الحجم الكلي المجمع (Sum of Cbm)</div>
+        <div class="kpi-value">{total_cbm:,.3f} Cbm</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown("---")
 
-# دالة مخصصة تضمن عمل المحاذاة حسب نوع العمود بدقة (الأرقام لليمين، النصوص في المنتصف)
-def get_column_alignments(dataframe):
+# دالة حتمية لتعديل محتوى الخلايا بشكل مباشر دون التسبب في خطأ إخفاء الجداول
+def safe_format_date_cell(x):
+    x_str = str(x).strip()
+    if x_str.isdigit() and len(x_str) >= 10:
+        try:
+            return pd.to_datetime(int(x_str), unit='ms', errors='coerce').strftime('%Y-%m-%d')
+        except:
+            return x_str
+    try:
+        return pd.to_datetime(x, errors='coerce').strftime('%Y-%m-%d')
+    except:
+        return x_str
+
+def process_dataframe_safely(dataframe):
     configs = {}
     for col in dataframe.columns:
-        # فحص محتوى العمود لتوجيهه بشكل صحيح
-        sample = str(dataframe[col].dropna().iloc[0]) if not dataframe[col].dropna().empty else ""
-        if dataframe[col].dtype in ['int64', 'float64'] or any(sym in sample for sym in ['¥', '$', '.']):
-            configs[col] = st.column_config.TextColumn(col, alignment="right")
-        else:
+        col_clean = str(col).strip().lower()
+        if 'تاريخ' in col_clean or 'date' in col_clean:
+            dataframe[col] = dataframe[col].apply(fix_date_cell_wrapper).fillna(dataframe[col].astype(str))
             configs[col] = st.column_config.TextColumn(col, alignment="center")
-    return configs
-
-# --- 5. نظام التبويبات لعرض الجداول بالتنسيق الذكي الشامل والمسافات البرمجية الدقيقة ---
-tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
-
-with tab1:
-    st.subheader(f"📋 جدول التفاصيل الكامل والمثبت التابع للكود المختار: {selected_code}")
-    display_cols = [c for c in df_filtered_full.columns if not str(c).startswith('calc_') and c != 'Main_Code']
-    final_filtered_display = df_filtered_full[display_cols].copy()
-    
-    align_configs_1 = get_column_alignments(final_filtered_display)
-    st.dataframe(final_filtered_display, use_container_width=False, hide_index=True, column_config=align_configs_1)
-
-with tab2:
-    st.subheader("📋 جدول ملف الإكسل الأصلي الكامل (دون تصفية)")
-    full_display_df = df_raw.iloc[header_row_idx:].reset_index(drop=True)
-    raw_headers = [str(c).strip() for c in full_display_df.iloc]
+        else:
+            sample = str(dataframe[col].dropna().iloc) if not dataframe[col].dropna().empty else ""
