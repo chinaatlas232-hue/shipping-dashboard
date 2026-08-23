@@ -138,7 +138,7 @@ else:
                       st.success("مرحباً بك يا مدير النظام!")
                       st.rerun()
                   else:
-                      st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة في النظام!")
+                      st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة in النظام!")
       st.stop() 
 
   # --- 5. فلترة وعزل البيانات بناءً على تسجيل الدخول الناجح للعميل ---
@@ -176,6 +176,7 @@ else:
   shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique())
   selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
 
+  # 🌟 إصلاح منطق التصفية النهائي لضمان عدم اختفاء الجدول عند اختيار "الكل" 🌟
   filtered_df = temp_df
   if selected_mark != "الكل":
       filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
@@ -232,4 +233,4 @@ else:
 
   st.markdown("---")
 
-  # --- 9. 🌟 قسم التحليل المالي المتقدم (تم إصلاح كافة مسافات الـ Indentation هنا ليعمل بنجاح 100%) 🌟 ---
+  # --- 9. قسم التحليل المالي المتقدم ---
