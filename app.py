@@ -189,21 +189,7 @@ else:
 
   st.markdown("---")
 
-  # --- 7. الرسم البياني التفاعلي الدائري فقط على كامل العرض بعد إلغاء الأعمدة ---
-  st.subheader("🍩 Payment Split (نسب توزيع الأموال الكلية)")
-  split_data = pd.DataFrame({
-      "نوع الدفع": ["Office Paid (المكتب دفع)", "Client Paid (الزبون دفع)"],
-      "المبلغ الكلي": [total_office_paid, total_client_paid],
-  })
-  fig_pie = px.pie(
-      split_data, names="نوع الدفع", values="المبلغ الكلي", hole=0.5,
-      template="plotly_dark", color_discrete_sequence=["#6366f1", "#f59e0b"] 
-  )
-  st.plotly_chart(fig_pie, use_container_width=True)
-
-  st.markdown("---")
-
-  # --- 8. قسم التحليل المالي التفصيلي للشحنة المحددة والجمارك ---
+  # --- 7. قسم التحليل المالي التفصيلي للشحنة المحددة والجمارك (يفتح عند اختيار شحنة فرعية) ---
   if selected_container != "الكل" and selected_mark != "الكل":
       st.subheader(f"🔍 التحليل المالي التفصيلي المتقدم للشحنة: {selected_mark}")
       
@@ -225,9 +211,9 @@ else:
       st.plotly_chart(fig_sh_bar, use_container_width=True)
       st.markdown("---")
 
-  # --- 9. عرض جدول البيانات الكامل بشكل مباشر (مفتوح دائماً وبخط واضح) ---
+  # --- 8. عرض جدول البيانات الكامل بشكل مباشر (مفتوح دائماً وبخط واضح مباشرة تحت البطاقات) ---
   st.subheader("📋 جدول البيانات الشاملة والنقية (الجدول الأم الكامل)")
-  st.dataframe(filtered_df, use_container_width=True, height=500)
+  st.dataframe(filtered_df, use_container_width=True, height=550)
 
   csv_data = filtered_df.to_csv(index=False).encode("utf-8")
   st.sidebar.markdown("---")
