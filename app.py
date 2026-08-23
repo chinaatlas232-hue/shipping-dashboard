@@ -94,9 +94,7 @@ with st.sidebar:
     st.markdown("---")
 
     # ميزة الحفظ الدائم التلقائي في الخادم
-    uploaded_file = None
     st.subheader("📁 تحديث جدول الشحنات")
-    # 🌟 تم إصلاح السطر الحرج وتصحيح علامات المساواة هنا ليعمل الكود فوراً بنجاح 🌟
     new_file = st.file_uploader("رفع ملف إكسيل جديد (.xlsx)", type=["xlsx", "xls"], key="admin_uploader")
     
     if new_file is not None:
@@ -104,11 +102,11 @@ with st.sidebar:
             with open("data.xlsx", "wb") as f:
                 f.write(new_file.getbuffer())
             st.sidebar.success("✅ تم حفظ وتثبيت الملف بنجاح!")
-            uploaded_file = "data.xlsx"
         except Exception as e:
-            uploaded_file = new_file
-    elif os.path.exists("data.xlsx"):
-        uploaded_file = "data.xlsx"
+            pass
+
+    # 🌟 تم إصلاح الربط هنا لكي يرى بايثون ملف قاعدة البيانات دائماً وثابتاً في خادم المنصة 🌟
+    uploaded_file = "data.xlsx" if os.path.exists("data.xlsx") else None
 
 # --- 3. دالة معالجة الجداول والملفات البرمجية بذكاء وفورية ---
 def load_data_smart(file):
@@ -176,12 +174,12 @@ for col in [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, col
 valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
 valid_codes_clean = [str(re.sub(r'\D', '', str(c))).strip() for c in valid_codes]
 
-# --- 4. شاشة بوابة تسجيل الدخول الموحدة (شعار ثابت بأعلى الصندوق) ---
+# --- 4. شاشة بوابة تسجيل الدخول الموحدة ---
 if st.session_state.logged_in_customer is None:
     st.markdown("<br><br>", unsafe_allow_html=True)
     col_logo1, col_logo2, col_logo3 = st.columns([1.5, 1, 1.5])
     with col_logo2:
-        display_brand_logo(width_param=160) # الشعار الثابت أعلى صفحة تسجيل الدخول
+        display_brand_logo(width_param=160)
         
     st.markdown("""
       <div style='text-align: center; margin-top: 10px;'>
@@ -241,3 +239,4 @@ st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **{selected_cl
 st.markdown("---")
 
 # أشرطة التصفية المفتوحة الحرة المباشرة
+container_options = ["الكل"] + list(df_client[container_col].dropna().unique()) if (container_col in df_client.columns and not df_client.empty) else ["الكل"]
