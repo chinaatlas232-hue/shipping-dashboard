@@ -10,7 +10,7 @@ st.set_page_config(
 
 # --- 2. الشريط الجانبي: إدارة الملفات والأمان ---
 with st.sidebar:
-    st.image("https://img.icons8.com/color/96/logistic-control.png", width=80) # أيقونة تعبيرية
+    st.image("https://img.icons8.com/color/96/logistic-control.png", width=80) 
     st.title("لوحة التحكم اللوجستية")
     st.markdown("---")
     
@@ -35,13 +35,13 @@ with st.sidebar:
                 st.error("الرقم السري غير صحيح!")
 
 
-# --- 3. قراءة البيانات (تم إصلاح كافة القيم والأرقام هنا لتعمل فوراً) ---
+# --- 3. قراءة البيانات (تم ملء الأرقام بالكامل لمنع خطأ SyntaxError نهائياً) ---
 @st.cache_data
 def load_data(file):
     if file is not None:
         return pd.read_excel(file)
     else:
-        # بيانات تجريبية كاملة ومغلقة الأقواس بدون أي نقص
+        # بيانات تجريبية كاملة بدون أي حقول فارغة
         data = {
             "container": ["RQ6025", "RQ6027", "RQ6036", "RQ6026", "RQ6033", "RQ6028", "RQ6035"],
             "shipping_mark": ["B12-116", "B12-115", "B12-114", "B12-80", "B12-52", "B12-60", "B12-97"],
@@ -71,7 +71,7 @@ if selected_container != "الكل":
 else:
     filtered_df = df
 
-# --- 6. لوحة المؤشرات العلوية (المربعات الملونة والأيقونات بتصميم هادئ) ---
+# --- 6. لوحة المؤشرات العلوية (المربعات الملونة والأيقونات بتصميم هادئ وموزع) ---
 total_orders = int(filtered_df["Orders"].sum()) if "Orders" in filtered_df else len(filtered_df)
 total_containers = filtered_df["container"].nunique()
 total_amount_val = filtered_df["Total_Amount"].sum()
@@ -105,31 +105,31 @@ def render_custom_card(title, value, icon, bg_color):
 row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
 
 with row1_col1:
-    render_custom_card("Orders (الطلبات)", f"{total_orders}", "📋", "#4f46e5") # أزرق نيلي
+    render_custom_card("Orders (الطلبات)", f"{total_orders}", "📋", "#4f46e5")
 
 with row1_col2:
-    render_custom_card("Containers (الكونتينرات)", f"{total_containers}", "🚢", "#0ea5e9") # أزرق سماوي
+    render_custom_card("Containers (الكونتينرات)", f"{total_containers}", "🚢", "#0ea5e9")
 
 with row1_col3:
-    render_custom_card("Total Amount", f"{total_amount_val:,.0f}", "💵", "#10b981") # أخضر مالي
+    render_custom_card("Total Amount", f"{total_amount_val:,.0f}", "💵", "#10b981")
 
 with row1_col4:
-    render_custom_card("Client Paid", f"{total_client_paid:,.0f}", "🤝", "#f59e0b") # برتقالي ذهبي
+    render_custom_card("Client Paid", f"{total_client_paid:,.0f}", "🤝", "#f59e0b")
 
 with row1_col5:
-    render_custom_card("Office Paid", f"{total_office_paid:,.0f}", "🏢", "#6366f1") # بنفسجي ناعم
+    render_custom_card("Office Paid", f"{total_office_paid:,.0f}", "🏢", "#6366f1")
 
-# السطر الثاني من المربعات الملونة لضمان توزيع الفراغات كالصورة تماماً
+# السطر الثاني من المربعات الملونة مع توزيع الفراغات كالصورة تماماً
 row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
 
 with row2_col1:
-    render_custom_card("Cartons (الكراتين)", f"{total_cartons}", "📦", "#ec4899") # وردي شحنات
+    render_custom_card("Cartons (الكراتين)", f"{total_cartons}", "📦", "#ec4899")
 
 with row2_col2:
     st.write("") # ترك العمود الثاني فارغاً لتطابق التصميم
 
 with row2_col3:
-    render_custom_card("Volume (CBM الحجم)", f"{total_volume}", "📐", "#14b8a6") # تيل تركواز
+    render_custom_card("Volume (CBM الحجم)", f"{total_volume}", "📐", "#14b8a6")
 
 st.markdown("---")
 
