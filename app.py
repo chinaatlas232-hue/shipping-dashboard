@@ -148,9 +148,8 @@ else:
             return "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الاحترافي الذكي المطور (تطهير الأرقام الصافي) ---
+  # --- 4. نظام تسجيل الدخول الفائق والمطور (المطابقة الاحتوائية المزدوجة المرنة) 🌟 ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
-  valid_codes_clean = [str(re.sub(r'\D', '', str(c))).strip() for c in valid_codes]
 
   if st.session_state.logged_in_customer is None:
       st.markdown("""
@@ -164,15 +163,26 @@ else:
       col_space1, col_login, col_space2 = st.columns(3)
       with col_login:
           with st.form("login_form"):
-              password_input = st.text_input("🔑 أدخل كلمة المرور الخاصة بك (كود العميل):", type="password", help="كلمة المرور هي كود العميل الخاص بك مثل kb130")
+              password_input = st.text_input("🔑 أدخل كلمة المرور الخاصة بك (كود العميل):", type="password", help="كلمة المرور هي كود العميل الخاص بك")
               submit_login = st.form_submit_button("تسجيل الدخول الآمن 🔓")
               
               if submit_login:
-                  clean_input = str(re.sub(r'\D', '', str(password_input))).strip()
+                  # تنظيف وتحضير المدخلات والمقارنة الاحتوائية الشاملة لضمان القبول الفوري 🌟
+                  user_text = str(password_input).strip().lower()
+                  user_digits = str(re.sub(r'\D', '', user_text)).strip()
                   
-                  if clean_input and clean_input in valid_codes_clean:
-                      actual_code = valid_codes[valid_codes_clean.index(clean_input)]
-                      st.session_state.logged_in_customer = actual_code
+                  matched_code = None
+                  for original_code in valid_codes:
+                      code_str = str(original_code).strip().lower()
+                      code_digits = str(re.sub(r'\D', '', code_str)).strip()
+                      
+                      # مطابقة لو كان النص متطابق، أو الرقم متطابق، أو أحدهما يحتوي الآخر
+                      if (user_text == code_str) or (user_digits and user_digits == code_digits) or (user_text in code_str) or (code_str in user_text):
+                          matched_code = original_code
+                          break
+                  
+                  if matched_code is not None:
+                      st.session_state.logged_in_customer = matched_code
                       st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم...")
                       st.rerun()
                   elif password_input.strip() == "881988": 
@@ -219,10 +229,3 @@ else:
   else:
       temp_df = df_client
 
-  shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique()) if shipping_mark_col in temp_df.columns else ["الكل"]
-  selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
-
-  # 🌟 حل سحري ومسطح: تم إلغاء الـ if المسببة للخطأ تماماً ليعمل الكود بشكل فوري دون أي IndentationError 🌟
-  filtered_df = temp_df if selected_mark == "الكل" or shipping_mark_col not in temp_df.columns else temp_df[temp_df[shipping_mark_col] == selected_mark]
-
-  # --- 8. العمليات الحسابية والمؤشرات الديناميكية للعميل المختار ---
