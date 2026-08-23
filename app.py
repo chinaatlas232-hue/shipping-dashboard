@@ -10,31 +10,39 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتوسيع الجداول وإظهار الترويسة كاملة بدون التواء كلمات
+# [تعديل عرض الأعمدة والترويسة]: حقن تنسيقات مخصصة لتصغير العرض المفرط وجعل الجدول متناسقاً
 st.markdown("""
 <style>
+    /* تحديد حجم الخلايا والعناوين لتكون متناسقة وغير عريضة بشكل مبالغ فيه */
     div[data-testid="stDataFrame"] table {
         font-size: 13px !important;
-        width: 100% !important;
+        width: auto !important; /* إلغاء التمدد العريض الإجباري */
+        margin: 0 auto !important;
     }
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
         color: #2c3e50 !important;
         font-weight: bold !important;
         text-align: center !important;
+        padding: 6px 14px !important;
+        max-width: 150px !important; /* تحديد حد أقصى لعرض العمود */
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
         white-space: nowrap !important;
-        padding: 8px 12px !important;
     }
     div[data-testid="stDataFrame"] td {
-        padding: 6px 12px !important;
+        padding: 6px 14px !important;
         text-align: center !important;
+        max-width: 150px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
         white-space: nowrap !important;
     }
     
-    /* الحفاظ على السكرول عريضاً ومريحاً للإمساك بالماوس */
+    /* شريط التمرير (السكرول) عريض ومريح للإمساك بالماوس */
     ::-webkit-scrollbar {
-        width: 16px !important;  
-        height: 16px !important; 
+        width: 14px !important;  
+        height: 14px !important; 
     }
     ::-webkit-scrollbar-track {
         background: #f1f1f1 !important;
@@ -121,7 +129,6 @@ if 'Container' in df_cleaned.columns:
 st.title("📊 Logistics Dashboard")
 
 if 'Shipping_mark' in df_cleaned.columns:
-    # دالة آمنة تضمن تفكيك المصفوفات وتحويل كل عنصر لنص فردي لمنع تكرار خطأ الـ TypeError
     def extract_main_code(val):
         val_str = str(val).strip()
         if '-' in val_str:
@@ -131,7 +138,6 @@ if 'Shipping_mark' in df_cleaned.columns:
 
     df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(extract_main_code)
     
-    # [الإصلاح الجذري الحاسم]: تصفية الأكواد بشكل نصوص حقيقية مصفاة ومحمية
     unique_codes_list = []
     for c in df_cleaned['Main_Code'].dropna():
         c_clean = str(c).strip()
@@ -202,24 +208,26 @@ with col2:
 
 st.markdown("---")
 
-# --- 5. نظام التبويبات المصلح بالكامل والخالي من الأخطاء ---
+# --- 5. نظام التبويبات لعرض الجداول بالأبعاد المناسبة والمنسقة ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
 
 with tab1:
     st.subheader(f"📋 جدول التفاصيل التابع للكود المختار: {selected_code}")
     display_df = df_filtered[['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']].copy()
-    display_df.columns = ['رقم الحاوية (Container NO.)', 'كود الشحن (Shipping mark)', 'المجموع (Amount)', 'الزبون دفع (Client paid)', 'المكتب دفع (Office paid)', 'مجموع الكراتين (Sum of Ctns)', 'مجموع الحجم (Sum of Cbm)']
+    
+    # مسميات الترويسة باللغة العربية ومكتملة تماماً وعرضها ذكي ومناسب
+    display_df.columns = ['رقم الحاوية', 'كود الشحن', 'المجموع (Amount)', 'الزبون دفع', 'المكتب دفع', 'مجموع الكراتين', 'مجموع الحجم']
     st.dataframe(display_df, use_container_width=True, hide_index=True)
 
 with tab2:
     st.subheader("📋 جدول ملف الإكسل الأصلي الكامل (دون تصفية)")
     full_display_df = df_raw.iloc[header_row_idx:].reset_index(drop=True)
     
-    raw_headers = [str(c).strip() for c in full_display_df.iloc[0]]
+    raw_headers = [str(c).strip() for c in full_display_df.iloc]
     clean_headers = []
     for i, h in enumerate(raw_headers):
         if h == "" or h == "nan":
-            clean_headers.append(f"عمود فارغ_{i}")
+            clean_headers.append(f"فارغ_{i}")
         else:
             clean_headers.append(h)
             
