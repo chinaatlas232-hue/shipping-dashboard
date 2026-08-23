@@ -115,7 +115,7 @@ else:
   ]
   df = df[df[container_col].notna()]
 
-  # 🌟 خطوة إضافية حاسمة: حساب عمود حالة الدفع في الجدول بناءً على المتبقي الحقيقي
+  # حساب عمود حالة الدفع في الجدول بناءً على المتبقي الحقيقي
   def check_payment_status(row):
       if row[remaining_col] <= 0:
           return "مدفوع بالكامل ✅"
@@ -176,10 +176,10 @@ else:
   # تحديد نص حالة الدفع الإجمالي للتقرير بناءً على المتبقي الحقيقي
   if sh_remaining <= 0:
       payment_status_text = "مدفوعة بالكامل ✅"
-      status_card_color = "#10b981" # أخضر
+      status_card_color = "#10b981" 
   else:
       payment_status_text = f"متبقي غير مدفوع (¥ {sh_remaining:,.2f}) ⏳"
-      status_card_color = "#ef4444" # أحمر
+      status_card_color = "#ef4444" 
 
   def render_custom_card(title, value, icon, bg_color):
     card_style = f"""
@@ -212,7 +212,6 @@ else:
   row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
   with row2_col1: render_custom_card("Cartons (الكراتين)", f"{total_cartons:,}", "📦", "#ec4899")
   with row2_col2: render_custom_card("Volume (الحجم)", f"{total_volume:,}", "📐", "#14b8a6")
-  # 🌟 إضافة بطاقة حالة دفع الشحنة الجديدة في الصف الثاني لتظهر بوضوح تام حسب الفلتر
   with row2_col3: render_custom_card("حالة دفع الزبون للشحنة", f"{payment_status_text}", "💳", status_card_color)
 
   st.markdown("---")
@@ -260,6 +259,7 @@ else:
           "المؤشر المالي": ["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"],
           "القيمة بالين": [sh_customs, sh_collected, sh_remaining]
       })
+      # 🌟 تم إصلاح إغلاق قوس الـ px.bar المسبب للـ SyntaxError هنا 🌟
       fig_sh_bar = px.bar(
           sh_metrics, x="المؤشر المالي", y="القيمة بالين", 
           color="المؤشر المالي", template="plotly_dark",
