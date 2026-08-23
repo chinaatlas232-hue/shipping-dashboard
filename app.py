@@ -90,7 +90,7 @@ else:
   collected_col = "قيمة الاستحصالات"
   remaining_col = "متبقي حقيقي"
 
-  # تحويل الحقول إلى قيم رقمية نظيفة لحسابات دقيقة
+  # تحويل الحقول إلى قيم رقمية نظيفة لحسابات دقيقة وتطهير العملات السابقة
   all_numeric_cols = [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]
   for col in all_numeric_cols:
     if col in df.columns:
@@ -151,12 +151,12 @@ else:
   sh_collected = filtered_df[collected_col].sum() if collected_col in filtered_df.columns else 0
   sh_remaining = filtered_df[remaining_col].sum() if remaining_col in filtered_df.columns else 0
 
-  # تحديد نص حالة الدفع الإجمالي للتقرير بناءً على المتبقي الحقيقي
+  # 🌟 التعديل المطلوب: تحويل نص حالة الدفع والمؤشرات لتدعم رمز الدولار الأمريكي $ بدلاً من الرمز الصيني 🌟
   if sh_remaining <= 0:
       payment_status_text = "مدفوعة بالكامل ✅"
       status_card_color = "#10b981" 
   else:
-      payment_status_text = f"متبقي غير مدفوع (¥ {sh_remaining:,.2f}) ⏳"
+      payment_status_text = f"متبقي غير مدفوع ($ {sh_remaining:,.2f}) ⏳"
       status_card_color = "#ef4444" 
 
   def render_custom_card(title, value, icon, bg_color):
@@ -174,13 +174,13 @@ else:
         """
     st.markdown(card_style, unsafe_allow_html=True)
 
-  # عرض لوحة المقاييس الأساسية المحدثة
+  # عرض لوحة المقاييس الأساسية المحدثة بالدولار
   row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
   with row1_col1: render_custom_card("Orders (الطلبات الفرعية)", f"{total_orders}", "📋", "#4f46e5")
   with row1_col2: render_custom_card("Containers (الحاويات)", f"{total_containers}", "🚢", "#0ea5e9")
-  with row1_col3: render_custom_card("Total Amount", f"¥ {total_amount_val:,.2f}", "💵", "#10b981")
-  with row1_col4: render_custom_card("Client Paid", f"¥ {total_client_paid:,.2f}", "🤝", "#f59e0b")
-  with row1_col5: render_custom_card("Office Paid", f"¥ {total_office_paid:,.2f}", "🏢", "#6366f1")
+  with row1_col3: render_custom_card("Total Amount", f"$ {total_amount_val:,.2f}", "💵", "#10b981")
+  with row1_col4: render_custom_card("Client Paid", f"$ {total_client_paid:,.2f}", "🤝", "#f59e0b")
+  with row1_col5: render_custom_card("Office Paid", f"$ {total_office_paid:,.2f}", "🏢", "#6366f1")
 
   row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
   with row2_col1: render_custom_card("Cartons (الكراتين)", f"{total_cartons:,}", "📦", "#ec4899")
@@ -189,14 +189,14 @@ else:
 
   st.markdown("---")
 
-  # --- 7. قسم التحليل المالي التفصيلي للشحنة المحددة والجمارك (يفتح عند اختيار شحنة فرعية) ---
+  # --- 7. قسم التحليل المالي التفصيلي للشحنة المحددة والجمارك (بالدولار $) ---
   if selected_container != "الكل" and selected_mark != "الكل":
       st.subheader(f"🔍 التحليل المالي التفصيلي المتقدم للشحنة: {selected_mark}")
       
       sub_col1, sub_col2, sub_col3 = st.columns(3)
-      with sub_col1: render_custom_card("مبلغ الجمرك للشحنة", f"¥ {sh_customs:,.2f}", "🛡️", "#ef4444")
-      with sub_col2: render_custom_card("قيمة الاستحصالات للشحنة", f"¥ {sh_collected:,.2f}", "📈", "#3b82f6")
-      with sub_col3: render_custom_card("متبقي حقيقي للشحنة", f"¥ {sh_remaining:,.2f}", "⏳", "#8b5cf6")
+      with sub_col1: render_custom_card("مبلغ الجمرك للشحنة", f"$ {sh_customs:,.2f}", "🛡️", "#ef4444")
+      with sub_col2: render_custom_card("قيمة الاستحصالات للشحنة", f"$ {sh_collected:,.2f}", "📈", "#3b82f6")
+      with sub_col3: render_custom_card("متبقي حقيقي للشحنة", f"$ {sh_remaining:,.2f}", "⏳", "#8b5cf6")
           
       st.markdown("##### 📊 المقارنة المالية التفاعلية للشحنة المحددة")
       sh_metrics = pd.DataFrame({
@@ -211,7 +211,7 @@ else:
       st.plotly_chart(fig_sh_bar, use_container_width=True)
       st.markdown("---")
 
-  # --- 8. عرض جدول البيانات الكامل بشكل مباشر (مفتوح دائماً وبخط واضح مباشرة تحت البطاقات) ---
+  # --- 8. عرض جدول البيانات الكامل بشكل مباشر (مفتوح دائماً وبخط واضح) ---
   st.subheader("📋 جدول البيانات الشاملة والنقية (الجدول الأم الكامل)")
   st.dataframe(filtered_df, use_container_width=True, height=550)
 
