@@ -45,7 +45,6 @@ with st.sidebar:
 @st.cache_data
 def load_data(file):
   if file is not None:
-    # 🌟 قراءة الملف من السطر الأول مباشرة (header=0) ليتطابق مع جدولك النظيف الجديد
     raw_df = pd.read_excel(file, header=0)
     # تنظيف مسافات العناوين لضمان المطابقة الكاملة
     raw_df.columns = raw_df.columns.str.strip()
@@ -63,20 +62,29 @@ if df.empty:
       " وعرض البيانات فوراً."
   )
 else:
-  # تثبيت أسماء الأعمدة حرفياً ومباشرة كما تظهر في ملفك النظيف
-  container_col = "Container NO."
-  shipping_mark_col = "Shipping mark"
-  amt_col = "Amount"
-  client_col = "Client paid"
-  office_col = "Office paid"
-  ctns_col = "Sum of Ctns"
-  cbm_col = "Sum of Cbm"
+  # 🌟 الحل الذكي: البحث عن أسماء الأعمدة باللغتين العربية أو الإنجليزية لتجنب الخطأ تماماً
+  def get_real_column(english_name, arabic_name):
+      if english_name in df.columns:
+          return english_name
+      elif arabic_name in df.columns:
+          return arabic_name
+      # إذا لم يجد الاسم يبحث عن كلمة تقريبية
+      for col in df.columns:
+          if english_name.lower() in col.lower() or arabic_name in col:
+              return col
+      return english_name
 
-  # التأكد من أن الأعمدة المطلوبة موجودة فعلاً في الملف لمنع أي KeyError
-  missing_cols = [col for col in [container_col, shipping_mark_col] if col not in df.columns]
-  
-  if missing_cols:
-      st.error(f"⚠️ الملف المرفوع لا يحتوي على الأعمدة التالية: {missing_cols}. يرجى التأكد من كتابة أسماء الأعمدة في الإكسيل تماماً مثل: {container_col} و {shipping_mark_col}")
+  container_col = get_real_column("Container NO.", "كونتينر رقم")
+  shipping_mark_col = get_real_column("Shipping mark", "ماركة الشحن")
+  amt_col = get_real_column("Amount", "المجموع")
+  client_col = get_real_column("Client paid", "الزبون دفع")
+  office_col = get_real_column("Office paid", "المكتب دفع")
+  ctns_col = get_real_column("Sum of Ctns", "العدد")
+  cbm_col = get_real_column("Sum of Cbm", "الوزن")
+
+  # التأكد من أن الأعمدة الأساسية للفلترة موجودة فعلاً في الملف لمنع أي خروج مفاجئ
+  if container_col not in df.columns or shipping_mark_col not in df.columns:
+      st.error(f"⚠️ لم نتمكن من تحديد الأعمدة الأساسية تلقائياً. الأعمدة الحالية في ملفك هي: {list(df.columns)}")
   else:
       # تحويل الحقول النصية والمالية إلى قيم رقمية نظيفة لضمان حساب رياضي صائب
       for col in [amt_col, client_col, office_col, ctns_col, cbm_col]:
@@ -103,8 +111,7 @@ else:
       # --- 4. عنوان الواجهة الرئيسي ---
       st.title("📦 Logistics Dashboard — B12")
       st.markdown(
-          "Interactive view of shipments by container, shipping mark, payments and"
-          " freight"
+          "Interactive view of shipments by container, shipping mark, payments and freight"
       )
       st.markdown("---")
 
@@ -205,7 +212,7 @@ else:
 
       with row2_col3:
         render_custom_card(
-            "Volume (CBM الحجم)", f"{total_volume:,}", "📐", "#14b8a6"
+            "Volume / Weight (الحجم / الوزن)", f"{total_volume:,}", "📐", "#14b8a6"
         )
 
       st.markdown("---")
