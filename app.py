@@ -57,7 +57,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# إدارة حالة جلسة تسجيل الدخول بذاكرة المتصفح
+# إدارة حالة جلسة تسجيل الدخول بذاكرة الجلسة
 if "logged_in_customer" not in st.session_state:
     st.session_state.logged_in_customer = None
 
@@ -73,17 +73,15 @@ with st.sidebar:
   st.title("لوحة تحكم أطلس")
   st.markdown("---")
 
-  # 🌟 ميزة الحفظ الدائم التلقائي في الخادم 🌟
+  # ميزة الحفظ الدائم التلقائي في الخادم
   uploaded_file = None
   
-  # زر الرفع يظهر دائماً في الشريط الجانبي لتتمكن من تحديث الحسابات حياً في أي وقت
   st.subheader("📁 تحديث جدول الشحنات الموحد")
   new_file = st.file_uploader(
       "رفع ملف إكسيل جديد (.xlsx)", type=["xlsx", "xls"], key="admin_uploader"
   )
   
   if new_file is not None:
-      # بمجرد رفع ملف جديد، يقوم بايثون بحفظ نسخة دائمة منه داخل السيرفر باسم data.xlsx
       try:
           with open("data.xlsx", "wb") as f:
               f.write(new_file.getbuffer())
@@ -92,7 +90,6 @@ with st.sidebar:
       except Exception as e:
           uploaded_file = new_file
   elif os.path.exists("data.xlsx"):
-      # إذا لم يتم رفع ملف جديد حالياً، يقرأ النظام تلقائياً من النسخة المحفوظة مسبقاً
       uploaded_file = "data.xlsx"
 
 
@@ -101,7 +98,7 @@ def load_data_smart(file):
   if file is not None:
     try:
         xl = pd.ExcelFile(file)
-        target_sheet = xl.sheet_names[0]
+        target_sheet = xl.sheet_names
         for sheet in xl.sheet_names:
             test_df = pd.read_excel(file, sheet_name=sheet, nrows=5)
             if not test_df.empty and len(test_df.columns) > 2:
@@ -151,7 +148,11 @@ else:
   collected_col = find_col(["قيمة الاستحصالات", "الاستحصالات", "Collected"], "قيمة الاستحصالات")
   remaining_col = find_col(["متبقي حقيقي", "المتبقي", "Remaining"], "متبقي حقيقي")
 
-  # تطهير وتنظيف كافة الحقول والعمليات من الرموز اللاتينية
+  # تحويل كافة قيم عمود الأكواد لنصوص صافية ممسوحة المسافات لضمان التصفية المطلقة
+  if client_name_col in df.columns:
+      df[client_name_col] = df[client_name_col].astype(str).str.strip()
+
+  # تطهير وتنظيف كافة الحقول والعمليات الرقمية والمالية
   all_numeric_cols = [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]
   for col in all_numeric_cols:
     if col in df.columns:
@@ -169,7 +170,7 @@ else:
         return "مدفوع بالكامل ✅" if row[remaining_col] <= 0 else "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الفائق والمطور (المطابقة الاحتوائية المزدوجة المرنة) ---
+  # --- 4. نظام تسجيل الدخول الفائق والمطور ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
   valid_codes_clean = [str(re.sub(r'\D', '', str(c))).strip() for c in valid_codes]
 
@@ -214,11 +215,16 @@ else:
                       st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة في النظام!")
       st.stop() 
 
-  # --- 5. عزل الحسابات الفردية لكل زبون تأميناً للسرية ---
+  # --- 5. عزل الحسابات الفردية لكل زبون تأميناً للسرية والخصوصية ---
   selected_client = st.session_state.logged_in_customer
   
   if selected_client != "الكل" and client_name_col in df.columns:
-      df_client = df[df[client_name_col].astype(str).str.strip() == str(selected_client).strip()]
+      # 🌟 إصلاح جوهري: التصفية الاحتوائية المرنة للأرقام لمنع اختفاء البيانات فور تسجيل الدخول 🌟
+      selected_client_digits = str(re.sub(r'\D', '', str(selected_client))).strip()
+      df_client = df[
+          (df[client_name_col].astype(str).str.lower() == str(selected_client).lower().strip()) |
+          (df[client_name_col].astype(str).str.replace(r'\D', '', regex=True) == selected_client_digits)
+      ]
       st.sidebar.markdown(f"👤 العميل الحالي: **{selected_client}**")
       if st.sidebar.button("🚪 تسجيل الخروج الآمن"):
           st.session_state.logged_in_customer = None
@@ -234,9 +240,3 @@ else:
 
   # --- 6. عنوان الواجهة اللوجستية الرئيسي ---
   st.title("📦 Logistics Dashboard — أطلس")
-  st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **{selected_client if selected_client != 'الكل' else 'كافة العملاء'}**")
-  st.markdown("---")
-
-  # --- 7. أشرطة التصفية المزدوجة والمترابطة للحاويات والماركات ---
-  st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
-  
