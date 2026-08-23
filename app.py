@@ -34,7 +34,7 @@ if uploaded_file is not None:
         with open(SAVED_FILE_PATH, "wb") as f:
             f.write(file_bytes)
         
-        # قراءة البيانات وتعيين الأعمدة الحقيقية الـ 29
+        # قراءة البيانات
         df_fresh = pd.read_excel(io.BytesIO(file_bytes), header=None)
         st.session_state["df_data"] = df_fresh
         st.sidebar.success("تم تثبيت وحفظ البيانات بنجاح على الخادم! 🚀")
@@ -68,22 +68,59 @@ dashboard_columns = [
     "عدد الأيام", "رقم فورود زينب", "وصل الاستلام", "رقم فورود سينيا"
 ]
 
+# تنظيف وتنسيق الجدول
 try:
-    # محاذاة البيانات لتطابق الأعمدة بدقة بحسب شكل الجدول المرسل
-    if df.shape[1] >= len(dashboard_columns):
-        # قطع الأعمدة الزائدة إن وجدت وتسمية الـ 29 عموداً الأساسية
-        final_df = df.iloc[:, :len(dashboard_columns)]
+    # محاولة فلترة الأسطر التي تحتوي على نصوص العناوين التوضيحية لشركة أطلس للبدء من البيانات الفعلية فقط
+    cleaned_rows = df.dropna(subset=[0, 1, 2], how='all')
+    
+    # البحث عن السطر الذي يبدأ بالأرقام أو ترويسة الجدول الحقيقية لتجنب تكرار عناوين الدمج
+    start_idx = 0
+    for idx, row in cleaned_rows.iterrows():
+        if any(str(row.iloc[0]).strip().lower() == k for k in ["1", "no.", "no"]):
+            start_idx = idx
+            break
+            
+    final_df = df.iloc[start_idx:].reset_index(drop=True)
+    
+    # محاذاة الأعمدة الـ 29 بدقة
+    if final_df.shape[1] >= len(dashboard_columns):
+        final_df = final_df.iloc[:, :len(dashboard_columns)]
         final_df.columns = dashboard_columns
     else:
-        final_df = df
+        # إضافة أعمدة فارغة إذا نقص الملف الأصلي عن 29 لتجنب توقف التسمية
+        while final_df.shape[1] < len(dashboard_columns):
+            final_df[f"col_{final_df.shape[1]}"] = ""
+        final_df.columns = dashboard_columns
+        
+    # إزالة سطر الترويسة إذا كان نصاً وليس رقماً لتنظيف حساب عدد السطور
+    final_df = final_df[pd.to_numeric(final_df['No.'], errors='coerce').notnull()]
 except:
     final_df = df
 
-# --- 5. عرض البيانات الثابتة والنظيفة على الشاشة للمعاينة ---
+# --- 5. واجهة العرض والمربعات الإحصائية الثابتة لعرض الأرقام ---
 st.title("📦 Shipping Data Viewer")
 st.info("📌 يتم الآن عرض البيانات المثبتة بشكل دائم على الخادم (لن تختفي أو تتأثر بإغلاق الصفحة).")
 st.markdown("---")
 
+# حساب الأرقام تلقائياً للمربعات الإحصائية (KPI Cards)
+total_shipments = len(final_df)  # إجمالي عدد أسطر الشحنات الفعلية في الجدول
+unique_codes = final_df['code'].nunique() if 'code' in final_df.columns else 0 # عدد الأكواد الفريدة النشطة
+
+# عرض المربعات الإحصائية لتثبيت الشحنات وأعدادها في أعلى الصفحة
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric(label="📊 إجمالي عدد الشحنات المثبتة", value=f"{total_shipments} شحنة")
+
+with col2:
+    st.metric(label="🔑 عدد أكواد الشحن النشطة", value=f"{unique_codes} كود مميز")
+
+with col3:
+    st.metric(label="📋 إجمالي عدد الأعمدة المفحوصة", value=f"{len(dashboard_columns)} عموداً مستقراً")
+
+st.markdown("---")
+
+# عرض جدول البيانات النظيف والنهائي
 st.subheader("📋 جدول بيانات الشحنات والأكواد المخزنة")
 st.dataframe(final_df, use_container_width=True)
 
