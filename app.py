@@ -41,12 +41,13 @@ with st.sidebar:
         st.error("الرقم السري غير صحيح!")
 
 
-# --- 3. قراءة البيانات ---
+# --- 3. قراءة البيانات (تم تصحيح القيم هنا لتعمل تلقائياً) ---
 @st.cache_data
 def load_data(file):
   if file is not None:
     return pd.read_excel(file)
   else:
+    # بيانات تجريبية كاملة ومصححة
     data = {
         "container": [
             "RQ6025",
@@ -101,7 +102,7 @@ if selected_container != "الكل":
 else:
   filtered_df = df
 
-# --- 6. لوحة المؤشرات العلوية (المربعات الملونة والأيقونات الجديدة) ---
+# --- 6. لوحة المؤشرات العلوية (المربعات الملونة والأيقونات المصممة حديثاً) ---
 total_orders = (
     int(filtered_df["Orders"].sum()) if "Orders" in filtered_df else len(filtered_df)
 )
@@ -145,7 +146,7 @@ def render_custom_card(title, value, icon, bg_color):
 row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
 
 with row1_col1:
-  render_custom_card("Orders (الطلبات)", f"{total_orders}", "📋", "#4f46e5")  # أزرق نيلي هادئ
+  render_custom_card("Orders (الطلبات)", f"{total_orders}", "📋", "#4f46e5")  # أزرق نيلي
 
 with row1_col2:
   render_custom_card(
@@ -155,31 +156,31 @@ with row1_col2:
 with row1_col3:
   render_custom_card(
       "Total Amount", f"{total_amount_val:,.0f}", "💵", "#10b981"
-  )  # أخضر زمردي مالي
+  )  # أخضر مالي
 
 with row1_col4:
   render_custom_card(
       "Client Paid", f"{total_client_paid:,.0f}", "🤝", "#f59e0b"
-  )  # ذهبي هادئ
+  )  # برتقالي ذهبي
 
 with row1_col5:
   render_custom_card(
       "Office Paid", f"{total_office_paid:,.0f}", "🏢", "#6366f1"
   )  # بنفسجي ناعم
 
-# السطر الثاني من المربعات الملونة متناسق مع التوزيع الجغرافي للصورة
+# السطر الثاني من المربعات الملونة مع الحفاظ على الفراغات الجغرافية للتصميم
 row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
 
 with row2_col1:
-  render_custom_card("Cartons (الكراتين)", f"{total_cartons}", "📦", "#ec4899")  # وردي شحنات هادئ
+  render_custom_card("Cartons (الكراتين)", f"{total_cartons}", "📦", "#ec4899")  # وردي شحنات
 
 with row2_col2:
-  st.write("")  # فراغ لمطابقة الصورة
+  st.write("")  # ترك العمود الثاني فارغاً تماماً كالصورة
 
 with row2_col3:
   render_custom_card(
       "Volume (CBM الحجم)", f"{total_volume}", "📐", "#14b8a6"
-  )  # تيل/تركواز هادئ
+  )  # تيل تركواز
 
 
 st.markdown("---")
