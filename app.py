@@ -98,7 +98,7 @@ def load_data_smart(file):
   if file is not None:
     try:
         xl = pd.ExcelFile(file)
-        target_sheet = xl.sheet_names
+        target_sheet = xl.sheet_names[0]
         for sheet in xl.sheet_names:
             test_df = pd.read_excel(file, sheet_name=sheet, nrows=5)
             if not test_df.empty and len(test_df.columns) > 2:
@@ -136,17 +136,17 @@ else:
                   return col
       return fallback
 
-  client_name_col = find_col(["code", "الكود", "اسم الزبون"], "code")
-  container_col = find_col(["رقم الحاوية", "كونتينر", "Container"], "رقم الحاوية")
-  shipping_mark_col = find_col(["Shipping mark", "shipping_mark", "ماركة الشحن"], "Shipping mark")
-  amt_col = find_col(["المجموع", "Amount", "المبلغ"], "المجموع")
-  client_col = find_col(["الزبون دفع", "العميل دفع", "Client paid"], "الزبون دفع")
-  office_col = find_col(["المكتب دفع", "Office paid"], "المكتب دفع")
-  ctns_col = find_col(["عدد الكارتون", "العدد", "Cartons"], "عدد الكارتون")
-  cbm_col = find_col(["حجم", "الحجم", "Volume"], "حجم")
-  customs_col = find_col(["مبلغ الجمرك", "الجمرك", "Customs"], "مبلغ الجمرك")
-  collected_col = find_col(["قيمة الاستحصالات", "الاستحصالات", "Collected"], "قيمة الاستحصالات")
-  remaining_col = find_col(["متبقي حقيقي", "المتبقي", "Remaining"], "متبقي حقيقي")
+  client_name_col = find_col(["code", "الكود", "اسم الزبون", "الزبون", "العميل"], "code")
+  container_col = find_col(["رقم الحاوية", "كونتينر", "Container", "الحاوية"], "رقم الحاوية")
+  shipping_mark_col = find_col(["Shipping mark", "shipping_mark", "ماركة الشحن", "shipping mark"], "Shipping mark")
+  amt_col = find_col(["المجموع", "Amount", "المبلغ", "إجمالي"], "المجموع")
+  client_col = find_col(["الزبون دفع", "العميل دفع", "Client paid", "دفع الزبون"], "الزبون دفع")
+  office_col = find_col(["المكتب دفع", "Office paid", "دفع المكتب"], "المكتب دفع")
+  ctns_col = find_col(["عدد الكارتون", "العدد", "Cartons", "الكراتين"], "عدد الكارتون")
+  cbm_col = find_col(["حجم", "الحجم", "Volume", "CBM"], "حجم")
+  customs_col = find_col(["مبلغ الجمرك", "الجمرك", "Customs", "جمرك"], "مبلغ الجمرك")
+  collected_col = find_col(["قيمة الاستحصالات", "الاستحصالات", "Collected", "استحصالات"], "قيمة الاستحصالات")
+  remaining_col = find_col(["متبقي حقيقي", "المتبقي", "Remaining", "متبقي"], "متبقي حقيقي")
 
   # تحويل كافة قيم عمود الأكواد لنصوص صافية ممسوحة المسافات
   if client_name_col in df.columns:
@@ -239,6 +239,3 @@ else:
 
   # --- 6. عنوان الواجهة اللوجستية الرئيسي ---
   st.title("📦 Logistics Dashboard — أطلس")
-  st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **{selected_client if selected_client != 'الكل' else 'كافة العملاء'}**")
-  st.markdown("---")
-
