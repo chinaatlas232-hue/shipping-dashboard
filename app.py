@@ -216,16 +216,29 @@ with col2:
 
 st.markdown("---")
 
-# دالة مخصصة تضمن عمل المحاذاة وتحويل التواريخ بشكل سليم
+# [حل المشكلة الجذري المضمون للتحويل الآمن لعمود التواريخ دون اختفاء الجدول]
+def safe_format_date_cell(val):
+    val_str = str(val).strip()
+    # التحقق إذا كانت القيمة رقماً زمنياً طويلاً للتحويل لتقويم
+    if val_str.isdigit() and len(val_str) >= 10:
+        try:
+            return pd.to_datetime(int(val_str), unit='ms', errors='ignore').strftime('%Y-%m-%d')
+        except:
+            return val_str
+    # التحقق من صيغ التواريخ النصية الجاهزة
+    try:
+        return pd.to_datetime(val, errors='ignore').strftime('%Y-%m-%d')
+    except:
+        return val_str
+
 def format_and_align_columns(dataframe):
     configs = {}
     for col in dataframe.columns:
         col_clean = str(col).strip().lower()
         
-        # [تلبية طلبك المفتاحى الحاسم]: التعرف على عمود تاريخ التوزيع وتحويله إلى صيغة تقويم حقيقية
+        # استهداف خلايا عمود تاريخ التوزيع وتعديلها بشكل آمن خلية خلية
         if 'تاريخ' in col_clean or 'date' in col_clean:
-            # تحويل القيم الرقمية الطويلة إلى تواريخ تقويم واضحة
-            dataframe[col] = pd.to_datetime(dataframe[col], unit='ms', errors='coerce').dt.strftime('%Y-%m-%d').fillna(dataframe[col].astype(str))
+            dataframe[col] = dataframe[col].apply(safe_format_date_cell)
             configs[col] = st.column_config.TextColumn(col, alignment="center")
         else:
             sample = str(dataframe[col].dropna().iloc) if not dataframe[col].dropna().empty else ""
@@ -235,9 +248,3 @@ def format_and_align_columns(dataframe):
                 configs[col] = st.column_config.TextColumn(col, alignment="center")
     return configs
 
-# --- 5. نظام التبويبات لعرض الجداول بالتنسيق الذكي الشامل ---
-tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
-
-with tab1:
-    st.subheader(f"📋 جدول التفاصيل الكامل والمثبت التابع للكود المختار: {selected_code}")
-    display_cols = [c for c in df_filtered_full.columns if not str(c).startswith('calc_') and c != 'Main_Code']
