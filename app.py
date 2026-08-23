@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتصغير الفراغات العريضة وتثبيت ستايل الترويسة الثخينة
+# حقن تنسيقات مخصصة لتصغير الفراغات العريضة وتثبيت ستايل الترويسة الثخينة الكبيرة
 st.markdown("""
 <style>
     /* تكبير خط الترويسة العلوية وجعلها ثخينة جداً وعريضة بارزة البنية */
@@ -216,35 +216,30 @@ with col2:
 
 st.markdown("---")
 
-# [حل المشكلة الجذري المضمون للتحويل الآمن لعمود التواريخ دون اختفاء الجدول]
-def safe_format_date_cell(val):
-    val_str = str(val).strip()
-    # التحقق إذا كانت القيمة رقماً زمنياً طويلاً للتحويل لتقويم
-    if val_str.isdigit() and len(val_str) >= 10:
-        try:
-            return pd.to_datetime(int(val_str), unit='ms', errors='ignore').strftime('%Y-%m-%d')
-        except:
-            return val_str
-    # التحقق من صيغ التواريخ النصية الجاهزة
-    try:
-        return pd.to_datetime(val, errors='ignore').strftime('%Y-%m-%d')
-    except:
-        return val_str
-
-def format_and_align_columns(dataframe):
+# [حل المشكلة الجذري]: دالة حتمية لتعديل محتوى الخلايا بشكل مباشر دون التسبب في خطأ إخفاء الجداول
+def process_dataframe_safely(dataframe):
     configs = {}
     for col in dataframe.columns:
         col_clean = str(col).strip().lower()
         
-        # استهداف خلايا عمود تاريخ التوزيع وتعديلها بشكل آمن خلية خلية
+        # تحويل محتوى عمود التاريخ بدقة وأمان لكل خلية تالفة أو نصية
         if 'تاريخ' in col_clean or 'date' in col_clean:
-            dataframe[col] = dataframe[col].apply(safe_format_date_cell)
+            def fix_date_cell(x):
+                x_str = str(x).strip()
+                if x_str.isdigit() and len(x_str) >= 10:
+                    try:
+                        return pd.to_datetime(int(x_str), unit='ms', errors='coerce').strftime('%Y-%m-%d')
+                    except:
+                        return x_str
+                try:
+                    return pd.to_datetime(x, errors='coerce').strftime('%Y-%m-%d')
+                except:
+                    return x_str
+            dataframe[col] = dataframe[col].apply(fix_date_cell).fillna(dataframe[col].astype(str))
             configs[col] = st.column_config.TextColumn(col, alignment="center")
         else:
+            # فرز المحاذاة الافتراضية
             sample = str(dataframe[col].dropna().iloc) if not dataframe[col].dropna().empty else ""
             if dataframe[col].dtype in ['int64', 'float64'] or any(sym in sample for sym in ['¥', '$', '.']):
                 configs[col] = st.column_config.TextColumn(col, alignment="right")
             else:
-                configs[col] = st.column_config.TextColumn(col, alignment="center")
-    return configs
-
