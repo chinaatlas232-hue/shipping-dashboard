@@ -13,7 +13,7 @@ st.set_page_config(
 # حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وثخانته
 st.markdown("""
 <style>
-    /* تكبير خط الترويسة العلوية وجعلها ثخينة جداً وعريضة بارزة البنية */
+    /* ترويسة الجدول العلوية - ثخينة جداً وعريضة بارزة البنية */
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
         color: #1a252f !important; 
@@ -87,7 +87,7 @@ for idx, row in df_processed.iterrows():
 df_processed.columns = [str(c).strip() for c in df_processed.iloc[header_row_idx]]
 df_data = df_processed.iloc[header_row_idx + 1:, :29].reset_index(drop=True)
 
-# ربط الكلمات المفتاحية فقط لحساب المربعات الإحصائية العلوية دون المساس بحجم أو ظهور الجدول بالأسفل
+# [تعديل الحجم الذكي الجذري]: توسيع الكلمات الدلالية لتشمل الأحرف الكبيرة CBM والمسميات التراكمية بالكامل
 keywords_map = {
     'Container': ['container no.', 'container', 'الحاوية', 'رقم الحاوية'],
     'Shipping_mark': ['shipping mark', 'رمز الشحن', 'ماركة'],
@@ -95,8 +95,8 @@ keywords_map = {
     'Amount': ['amount', 'المجموع', 'القيمة', 'السعر', 'أجور الشحن'],
     'Client_paid': ['client paid', 'الزبون دفع', 'المدفوع', 'دفع'],
     'Office_paid': ['office paid', 'المكتب دفع'],
-    'Ctns': ['sum of ctns', 'ctn', 'عدد الكارتون', 'الكراتين'],
-    'Cbm': ['sum of cbm', 'cbm', 'الحجم']
+    'Ctns': ['sum of ctns', 'ctn', 'عدد الكارتون', 'الكراتين', 'كرتون'],
+    'Cbm': ['sum of cbm', 'cbm', 'الحجم', 'حجم', 'مكعب']
 }
 
 # حسابات المربعات الملونة معزولة تماماً للحفاظ على حيوية الملف وعرضه الأصلي
@@ -137,11 +137,10 @@ selected_code = st.selectbox("🔍 اختر أو ابحث عن رقم الكود
 # تصفية دقيقة وحصرية لأسطر الجدول بناءً على الكود المختار بعد إزالة المسافات العالقة تماماً
 df_filtered_full = df_data[df_data['calc_Code'] == str(selected_code).strip()].reset_index(drop=True)
 
-# --- 4. [تم الإصلاح الجذري الحاسم لربط المربع بقاعدة البيانات]: حساب الأرقام تلقائياً بشكل صحيح ---
-# عد الأسطر الحقيقية المكتشفة للكود لتعبر عن عدد الطلبات والسطور الفعلي بدقة تامة (مثل 3 طلبات أو 52 طلب)
+# --- 4. حساب الأرقام تلقائياً بشكل صحيح ومضمون حتمياً ---
 total_orders = len(df_filtered_full)
 
-# حساب عدد الحاويات الفريدة الفعلي بعد تصفية الفراغات والنصوص التالفة
+# حساب عدد الحاويات الفريدة الفعلي
 valid_containers = df_filtered_full['calc_Container'][df_filtered_full['calc_Container'] != '']
 valid_containers = valid_containers[valid_containers != 'nan']
 total_containers = int(valid_containers.nunique())
@@ -196,7 +195,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# المربعات الخاصة بالكراتين والحجم بالأسفل
+# المربعات الخاصة بالكراتين والحجم بالأسفل بعد التفعيل الربطي الصحيح
 st.markdown(f"""
 <div class="kpi-container">
     <div class="kpi-card" style="background-color: #D35400;">
@@ -240,4 +239,7 @@ def process_dataframe_safely(dataframe):
                 configs[col] = st.column_config.TextColumn(col, alignment="center")
     return configs
 
-# --- 5. نظام التبويبات لعرض الجدولين معاً بالأسفل بكافة تفاصيلها الـ 29 الأصلية الملمومة ---
+# --- 6. نظام التبويبات لعرض الجدولين معاً بالأسفل بكافة تفاصيلها الـ 29 الأصلية الملمومة ---
+tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل (الجدول الأم)"])
+
+with tab1:
