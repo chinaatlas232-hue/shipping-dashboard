@@ -3,6 +3,7 @@ import pandas as pd
 import io
 import os
 
+# نسخة برمجية جديدة لكسر كاش السيرفر إجبارياً: v2.0.1
 # 1. إعدادات الصفحة لتكون عريضة
 st.set_page_config(
     page_title="Logistics Dashboard", 
@@ -130,7 +131,7 @@ if 'Shipping_mark' in df_cleaned.columns:
         val_str = str(val).strip()
         if '-' in val_str:
             parts = val_str.split('-')
-            return str(parts[0]).strip()
+            return str(parts).strip()
         return val_str
 
     df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(extract_main_code)
@@ -155,7 +156,7 @@ df_filtered = df_cleaned[df_cleaned['Main_Code'] == selected_code].reset_index(d
 # حساب الإحصائيات التجميعية الحقيقية لملفك الحركي
 total_orders = df_filtered['Shipping_mark'].nunique() if len(df_filtered) > 0 else 0
 if selected_code.startswith("BS") and total_orders > 1:
-    base_codes = df_filtered['Shipping_mark'].apply(lambda x: str(x).split('-')[0] if '-' in str(x) else str(x))
+    base_codes = df_filtered['Shipping_mark'].apply(lambda x: str(x).split('-') if '-' in str(x) else str(x))
     if base_codes.nunique() == 1:
         total_orders = 1
 
@@ -170,12 +171,12 @@ total_office_paid = float(df_filtered['Office_paid'].sum())
 total_cartons = int(df_filtered['Ctns'].sum())
 total_cbm = float(df_filtered['Cbm'].sum())
 
-# --- 4. [تم التعديل]: الشاشات العلوية الست الملونة التفاعلية بالترتيب الجديد المطلوب ---
+# --- 4. الشاشات العلوية الست الملونة التفاعلية بالترتيب المعتمد المكتوب باليد ---
 st.markdown(f"""
 <style>
     .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 25px; direction: rtl; }}
     .kpi-card {{ flex: 1; min-width: 170px; padding: 18px; border-radius: 10px; color: white; box-shadow: 2px 2px 8px rgba(0,0,0,0.15); text-align: center; }}
-    .kpi-title {{ font-size: 13px; font-weight: bold; margin-bottom: 6px; opacity: 0.95; }}
+    .kpi-title {{ font-size: 13px; font-weight: bold; margin-bottom: 8px; opacity: 0.95; }}
     .kpi-value {{ font-size: 22px; font-weight: bold; }}
 </style>
 <div class="kpi-container">
@@ -236,7 +237,7 @@ with tab2:
     raw_headers = [str(c).strip() for c in full_display_df.iloc]
     clean_headers = []
     
-    num_cols = full_display_df.shape[1]
+    num_cols = full_display_df.shape
     for i in range(num_cols):
         if i < len(raw_headers):
             h = raw_headers[i]
