@@ -11,7 +11,7 @@ st.set_page_config(
 # --- 2. الشريط الجانبي: إدارة الملفات والأمان ---
 with st.sidebar:
   st.image(
-      "https://icons8.com", width=80
+      "https://img.icons8.com/color/96/logistic-control.png", width=80
   )  # أيقونة تعبيرية
   st.title("لوحة التحكم اللوجستية")
   st.markdown("---")
@@ -41,13 +41,13 @@ with st.sidebar:
         st.error("الرقم السري غير صحيح!")
 
 
-# --- 3. قراءة البيانات (تم ملء كافة الأرقام هنا بالكامل لمنع الـ SyntaxError نهائياً) ---
+# --- 3. قراءة البيانات (مع دعم بيانات افتراضية تجريبية لضمان عمل الكود فوراً) ---
 @st.cache_data
 def load_data(file):
   if file is not None:
     return pd.read_excel(file)
   else:
-    # بيانات تجريبية كاملة ومبنية بشكل سليم لحماية الكود
+    # بيانات تجريبية مطابقة لتصميمك لتعمل اللوحة فوراً في حال عدم رفع ملف
     data = {
         "container": [
             "RQ6025",
@@ -67,12 +67,12 @@ def load_data(file):
             "B12-60",
             "B12-97",
         ],
-        "Total_Amount":,
-        "Office_Paid":,
-        "Client_Paid":,
-        "Cartons":,
+        "Total_Amount": [700000, 480000, 290000, 270000, 160000, 50000, 70000],
+        "Office_Paid": [550000, 400000, 100000, 220000, 100000, 40000, 50000],
+        "Client_Paid": [150000, 80000, 190000, 50000, 60000, 10000, 20000],
+        "Cartons": [50, 40, 35, 30, 25, 20, 15],
         "Volume_CBM": [12.5, 10.0, 8.5, 7.0, 5.5, 4.0, 3.0],
-        "Orders":,
+        "Orders": [12, 10, 8, 7, 6, 5, 4],
     }
     return pd.DataFrame(data)
 
@@ -82,7 +82,8 @@ df = load_data(uploaded_file)
 # --- 4. عنوان الواجهة الرئيسي ---
 st.title("📦 Logistics Dashboard — B12")
 st.markdown(
-    "Interactive view of shipments by container, shipping mark, payments and freight"
+    "Interactive view of shipments by container, shipping mark, payments and"
+    " freight"
 )
 st.markdown("---")
 
@@ -102,7 +103,7 @@ if selected_container != "الكل":
 else:
   filtered_df = df
 
-# --- 6. لوحة المؤشرات العلوية (المربعات الملونة والأيقونات بتصميم هادئ) ---
+# --- 6. لوحة المؤشرات العلوية (Metrics) ---
 total_orders = (
     int(filtered_df["Orders"].sum()) if "Orders" in filtered_df else len(filtered_df)
 )
@@ -119,60 +120,20 @@ total_volume = (
     else 0.0
 )
 
-# دالة مخصصة لإنشاء بطاقة المؤشر بتصميم مربع هادئ مع أيقونة من النظام
-def render_custom_card(title, value, icon, bg_color):
-    card_style = f"""
-    <div style="
-        background-color: {bg_color};
-        padding: 18px;
-        border-radius: 10px;
-        color: #ffffff;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        margin-bottom: 15px;
-        font-family: sans-serif;
-    ">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 14px; opacity: 0.95; font-weight: 500;">{title}</span>
-            <span style="font-size: 22px;">{icon}</span>
-        </div>
-        <div style="font-size: 25px; font-weight: bold; letter-spacing: 0.5px;">{value}</div>
-    </div>
-    """
-    st.markdown(card_style, unsafe_allow_html=True)
-
-# تقسيم السطر الأول إلى 5 أعمدة متساوية جغرافياً
 col1, col2, col3, col4, col5 = st.columns(5)
+col1.metric("Orders (الطلبات)", f"{total_orders}")
+col2.metric("Containers (الكونتينرات)", f"{total_containers}")
+col3.metric("Total Amount", f"{total_amount_val:,.0f}")
+col4.metric("Client Paid", f"{total_client_paid:,.0f}")
+col5.metric("Office Paid", f"{total_office_paid:,.0f}")
 
-with col1:
-    render_custom_card("Orders (الطلبات)", f"{total_orders}", "📋", "#4f46e5")
-
-with col2:
-    render_custom_card("Containers (الكونتينرات)", f"{total_containers}", "🚢", "#0ea5e9")
-
-with col3:
-    render_custom_card("Total Amount", f"¥ {total_amount_val:,.0f}", "💵", "#10b981")
-
-with col4:
-    render_custom_card("Client Paid", f"¥ {total_client_paid:,.0f}", "🤝", "#f59e0b")
-
-with col5:
-    render_custom_card("Office Paid", f"¥ {total_office_paid:,.0f}", "🏢", "#6366f1")
-
-# تقسيم السطر الثاني إلى 5 أعمدة أيضاً للحفاظ على الفراغات الجغرافية المطلوبة بالصورة
-col6, col7, col8, col9, col10 = st.columns(5)
-
-with col6:
-    render_custom_card("Cartons (الكراتين)", f"{total_cartons:,}", "📦", "#ec4899")
-
-with col7:
-    st.write("") # ترك العمود الثاني فارغاً لتطابق التصميم المطلق بالصورة
-
-with col8:
-    render_custom_card("Volume (CBM الحجم)", f"{total_volume:,}", "📐", "#14b8a6")
+col6, col7 = st.columns(2)
+col6.metric("Cartons (الكراتين)", f"{total_cartons}")
+col7.metric("Volume (CBM الحجم)", f"{total_volume}")
 
 st.markdown("---")
 
-# --- 7. الرسوم البيانية التفاعلية (مطابقة لتصميمك القديم الشغال) ---
+# --- 7. الرسوم البيانية التفاعلية (مطابقة لطلبك وتصميمك) ---
 chart_col1, chart_col2 = st.columns(2)
 
 with chart_col1:
@@ -219,7 +180,7 @@ with st.expander("📋 عرض جدول البيانات الكاملة"):
   st.dataframe(filtered_df, use_container_width=True)
 
 # زر تحميل التقرير
-csv_data = filtered_df.to_csv(index=False).encode("utf-8")
+csv_data = filtered_df.to_csv(index=format).encode("utf-8")
 st.sidebar.markdown("---")
 st.sidebar.download_button(
     label="📥 تحميل التقرير (CSV)",
