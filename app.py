@@ -3,6 +3,7 @@ import pandas as pd
 import io
 import os
 
+# تحديث كسر كاش الخادم الإجباري: v5.5.0
 # 1. إعدادات الصفحة لتكون عريضة
 st.set_page_config(
     page_title="Logistics Dashboard", 
@@ -137,15 +138,15 @@ selected_code = st.selectbox("🔍 اختر أو ابحث عن رقم الكود
 # تصفية دقيقة وحصرية لأسطر الجدول بناءً على الكود المختار
 df_filtered_full = df_data[df_data['calc_Code'] == selected_code].reset_index(drop=True)
 
-# --- 4. [تم الإصلاح الجوهري هنا]: معادلة حساب الإحصائيات التجميعية الصحيحة ---
-# عدد الطلبات يحسب الآن بناءً على إجمالي عدد أسطر البيانات الفعلية المكتشفة للكود المختار بالملف (مثل 52)
-total_orders = len(df_filtered_full)
+# --- 4. [المعادلة المحدثة لكسر الكاش الصلب]: حساب الأرقام تلقائياً ---
+# عد الأسطر الحقيقية المكتشفة للكود لتعبر عن الـ 52 طلب بدقة تامة
+computed_orders_count = int(len(df_filtered_full))
 
-# عدد الحاويات يحسب بدقة بناءً على القيم الفريدة وغير الفارغة لرقم الحاوية (مثل 7)
+# حساب عدد الحاويات الفريدة الفعلي لـ B12 (يساوي 7)
 valid_containers = df_filtered_full['calc_Container'][df_filtered_full['calc_Container'] != '']
-total_containers = valid_containers.nunique() if len(valid_containers) > 0 else 0
-if total_containers == 0 and len(df_filtered_full) > 0:
-    total_containers = 1
+computed_containers_count = int(valid_containers.nunique()) if len(valid_containers) > 0 else 0
+if computed_containers_count == 0 and len(df_filtered_full) > 0:
+    computed_containers_count = 1
 
 total_amount = float(df_filtered_full['calc_Amount'].sum())
 total_client_paid = float(df_filtered_full['calc_Client_paid'].sum())
@@ -165,7 +166,7 @@ st.markdown(f"""
     <!-- 1. عدد الطلبات (أزرق) -->
     <div class="kpi-card" style="background-color: #3498DB;">
         <div class="kpi-title">عدد الطلبات</div>
-        <div class="kpi-value">{total_orders} طلب</div>
+        <div class="kpi-value">{computed_orders_count} طلب</div>
     </div>
     <!-- 2. الكود الحالي (أخضر) -->
     <div class="kpi-card" style="background-color: #2ECC71;">
@@ -175,7 +176,7 @@ st.markdown(f"""
     <!-- 3. عدد الحاويات (أحمر) -->
     <div class="kpi-card" style="background-color: #E74C3C;">
         <div class="kpi-title">عدد الحاويات</div>
-        <div class="kpi-value">{total_containers} حاوية</div>
+        <div class="kpi-value">{computed_containers_count} حاوية</div>
     </div>
     <!-- 4. Client Paid (فيروزي) -->
     <div class="kpi-card" style="background-color: #1ABC9C;">
@@ -211,7 +212,7 @@ st.markdown(f"""
 
 st.markdown("---")
 
-# دالة مخصصة آمنة لتنظيف وتنسيق خلايا الجداول والتواريخ دون حدوث انهيار صامت
+# دالة مخصصة آمنة لتنظيف وتنسيق خلايا الجداول والتواريخ
 def safe_format_date_cell(x):
     x_str = str(x).strip()
     if x_str.isdigit() and len(x_str) >= 10:
@@ -239,7 +240,7 @@ def process_dataframe_safely(dataframe):
                 configs[col] = st.column_config.TextColumn(col, alignment="center")
     return configs
 
-# --- 5. نظام التبويبات لعرض الجدولين معاً بالأسفل بكافة تفاصيلها الـ 29 الأصلية الملمومة ---
+# --- 5. نظام التبويبات لعرض الجدولين معاً بالأسفل بكافة تفاصيلها الـ 29 الأصلية ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل (الجدول الأم)"])
 
 with tab1:
