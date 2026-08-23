@@ -12,12 +12,10 @@ st.set_page_config(
 # تعزيز حجم خط ولون الجدول ليكون أكبر وأوضح عند العرض
 st.markdown("""
     <style>
-    /* تكبير نصوص خلايا الجدول والعناوين */
     .dataframe th, .dataframe td {
         font-size: 16px !important;
         font-weight: 500 !important;
     }
-    /* تحسين مظهر الجداول لتكون مريحة للعين */
     div[data-testid="stDataFrame"] div {
         font-family: sans-serif !important;
     }
@@ -80,6 +78,7 @@ if df.empty:
       "👋 مرحباً بك! يرجى رفع ملف الإكسيل النظيف من الشريط الجانبي لبدء حساب وعرض البيانات فوراً."
   )
 else:
+  # مسميات الأعمدة الأساسية
   container_col = "رقم الحاوية"
   shipping_mark_col = "Shipping mark"
   amt_col = "المجموع"
@@ -87,8 +86,15 @@ else:
   office_col = "المكتب دفع"
   ctns_col = "عدد الكارتون"
   cbm_col = "حجم"
+  
+  # 🌟 مسميات الأعمدة المالية الجديدة المستخرجة من صورتك بدقة
+  customs_col = "مبلغ الجمرك"
+  collected_col = "قيمة الاستحصالات"
+  remaining_col = "متبقي حقيقي"
 
-  for col in [amt_col, client_col, office_col, ctns_col, cbm_col]:
+  # تحويل كافة الحقول النصية والمالية إلى قيم رقمية نظيفة لضمان حساب رياضي صائب
+  all_numeric_cols = [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]
+  for col in all_numeric_cols:
     if col in df.columns:
       df[col] = (
           pd.to_numeric(
@@ -100,6 +106,7 @@ else:
           .fillna(0)
       )
 
+  # استبعاد أسطر الإجماليات الصلبة
   df = df[
       ~df[shipping_mark_col]
       .astype(str)
@@ -143,26 +150,14 @@ else:
   if selected_mark != "الكل":
       filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
 
-  # --- 6. العمليات الحسابية والمؤشرات الديناميكية المطابقة 100% ---
+  # --- 6. العمليات الحسابية والمؤشرات الديناميكية الأساسية ---
   total_orders = len(filtered_df)
   total_containers = filtered_df[container_col].nunique()
-  total_amount_val = (
-      filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
-  )
-  total_client_paid = (
-      filtered_df[client_col].sum() if client_col in filtered_df.columns else 0
-  )
-  total_office_paid = (
-      filtered_df[office_col].sum() if office_col in filtered_df.columns else 0
-  )
-  total_cartons = (
-      int(filtered_df[ctns_col].sum()) if ctns_col in filtered_df.columns else 0
-  )
-  total_volume = (
-      round(filtered_df[cbm_col].sum(), 3)
-      if cbm_col in filtered_df.columns
-      else 0.0
-  )
+  total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
+  total_client_paid = filtered_df[client_col].sum() if client_col in filtered_df.columns else 0
+  total_office_paid = filtered_df[office_col].sum() if office_col in filtered_df.columns else 0
+  total_cartons = int(filtered_df[ctns_col].sum()) if ctns_col in filtered_df.columns else 0
+  total_volume = round(filtered_df[cbm_col].sum(), 3) if cbm_col in filtered_df.columns else 0.0
 
   def render_custom_card(title, value, icon, bg_color):
     card_style = f"""
@@ -184,64 +179,32 @@ else:
         """
     st.markdown(card_style, unsafe_allow_html=True)
 
+  # عرض لوحة المقاييس الأساسية
   row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
-
-  with row1_col1:
-    render_custom_card("Orders (الطلبات الفرعية)", f"{total_orders}", "📋", "#4f46e5")
-
-  with row1_col2:
-    render_custom_card(
-        "Containers (الحاويات)", f"{total_containers}", "🚢", "#0ea5e9"
-    )
-
-  with row1_col3:
-    render_custom_card(
-        "Total Amount", f"¥ {total_amount_val:,.2f}", "💵", "#10b981")
-
-  with row1_col4:
-    render_custom_card(
-        "Client Paid", f"¥ {total_client_paid:,.2f}", "🤝", "#f59e0b")
-
-  with row1_col5:
-    render_custom_card(
-        "Office Paid", f"¥ {total_office_paid:,.2f}", "🏢", "#6366f1")
+  with row1_col1: render_custom_card("Orders (الطلبات الفرعية)", f"{total_orders}", "📋", "#4f46e5")
+  with row1_col2: render_custom_card("Containers (الحاويات)", f"{total_containers}", "🚢", "#0ea5e9")
+  with row1_col3: render_custom_card("Total Amount", f"¥ {total_amount_val:,.2f}", "💵", "#10b981")
+  with row1_col4: render_custom_card("Client Paid", f"¥ {total_client_paid:,.2f}", "🤝", "#f59e0b")
+  with row1_col5: render_custom_card("Office Paid", f"¥ {total_office_paid:,.2f}", "🏢", "#6366f1")
 
   row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
-
-  with row2_col1:
-    render_custom_card(
-        "Cartons (الكراتين)", f"{total_cartons:,}", "📦", "#ec4899"
-    )
-
-  with row2_col2:
-    st.write("")  
-
-  with row2_col3:
-    render_custom_card(
-        "Volume (الحجم)", f"{total_volume:,}", "📐", "#14b8a6"
-    )
+  with row2_col1: render_custom_card("Cartons (الكراتين)", f"{total_cartons:,}", "📦", "#ec4899")
+  with row2_col2: st.write("")  
+  with row2_col3: render_custom_card("Volume (الحجم)", f"{total_volume:,}", "📐", "#14b8a6")
 
   st.markdown("---")
 
-  # --- 7. الرسوم البيانية التفاعلية الملونة بالتناسق مع البطاقات ---
+  # --- 7. الرسوم البيانية التفاعلية الأساسية ---
   chart_col1, chart_col2 = st.columns(2)
 
   with chart_col1:
     st.subheader("📊 Payments & Amount by Container")
     y_cols = [c for c in [amt_col, office_col, client_col] if c in filtered_df.columns]
     if y_cols and container_col in filtered_df.columns:
-      color_map = {
-          amt_col: "#10b981",    
-          office_col: "#6366f1", 
-          client_col: "#f59e0b"  
-      }
+      color_map = {amt_col: "#10b981", office_col: "#6366f1", client_col: "#f59e0b"}
       fig_bar = px.bar(
-          filtered_df,
-          x=container_col,
-          y=y_cols,
-          barmode="group",
-          template="plotly_dark",
-          color_discrete_map=color_map,
+          filtered_df, x=container_col, y=y_cols, barmode="group",
+          template="plotly_dark", color_discrete_map=color_map,
           labels={"value": "المبالغ بالين", "variable": "نوع المال"},
       )
       st.plotly_chart(fig_bar, use_container_width=True)
@@ -253,26 +216,50 @@ else:
         "المبلغ الكلي": [total_office_paid, total_client_paid],
     })
     fig_pie = px.pie(
-        split_data,
-        names="نوع الدفع",
-        values="المبلغ الكلي",
-        hole=0.5,
-        template="plotly_dark",
-        color_discrete_sequence=["#6366f1", "#f59e0b"] 
+        split_data, names="نوع الدفع", values="المبلغ الكلي", hole=0.5,
+        template="plotly_dark", color_discrete_sequence=["#6366f1", "#f59e0b"] 
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
   st.markdown("---")
 
-  # --- 8. عرض جدول البيانات الكامل بشكل مباشر (مفتوح دائماً وبحجم خط واضح) ---
+  # --- 🌟 8. قسم التحليل المالي التفصيلي المضاف للشحنة المحددة 🌟 ---
+  if selected_container != "الكل" and selected_mark != "الكل":
+      st.subheader(f"🔍 التحليل المالي التفصيلي للشحنة: {selected_mark} داخل الحاوية {selected_container}")
+      
+      # حساب قيم المؤشرات الجديدة الخاصة بالشحنة المحددة
+      sh_customs = filtered_df[customs_col].sum() if customs_col in filtered_df.columns else 0
+      sh_collected = filtered_df[collected_col].sum() if collected_col in filtered_df.columns else 0
+      sh_remaining = filtered_df[remaining_col].sum() if remaining_col in filtered_df.columns else 0
+      
+      # عرض المربعات المالية الجديدة للشحنة المحددة بألوان هادئة ومميزة
+      sub_col1, sub_col2, sub_col3 = st.columns(3)
+      with sub_col1:
+          render_custom_card("مبلغ الجمرك للشحنة", f"¥ {sh_customs:,.2f}", "🛡️", "#ef4444") # أحمر ناعم
+      with sub_col2:
+          render_custom_card("قيمة الاستحصالات للشحنة", f"¥ {sh_collected:,.2f}", "📈", "#3b82f6") # أزرق مالي
+      with sub_col3:
+          render_custom_card("متبقي حقيقي للشحنة", f"¥ {sh_remaining:,.2f}", "⏳", "#8b5cf6") # بنفسجي ملكي
+          
+      # رسم بياني تفصيلي إضافي للشحنة المحددة
+      st.markdown("##### 📊 المقارنة المالية التفاعلية للشحنة المحددة")
+      sh_metrics = pd.DataFrame({
+          "المؤشر المالي": ["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"],
+          "القيمة بالين": [sh_customs, sh_collected, sh_remaining]
+      })
+      fig_sh_bar = px.bar(
+          sh_metrics, x="المؤشر المالي", y="القيمة بالين", 
+          color="المؤشر المالي", template="plotly_dark",
+          color_discrete_map={"مبلغ الجمرك": "#ef4444", "قيمة الاستحصالات": "#3b82f6", "متبقي حقيقي": "#8b5cf6"}
+      )
+      st.plotly_chart(fig_sh_bar, use_container_width=True)
+      st.markdown("---")
+
+  # --- 9. عرض جدول البيانات الكامل بشكل مباشر (مفتوح دائماً) ---
   st.subheader("📋 جدول البيانات الشاملة والنقية (الجدول الأم)")
-  st.dataframe(filtered_df, use_container_width=True, height=500)
+  st.dataframe(filtered_df, use_container_width=True, height=450)
 
   csv_data = filtered_df.to_csv(index=False).encode("utf-8")
   st.sidebar.markdown("---")
   st.sidebar.download_button(
       label="📥 تحميل التقرير الحالي (CSV)",
-      data=csv_data,
-      file_name="logistics_report.csv",
-      mime="text/csv",
-  )
