@@ -78,7 +78,7 @@ if df.empty:
       "👋 مرحباً بك! يرجى رفع ملف الإكسيل النظيف من الشريط الجانبي لبدء حساب وعرض البيانات فوراً."
   )
 else:
-  # مسميات الأعمدة الأساسية
+  # مسميات الأعمدة الأساسية والمالية الحقيقية لجدولك
   container_col = "رقم الحاوية"
   shipping_mark_col = "Shipping mark"
   amt_col = "المجموع"
@@ -86,33 +86,23 @@ else:
   office_col = "المكتب دفع"
   ctns_col = "عدد الكارتون"
   cbm_col = "حجم"
-  
-  # مسميات الأعمدة المالية الخاصة بالجمارك والمستخلصات
   customs_col = "مبلغ الجمرك"
   collected_col = "قيمة الاستحصالات"
   remaining_col = "متبقي حقيقي"
 
-  # تحويل كافة الحقول النصية والمالية إلى قيم رقمية نظيفة لضمان حساب رياضي صائب
+  # تحويل الحقول إلى قيم رقمية نظيفة لحسابات دقيقة
   all_numeric_cols = [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]
   for col in all_numeric_cols:
     if col in df.columns:
       df[col] = (
           pd.to_numeric(
-              df[col]
-              .astype(str)
-              .str.replace(r"[^\d.]", "", regex=True),
-              errors="coerce",
-          )
-          .fillna(0)
+              df[col].astype(str).str.replace(r"[^\d.]", "", regex=True),
+              errors="coerce"
+          ).fillna(0)
       )
 
   # استبعاد أسطر الإجماليات الصلبة من ملف الإكسيل لترك الحسابات لبايثون
-  df = df[
-      ~df[shipping_mark_col]
-      .astype(str)
-      .str.lower()
-      .str.contains("total|grand|إجمالي", na=False)
-  ]
+  df = df[~df[shipping_mark_col].astype(str).str.lower().str.contains("total|grand|إجمالي", na=False)]
   df = df[df[container_col].notna()]
 
   # حساب عمود حالة الدفع في الجدول بناءً على المتبقي الحقيقي
@@ -126,21 +116,14 @@ else:
 
   # --- 4. عنوان الواجهة الرئيسي ---
   st.title("📦 Logistics Dashboard — B12")
-  st.markdown(
-      "Interactive view of shipments by container, shipping mark, payments and freight"
-  )
+  st.markdown("Interactive view of shipments by container, shipping mark, payments and freight")
   st.markdown("---")
 
   # --- 5. شريط التصفية والسيليكر المزدوج (الحاويات + ماركة الشحن) ---
   st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
   
   container_options = ["الكل"] + list(df[container_col].dropna().unique())
-  selected_container = st.pills(
-      "اختر الحاوية",
-      options=container_options,
-      default="الكل",
-      key="container_pill"
-  )
+  selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
 
   if selected_container != "الكل":
       temp_df = df[df[container_col] == selected_container]
@@ -148,12 +131,7 @@ else:
       temp_df = df
 
   shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique())
-  selected_mark = st.pills(
-      "اختر ماركة الشحن (Shipping Mark)",
-      options=shipping_mark_options,
-      default="الكل",
-      key="mark_pill"
-  )
+  selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
 
   filtered_df = temp_df
   if selected_mark != "الكل":
@@ -168,7 +146,7 @@ else:
   total_cartons = int(filtered_df[ctns_col].sum()) if ctns_col in filtered_df.columns else 0
   total_volume = round(filtered_df[cbm_col].sum(), 3) if cbm_col in filtered_df.columns else 0.0
 
-  # مجاميع الأعمدة الإضافية
+  # مجاميع الأعمدة الإضافية لشحنة الجمرك والمستخلصات
   sh_customs = filtered_df[customs_col].sum() if customs_col in filtered_df.columns else 0
   sh_collected = filtered_df[collected_col].sum() if collected_col in filtered_df.columns else 0
   sh_remaining = filtered_df[remaining_col].sum() if remaining_col in filtered_df.columns else 0
@@ -184,13 +162,8 @@ else:
   def render_custom_card(title, value, icon, bg_color):
     card_style = f"""
         <div style="
-            background-color: {bg_color};
-            padding: 18px;
-            border-radius: 10px;
-            color: #ffffff;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            margin-bottom: 15px;
-            font-family: sans-serif;
+            background-color: {bg_color}; padding: 18px; border-radius: 10px; color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; font-family: sans-serif;
         ">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <span style="font-size: 14px; opacity: 0.95; font-weight: 500;">{title}</span>
@@ -256,14 +229,20 @@ else:
           
       st.markdown("##### 📊 المقارنة المالية التفاعلية للشحنة المحددة")
       sh_metrics = pd.DataFrame({
-          "المؤشر المالي": ["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"],
-          "القيمة بالين": [sh_customs, sh_collected, sh_remaining]
+          "المؤشر": ["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"],
+          "القيمة": [sh_customs, sh_collected, sh_remaining]
       })
       
-      # 🌟 تم إصلاح دالة المخطط وإغلاق كامل الأقواس بشكل سليم 100% 🌟
+      # 🌟 تم إصلاح الصياغة بالكامل وإغلاق الأقواس بدقة متناهية لمنع الـ SyntaxError 🌟
       fig_sh_bar = px.bar(
           sh_metrics, 
-          x="المؤشر المالي", 
-          y="القيمة بالين", 
-          color="المؤشر المالي", 
+          x="المؤشر", 
+          y="القيمة", 
+          color="المؤشر", 
           template="plotly_dark",
+          color_discrete_sequence=["#ef4444", "#3b82f6", "#8b5cf6"]
+      )
+      st.plotly_chart(fig_sh_bar, use_container_width=True)
+      st.markdown("---")
+
+  # --- 9. عرض جدول البيانات الكامل بشكل مباشر مع عمود حالة الدفع الجديد ---
