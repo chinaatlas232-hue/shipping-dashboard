@@ -35,24 +35,23 @@ with st.sidebar:
                 st.error("الرقم السري غير صحيح!")
 
 
-# --- 3. قراءة البيانات (تم ملء الأرقام بالكامل لمنع خطأ SyntaxError نهائياً) ---
+# --- 3. قراءة البيانات (تم إصلاح البيانات بالكامل بهيكل سليم ومغلق 100%) ---
 @st.cache_data
 def load_data(file):
     if file is not None:
         return pd.read_excel(file)
     else:
-        # بيانات تجريبية كاملة بدون أي حقول فارغة
-        data = {
-            "container": ["RQ6025", "RQ6027", "RQ6036", "RQ6026", "RQ6033", "RQ6028", "RQ6035"],
-            "shipping_mark": ["B12-116", "B12-115", "B12-114", "B12-80", "B12-52", "B12-60", "B12-97"],
-            "Total_Amount":,
-            "Office_Paid":,
-            "Client_Paid":,
-            "Cartons":,
-            "Volume_CBM": [12.5, 10.0, 8.5, 7.0, 5.5, 4.0, 3.0],
-            "Orders": [12, 10, 8, 7, 6, 5, 4]
-        }
-        return pd.DataFrame(data)
+        # بيانات تجريبية كاملة ومبنية بشكل سليم لحماية الكود من الـ SyntaxError
+        rows = [
+            {"container": "RQ6025", "shipping_mark": "B12-116", "Total_Amount": 700000, "Office_Paid": 550000, "Client_Paid": 150000, "Cartons": 50, "Volume_CBM": 12.5, "Orders": 12},
+            {"container": "RQ6027", "shipping_mark": "B12-115", "Total_Amount": 480000, "Office_Paid": 400000, "Client_Paid": 80000, "Cartons": 40, "Volume_CBM": 10.0, "Orders": 10},
+            {"container": "RQ6036", "shipping_mark": "B12-114", "Total_Amount": 290000, "Office_Paid": 100000, "Client_Paid": 190000, "Cartons": 35, "Volume_CBM": 8.5, "Orders": 8},
+            {"container": "RQ6026", "shipping_mark": "B12-80",  "Total_Amount": 270000, "Office_Paid": 220000, "Client_Paid": 50000,  "Cartons": 30, "Volume_CBM": 7.0, "Orders": 7},
+            {"container": "RQ6033", "shipping_mark": "B12-52",  "Total_Amount": 160000, "Office_Paid": 100000, "Client_Paid": 60000,  "Cartons": 25, "Volume_CBM": 5.5, "Orders": 6},
+            {"container": "RQ6028", "shipping_mark": "B12-60",  "Total_Amount": 50000,  "Office_Paid": 40000,  "Client_Paid": 10000,  "Cartons": 20, "Volume_CBM": 4.0, "Orders": 5},
+            {"container": "RQ6035", "shipping_mark": "B12-97",  "Total_Amount": 70000,  "Office_Paid": 50000,  "Client_Paid": 20000,  "Cartons": 15, "Volume_CBM": 3.0, "Orders": 4}
+        ]
+        return pd.DataFrame(rows)
 
 df = load_data(uploaded_file)
 
@@ -71,7 +70,7 @@ if selected_container != "الكل":
 else:
     filtered_df = df
 
-# --- 6. لوحة المؤشرات العلوية (المربعات الملونة والأيقونات بتصميم هادئ وموزع) ---
+# --- 6. لوحة المؤشرات العلوية (المربعات الملونة المصممة حسب طلبك) ---
 total_orders = int(filtered_df["Orders"].sum()) if "Orders" in filtered_df else len(filtered_df)
 total_containers = filtered_df["container"].nunique()
 total_amount_val = filtered_df["Total_Amount"].sum()
@@ -119,14 +118,14 @@ with row1_col4:
 with row1_col5:
     render_custom_card("Office Paid", f"{total_office_paid:,.0f}", "🏢", "#6366f1")
 
-# السطر الثاني من المربعات الملونة مع توزيع الفراغات كالصورة تماماً
+# السطر الثاني من المربعات الملونة المتوافق مع الفراغات والتوزيع المطلوبة
 row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
 
 with row2_col1:
     render_custom_card("Cartons (الكراتين)", f"{total_cartons}", "📦", "#ec4899")
 
 with row2_col2:
-    st.write("") # ترك العمود الثاني فارغاً لتطابق التصميم
+    st.write("") # فراغ لمطابقة التوزيع العرضي
 
 with row2_col3:
     render_custom_card("Volume (CBM الحجم)", f"{total_volume}", "📐", "#14b8a6")
