@@ -28,7 +28,7 @@ st.markdown("""
         border-radius: 14px;
         box-shadow: 0 6px 15px rgba(0,0,0,0.3);
         max-width: 550px;
-        margin: 60px auto;
+        margin: 50px auto;
         text-align: center;
     }
     /* تنسيق البطاقات الإيضاحية المالية العلوية الفاخرة */
@@ -148,7 +148,7 @@ else:
   collected_col = find_col(["قيمة الاستحصالات", "الاستحصالات", "Collected"], "قيمة الاستحصالات")
   remaining_col = find_col(["متبقي حقيقي", "المتبقي", "Remaining"], "متبقي حقيقي")
 
-  # تحويل كافة قيم عمود الأكواد لنصوص صافية ممسوحة المسافات لضمان التصفية المطلقة
+  # تحويل كافة قيم عمود الأكواد لنصوص صافية ممسوحة المسافات
   if client_name_col in df.columns:
       df[client_name_col] = df[client_name_col].astype(str).str.strip()
 
@@ -158,7 +158,7 @@ else:
     if col in df.columns:
       df[col] = pd.to_numeric(df[col].astype(str).str.replace(r"[^\d.]", "", regex=True), errors="coerce").fillna(0)
 
-  # تصفية أسطر الإجماليات اليدوية
+  # استبعاد أسطر الإجماليات اليدوية
   if shipping_mark_col in df.columns:
     df = df[~df[shipping_mark_col].astype(str).str.lower().str.contains("total|grand|إجمالي", na=False)]
   if container_col in df.columns:
@@ -219,7 +219,6 @@ else:
   selected_client = st.session_state.logged_in_customer
   
   if selected_client != "الكل" and client_name_col in df.columns:
-      # 🌟 إصلاح جوهري: التصفية الاحتوائية المرنة للأرقام لمنع اختفاء البيانات فور تسجيل الدخول 🌟
       selected_client_digits = str(re.sub(r'\D', '', str(selected_client))).strip()
       df_client = df[
           (df[client_name_col].astype(str).str.lower() == str(selected_client).lower().strip()) |
@@ -240,3 +239,6 @@ else:
 
   # --- 6. عنوان الواجهة اللوجستية الرئيسي ---
   st.title("📦 Logistics Dashboard — أطلس")
+  st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **{selected_client if selected_client != 'الكل' else 'كافة العملاء'}**")
+  st.markdown("---")
+
