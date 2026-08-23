@@ -48,14 +48,12 @@ with st.sidebar:
   st.title("إدارة النظام - أطلس")
   st.markdown("---")
 
-  # 🌟 حل مرن: البحث الذكي عن الملف بمختلف الصيغ (data.xlsx أو DATA.xlsx أو data.XLSX) لضمان القراءة تماماً
+  # البحث عن ملف البيانات الثابت
   uploaded_file = None
-  for filename in os.listdir("."):
-      if filename.lower() == "data.xlsx":
-          uploaded_file = filename
-          break
+  if os.path.exists("data.xlsx"):
+      uploaded_file = "data.xlsx"
 
-  # إتاحة الرفع اليدوي والتحديث المباشر للإدارة فقط عند دخول المدير بكود 881988
+  # زر تحديث يدوي فوري للإدارة عند الدخول بالماستر كود
   if st.session_state.logged_in_customer == "الكل":
       st.subheader("📁 تحديث قاعدة البيانات")
       new_file = st.file_uploader(
@@ -65,7 +63,7 @@ with st.sidebar:
           uploaded_file = new_file
 
 
-# --- 3. دالة قراءة وتجهيز البيانات النظيفة والمباشرة (بدون كاش) ---
+# --- 3. دالة قراءة وتجهيز البيانات النظيفة والمباشرة (بدون كاش نهائياً) ---
 def load_data_fresh(file):
   if file is not None:
     try:
@@ -85,17 +83,16 @@ if df.empty:
   st.markdown("""
     <div class='login-box'>
         <h2 style='color: white;'>🏛️ شركة أطلس للشحن والتجارة العامة</h2>
-        <h4 style='color: #4f46e5;'>بوابة العملاء اللوجستية</h4>
-        <p style='color: #94a3b8; margin-top: 15px;'>نظام الإدارة قيد الانتظار. يرجى التأكد من رفع ملف قاعدة البيانات وتسميته <b>data.xlsx</b> داخل حساب GitHub بجانب ملف الكود لكي يعمل الرابط مباشرة.</p>
+        <h4 style='color: #10b981;'>بوابة العملاء اللوجستية</h4>
+        <p style='color: #94a3b8; margin-top: 15px;'>نظام الإدارة قيد الانتظار. يرجى التأكد من رفع ملف قاعدة البيانات وتسميته <b>data.xlsx</b> (بحروف صغيرة) داخل حساب GitHub بجانب ملف الكود app.py مباشرة.</p>
     </div>
   """, unsafe_allow_html=True)
   
-  # نموذج احتياطي وسري لدخول الإدارة لتشغيل وتحديث النظام مباشرة من الهاتف 🌟
   col_space1, col_admin_login, col_space2 = st.columns(3)
   with col_admin_login:
       with st.form("admin_login_initial"):
-          admin_pwd = st.text_input("🔑 دخول الإدارة المباشر للتحديث المالي:", type="password")
-          admin_submit = st.form_submit_button("دخول مدير النظام وتطهير الكاش 👑")
+          admin_pwd = st.text_input("🔑 دخول الإدارة المباشر للتفعيل الفوري:", type="password")
+          admin_submit = st.form_submit_button("دخول وتطهير الكاش 👑")
           if admin_submit and admin_pwd.strip() == "881988":
               st.session_state.logged_in_customer = "الكل"
               st.rerun()
@@ -123,13 +120,13 @@ else:
   collected_col = find_col(["قيمة الاستحصالات", "الاستحصالات", "Collected"], "قيمة الاستحصالات")
   remaining_col = find_col(["متبقي حقيقي", "المتبقي", "Remaining"], "متبقي حقيقي")
 
-  # تحويل الحقول المالية والعددية إلى قيم رقمية نظيفة لحسابات دقيقة 100% وتطهير نصوص العملات
+  # تحويل الحقول المالية والعددية إلى قيم رقمية نظيفة لحسابات دقيقة 100%
   all_numeric_cols = [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]
   for col in all_numeric_cols:
     if col in df.columns:
       df[col] = pd.to_numeric(df[col].astype(str).str.replace(r"[^\d.]", "", regex=True), errors="coerce").fillna(0)
 
-  # استبعاد أسطر الإجماليات يدوية الصنع لحماية الحسابات الديناميكية
+  # استبعاد أسطر الإجماليات يدوية الصنع
   if shipping_mark_col in df.columns:
     df = df[~df[shipping_mark_col].astype(str).str.lower().str.contains("total|grand|إجمالي", na=False)]
   if container_col in df.columns:
@@ -144,7 +141,7 @@ else:
             return "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الاحترافي المحدث والمحصن ضد المسافات والخلايا النصية ---
+  # --- 4. نظام تسجيل الدخول المحصن والمطهر ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
   valid_codes_clean = [str(c).strip().lower() for c in valid_codes]
 
@@ -169,7 +166,7 @@ else:
                   if clean_input in valid_codes_clean:
                       actual_code = valid_codes[valid_codes_clean.index(clean_input)]
                       st.session_state.logged_in_customer = actual_code
-                      st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم الخاصة بك...")
+                      st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم...")
                       st.rerun()
                   elif password_input.strip() == "881988": 
                       st.session_state.logged_in_customer = "الكل"
@@ -192,6 +189,11 @@ else:
   else:
       df_client = df
       st.sidebar.markdown("👑 صلاحية: **مدير النظام**")
+      
+      # 🌟 ميزة كاشف الإدارة السرية: تعرض لك كافة الأكواد المتاحة في الملف الحالي للتحقق من التسمية 🌟
+      st.sidebar.markdown("### 🔍 كاشف الأكواد المتاحة بالملف:")
+      st.sidebar.dataframe(pd.DataFrame({"الأكواد المسجلة": valid_codes}), height=200)
+      
       if st.sidebar.button("🚪 خروج الإدارة"):
           st.session_state.logged_in_customer = None
           st.rerun()
@@ -224,3 +226,4 @@ else:
   total_containers = filtered_df[container_col].nunique() if container_col in filtered_df.columns else 0
   total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
   total_client_paid = filtered_df[client_col].sum() if client_col in filtered_df.columns else 0
+  total_office_paid = filtered_df[office_col].sum() if office_col in filtered_df.columns else 0
