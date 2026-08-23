@@ -99,7 +99,9 @@ total_items_count = len(df_clean)
 
 # --- 4. تصميم واجهة اللوحة الرئيسية والمربعات الملونة الستة ثابته الأثر ---
 st.title("📦 Shipments Intelligence Dashboard")
-st.markdown("<p style='color:#666;'>Live calculations & shipment grid — لوحة تحكم الشحنات</p>", unsafe_import_html=True)
+
+# [تم الإصلاح هنا]: تم تصحيح اسم المعامل ليصبح unsafe_allow_html=True
+st.markdown("<p style='color:#666;'>Live calculations & shipment grid — لوحة تحكم الشحنات</p>", unsafe_allow_html=True)
 
 st.markdown(f"""
 <style>
