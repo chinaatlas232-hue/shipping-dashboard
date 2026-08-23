@@ -13,13 +13,15 @@ st.set_page_config(
 # حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً عريضة
 st.markdown("""
 <style>
-    /* تكبير خط الترويسة العلوية وجعلها ثخينة جداً وعريضة بارزة البنية */
+    /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه */
     div[data-testid="stDataFrame"] table {
         font-size: 13px !important;
         width: auto !important; 
         margin: 0 auto !important; 
         table-layout: auto !important; 
     }
+    
+    /* تكبير خط الترويسة العلوية وجعلها ثخينة جداً وعريضة بارزة البنية */
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
         color: #1a252f !important; 
@@ -29,11 +31,12 @@ st.markdown("""
         padding: 8px 14px !important; 
         white-space: nowrap !important; 
     }
+    
+    /* تنسيق خلايا البيانات بالأسفل */
     div[data-testid="stDataFrame"] td {
         padding: 6px 14px !important; 
         text-align: center !important;
         white-space: nowrap !important;
-        font-weight: 700 !important;
     }
     
     /* شريط التمرير (السكرول) عريض ومريح للإمساك بالماوس */
@@ -167,7 +170,7 @@ total_cbm = float(df_filtered_full['calc_Cbm'].sum())
 # --- 4. الشاشات العلوية الست الملونة التفاعلية المرتبة من اليمين لليسار ---
 st.markdown(f"""
 <style>
-    .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 15px; direction: rtl; }}
+    .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 25px; direction: rtl; }}
     .kpi-card {{ flex: 1; min-width: 170px; padding: 18px; border-radius: 10px; color: white; box-shadow: 2px 2px 8px rgba(0,0,0,0.15); text-align: center; }}
     .kpi-title {{ font-size: 13px; font-weight: bold; margin-bottom: 8px; opacity: 0.95; }}
     .kpi-value {{ font-size: 22px; font-weight: bold; }}
@@ -224,25 +227,25 @@ st.markdown(f"""
 
 st.markdown("---")
 
-# [دالة الإصلاح الجذري المضمون]: معالجة التواريخ بدقة دون التسبب في خطأ الاختفاء
+# دالة حتمية لتعديل محتوى الخلايا بشكل مباشر دون التسبب في خطأ إخفاء الجداول
+def safe_format_date_cell(x):
+    x_str = str(x).strip()
+    if x_str.isdigit() and len(x_str) >= 10:
+        try:
+            return pd.to_datetime(int(x_str), unit='ms', errors='coerce').strftime('%Y-%m-%d')
+        except:
+            return x_str
+    try:
+        return pd.to_datetime(x, errors='coerce').strftime('%Y-%m-%d')
+    except:
+        return x_str
+
 def process_dataframe_safely(dataframe):
     configs = {}
     for col in dataframe.columns:
         col_clean = str(col).strip().lower()
-        
-        # معالجة عمود التواريخ بشكل آمن ومحمي تماماً من الأسطر الفارغة أو النصوص
         if 'تاريخ' in col_clean or 'date' in col_clean:
-            def fix_date_cell(x):
-                x_str = str(x).strip()
-                if x_str.isdigit() and len(x_str) >= 10:
-                    try:
-                        return pd.to_datetime(int(x_str), unit='ms', errors='coerce').strftime('%Y-%m-%d')
-                    except:
-                        return x_str
-                try:
-                    return pd.to_datetime(x, errors='coerce').strftime('%Y-%m-%d')
-                except:
-                    return x_str
-            dataframe[col] = dataframe[col].apply(fix_date_cell).fillna(dataframe[col].astype(str))
+            dataframe[col] = dataframe[col].apply(safe_format_date_cell).fillna(dataframe[col].astype(str))
             configs[col] = st.column_config.TextColumn(col, alignment="center")
         else:
+            sample = str(dataframe[col].dropna().iloc[0]) if not dataframe[col].dropna().empty else ""
