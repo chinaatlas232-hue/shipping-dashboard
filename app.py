@@ -86,7 +86,7 @@ def display_brand_logo(width_param=150):
         </div>
         """, unsafe_allow_html=True)
 
-# --- 2. الشريط الجانبي الذكي لإدارة شركة أطلس (شعار ثابت بالـ Sidebar) ---
+# --- 2. الشريط الجانبي الذكي لإدارة شركة أطلس ---
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
     display_brand_logo(width_param=130) # الشعار الثابت في القائمة الجانبية
@@ -96,7 +96,8 @@ with st.sidebar:
     # ميزة الحفظ الدائم التلقائي في الخادم
     uploaded_file = None
     st.subheader("📁 تحديث جدول الشحنات")
-    new_file = f=st.file_uploader("رفع ملف إكسيل جديد (.xlsx)", type=["xlsx", "xls"], key="admin_uploader")
+    # 🌟 تم إصلاح السطر الحرج وتصحيح علامات المساواة هنا ليعمل الكود فوراً بنجاح 🌟
+    new_file = st.file_uploader("رفع ملف إكسيل جديد (.xlsx)", type=["xlsx", "xls"], key="admin_uploader")
     
     if new_file is not None:
         try:
