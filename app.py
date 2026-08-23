@@ -62,52 +62,59 @@ if df_raw is None or df_raw.empty:
     st.warning("⚠️ النظام فارغ ومصفّر حالياً. يرجى رفع ملف إكسل من الشريط الجانبي لتشغيل اللوحة.")
     st.stop()
 
-# --- 3. معالجة وتوحيد مسميات الأعمدة الحسابية بدقة لتعمل الحسابات تلقائياً ---
-# الكود يبحث عن الأعمدة لتتناسب مع حسابات المربعات الملونة بالصورة
+# --- 3. معالجة وتوحيد مسميات الأعمدة الحسابية بشكل آمن وتفادي مشكلة التكرار ---
 df = df_raw.copy()
-rename_dict = {}
-for col in df.columns:
-    col_clean = str(col).strip().lower()
-    if 'weight' in col_clean or 'الوزن' in col_clean:
-        rename_dict[col] = 'WEIGHT'
-    elif 'ctn' in col_clean or 'كارتون' in col_clean:
-        rename_dict[col] = 'CTN'
-    elif 'price' in col_clean or 'سعر' in col_clean or 'المبيعات' in col_clean or 'المجموع' in col_clean:
-        rename_dict[col] = 'Price'
-    elif 'collected' in col_clean or 'الاستحصال' in col_clean or 'دفع' in col_clean:
-        rename_dict[col] = 'Collected'
-    elif 'remaining' in col_clean or 'المتبقي' in col_clean or 'متبقي' in col_clean:
-        rename_dict[col] = 'Remaining'
-    elif 'code' in col_clean or 'الكود' in col_clean:
-        rename_dict[col] = 'code'
-    elif 'no' in col_clean or 'الشحنة' in col_clean:
-        rename_dict[col] = 'No.'
 
-df.rename(columns=rename_dict, inplace=True)
+# حل مشكلة الأسماء المتكررة عبر إجبار الأعمدة على أخذ مسميات فريدة وسلسلة نصية فردية
+df.columns = [str(c).strip() for c in df.columns]
 
-# التأكد من وجود الأعمدة الأساسية بحسابات افتراضية إذا لم تتوفر في الملف المرفوع تفادياً للأعطال
-for required_col in ['WEIGHT', 'CTN', 'Price', 'Collected', 'Remaining', 'code', 'No.']:
-    if required_col not in df.columns:
-        df[required_col] = 0
+# تحضير الأعمدة الـ 7 المطلوبة للحسابات والعرض بشكل مستقل ومعزول تماماً
+final_columns = {}
 
-# تحويل القيم إلى أرقام لإجراء العمليات الرياضية بشكل سليم
-df['Price'] = pd.to_numeric(df['Price'], errors='coerce').fillna(0)
-df['Collected'] = pd.to_numeric(df['Collected'], errors='coerce').fillna(0)
-df['Remaining'] = pd.to_numeric(df['Remaining'], errors='coerce').fillna(0)
-df['WEIGHT'] = pd.to_numeric(df['WEIGHT'], errors='coerce').fillna(0)
-df['CTN'] = pd.to_numeric(df['CTN'], errors='coerce').fillna(0)
+for target, keywords in {
+    'No.': ['no', 'الشحنة', 'تسلسل'],
+    'code': ['code', 'الكود', 'كود'],
+    'WEIGHT': ['weight', 'الوزن', 'وزن'],
+    'CTN': ['ctn', 'كارتون', 'عدد'],
+    'Price': ['price', 'سعر', 'المبيعات', 'المجموع', 'القيمة'],
+    'Collected': ['collected', 'الاستحصال', 'دفع', 'المدفوع'],
+    'Remaining': ['remaining', 'المتبقي', 'متبقي']
+}.items():
+    # البحث عن أول عمود يطابق الكلمة الدلالية
+    matched_col = None
+    for col in df.columns:
+        if any(k in col.lower() for k in keywords):
+            matched_col = col
+            break
+    
+    # إذا تم العثور على العمود، نأخذ السلسلة الأحادية الخاصة به ونحولها بأمان
+    if matched_col is not None:
+        series_data = df[matched_col]
+        # إذا كان العمود مكرراً وجاء كـ DataFrame نأخذ العمود الأول منه فقط لحل مشكلة الـ TypeError
+        if isinstance(series_data, pd.DataFrame):
+            series_data = series_data.iloc[:, 0]
+            
+        if target in ['WEIGHT', 'CTN', 'Price', 'Collected', 'Remaining']:
+            final_columns[target] = pd.to_numeric(series_data, errors='coerce').fillna(0)
+        else:
+            final_columns[target] = series_data.fillna("")
+    else:
+        final_columns[target] = pd.Series([0] * len(df))
+
+# بناء جدول البيانات النظيف المحمي من الأخطاء والجاهز للحسابات والعرض
+df_cleaned = pd.DataFrame(final_columns)
 
 # --- 4. حساب القيم الخاصة بالمربعات الملونة الستة (KPI Cards) ---
-total_sales = df['Price'].sum()
-total_collected = df['Collected'].sum()
-total_remaining = df['Remaining'].sum()
-total_weight = df['WEIGHT'].sum()
-total_cartons = int(df['CTN'].sum())
-total_skus = df['code'].nunique()
+total_sales = float(df_cleaned['Price'].sum())
+total_collected = float(df_cleaned['Collected'].sum())
+total_remaining = float(df_cleaned['Remaining'].sum())
+total_weight = float(df_cleaned['WEIGHT'].sum())
+total_cartons = int(df_cleaned['CTN'].sum())
+total_skus = int(df_cleaned['code'].nunique())
 
 collection_rate = (total_collected / total_sales * 100) if total_sales > 0 else 0.0
-avg_weight = (total_weight / len(df)) if len(df) > 0 else 0.0
-total_items_count = len(df)
+avg_weight = (total_weight / len(df_cleaned)) if len(df_cleaned) > 0 else 0.0
+total_items_count = len(df_cleaned)
 
 # --- 5. تصميم واجهة اللوحة الرئيسية وعلامات التبويب والألوان المستقرة ---
 st.title("📦 Shipments Intelligence Dashboard")
@@ -161,9 +168,9 @@ tab1, tab2, tab3 = st.tabs(["📊 Overview", "🔍 Deep Analysis", "🗂️ Data
 
 with tab1:
     st.subheader("Filtered records")
-    # عرض الجدول المنسق والمطابق للأعمدة المطلوبة بالصورة
-    display_df = df[['No.', 'code', 'WEIGHT', 'CTN', 'Price', 'Collected', 'Remaining']]
-    # إعادة تسمية الأعمدة المعروضة لتطابق صورتك تماماً باللغتين العربية والإنجليزية
+    
+    # تجهيز وعرض جدول البيانات المنسق بالكامل والمطابق لصورتك الأولى
+    display_df = df_cleaned[['No.', 'code', 'WEIGHT', 'CTN', 'Price', 'Collected', 'Remaining']].copy()
     display_df.columns = ['الشحنة', 'الكود', 'WEIGHT', 'CTN', 'Price', 'سعر المبيعات', 'الاستحصالات', 'المتبقي']
     
     st.dataframe(display_df, use_container_width=True, hide_index=True)
@@ -182,5 +189,5 @@ with tab2:
     st.info("هذه الصفحة مخصصة لعرض الإحصاءات الإضافية والرسوم البيانية المتقدمة.")
 
 with tab3:
-    st.subheader("جميع بيانات وأعمدة الملف المرفوع")
+    st.subheader("جميع بيانات وأعمدة الملف المرفوع الأصلي للرجوع إليها")
     st.dataframe(df_raw, use_container_width=True)
