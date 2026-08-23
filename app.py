@@ -41,13 +41,13 @@ with st.sidebar:
         st.error("الرقم السري غير صحيح!")
 
 
-# --- 3. قراءة البيانات (تم إصلاح الأرقام هنا بالكامل لتجنب أي خطأ قواعدي) ---
+# --- 3. قراءة البيانات (تم ملء كافة الأرقام هنا بالكامل لمنع الـ SyntaxError نهائياً) ---
 @st.cache_data
 def load_data(file):
   if file is not None:
     return pd.read_excel(file)
   else:
-    # بيانات تجريبية مكتملة ومغلقة الأقواس ليعمل الكود فوراً
+    # بيانات تجريبية كاملة ومبنية بشكل سليم لحماية الكود
     data = {
         "container": [
             "RQ6025",
@@ -102,7 +102,7 @@ if selected_container != "الكل":
 else:
   filtered_df = df
 
-# --- 6. لوحة المؤشرات العلوية (تم استبدال المظهر فقط وتلوينه بهدوء بناءً على كودك الأصلي الفعال) ---
+# --- 6. لوحة المؤشرات العلوية (المربعات الملونة والأيقونات بتصميم هادئ) ---
 total_orders = (
     int(filtered_df["Orders"].sum()) if "Orders" in filtered_df else len(filtered_df)
 )
