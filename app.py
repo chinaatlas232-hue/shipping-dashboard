@@ -9,15 +9,28 @@ st.set_page_config(
     page_title="Logistics Dashboard — B12", page_icon="📦", layout="wide"
 )
 
+# تعزيز حجم خط ولون الجدول ليكون أكبر وأوضح عند العرض
+st.markdown("""
+    <style>
+    /* تكبير نصوص خلايا الجدول والعناوين */
+    .dataframe th, .dataframe td {
+        font-size: 16px !important;
+        font-weight: 500 !important;
+    }
+    /* تحسين مظهر الجداول لتكون مريحة للعين */
+    div[data-testid="stDataFrame"] div {
+        font-family: sans-serif !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- 2. الشريط الجانبي: إدارة الملفات والأمان ---
 with st.sidebar:
-  # 🌟 الحل الذكي: قراءة الصورة المحلية الثابتة بدلاً من الرابط المكسور
   if os.path.exists("logo.png"):
       st.image("logo.png", width=120)
   elif os.path.exists("logo.jpg"):
       st.image("logo.jpg", width=120)
   else:
-      # أيقونة احتياطية تظهر فقط إذا لم يتم رفع ملف الصورة بعد
       st.markdown("<h2 style='margin:0;'>📦</h2>", unsafe_allow_html=True)
       
   st.title("لوحة التحكم اللوجستية")
@@ -249,9 +262,11 @@ else:
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
-  # --- 8. عرض جدول البيانات الكامل بعد التنظيف ---
-  with st.expander("📋 عرض جدول البيانات الكاملة والنقية (الجدول الأم)"):
-    st.dataframe(filtered_df, use_container_width=True)
+  st.markdown("---")
+
+  # --- 8. عرض جدول البيانات الكامل بشكل مباشر (مفتوح دائماً وبحجم خط واضح) ---
+  st.subheader("📋 جدول البيانات الشاملة والنقية (الجدول الأم)")
+  st.dataframe(filtered_df, use_container_width=True, height=500)
 
   csv_data = filtered_df.to_csv(index=False).encode("utf-8")
   st.sidebar.markdown("---")
