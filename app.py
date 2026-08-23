@@ -202,10 +202,10 @@ if st.session_state.logged_in_customer is None:
                     st.session_state.logged_in_customer = matched_code
                     st.rerun()
                 else:
-                    st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة في النظام!")
+                    st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة in النظام!")
     st.stop()
 
-# --- 5. فلترة البيانات بناءً على تسجيل الدخول المباشر ---
+# --- 5. عزل الحسابات الفردية لكل زبون تأميناً للسرية أو لوحة المدير الكاملة ---
 selected_client = st.session_state.logged_in_customer
 
 if selected_client != "الكل":
@@ -216,18 +216,18 @@ else:
     df_client = df
     st.sidebar.markdown("👑 صلاحية: **مدير النظام**")
     st.sidebar.markdown("### 🔍 كاشف الأكواد المتاحة بالملف:")
-    st.sidebar.dataframe(pd.DataFrame({"An الأكواد المسجلة": valid_codes}), height=150)
+    st.sidebar.dataframe(pd.DataFrame({"الأكواد المسجلة": valid_codes}), height=150)
 
 if st.sidebar.button("🚪 تسجيل الخروج"):
     st.session_state.logged_in_customer = None
     st.rerun()
 
-# --- 6. عنوان الواجهة اللوجستية وعرض الأرقام والمخططات البيانية ---
+# --- 6. عنوان الواجهة اللوجستية الرئيسي ---
 st.title("📦 Logistics Dashboard — أطلس")
 st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **{selected_client if selected_client != 'الكل' else 'كافة العملاء (لوحة المدير)'}**")
 st.markdown("---")
 
-# التصفية والمطابقة الفورية
+# التصفية الفورية المفتوحة
 container_options = ["الكل"] + list(df_client[container_col].dropna().unique()) if (container_col in df_client.columns and not df_client.empty) else ["الكل"]
 selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
 
