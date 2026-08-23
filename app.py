@@ -89,12 +89,12 @@ with st.sidebar:
     elif os.path.exists("data.xlsx"):
         uploaded_file = "data.xlsx"
 
-# --- 3. دالة معالجة الجداول والملفات البرمجية بذكاء ---
+# --- 3. دالة معالجة الجداول والملفات البرمجية بذكاء وفورية ---
 def load_data_smart(file):
     if file is not None:
         try:
             xl = pd.ExcelFile(file)
-            target_sheet = xl.sheet_names
+            target_sheet = xl.sheet_names[0]
             for sheet in xl.sheet_names:
                 test_df = pd.read_excel(file, sheet_name=sheet, nrows=5)
                 if not test_df.empty and len(test_df.columns) > 2:
@@ -146,27 +146,16 @@ remaining_col = find_col(["متبقي حقيقي", "المتبقي", "Remaining"
 if client_name_col in df.columns:
     df[client_name_col] = df[client_name_col].astype(str).str.strip()
 
-# تطهير وتنظيف كافة الحقول والعمليات الرقمية والمالية
-all_numeric_cols = [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]
-for col in all_numeric_cols:
+# تصفية وفحص القيم المالية بشكل آمن وسلس جداً دون تعليق السيرفر 🌟
+for col in [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col].astype(str).str.replace(r"[^\d.]", "", regex=True), errors="coerce").fillna(0)
 
-# استبعاد أسطر الإجماليات اليدوية
-if shipping_mark_col in df.columns:
-    df = df[~df[shipping_mark_col].astype(str).str.lower().str.contains("total|grand|إجمالي", na=False)]
-if container_col in df.columns:
-    df = df[df[container_col].notna()]
-
-# حساب عمود حالة الدفع التلقائي في الجدول الأم
-if remaining_col in df.columns and amt_col in df.columns:
-    df["حالة دفع الشحنة"] = df.apply(lambda r: "مدفوع بالكامل ✅" if r[remaining_col] <= 0 else "يوجد متبقي غير مدفوع ⏳", axis=1)
-
-# تجهيز قائمة الأكواد
+# تجهيز قائمة الأكواد للتحقق الآمن
 valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
 valid_codes_clean = [str(re.sub(r'\D', '', str(c))).strip() for c in valid_codes]
 
-# --- 4. شاشة بوابة تسجيل الدخول ---
+# --- 4. شاشة بوابة تسجيل الدخول الموحدة ---
 if st.session_state.logged_in_customer is None:
     st.markdown("""
       <div style='text-align: center; margin-top: 30px;'>
@@ -202,10 +191,10 @@ if st.session_state.logged_in_customer is None:
                     st.session_state.logged_in_customer = matched_code
                     st.rerun()
                 else:
-                    st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة in النظام!")
+                    st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة في النظام!")
     st.stop()
 
-# --- 5. عزل الحسابات الفردية لكل زبون تأميناً للسرية أو لوحة المدير الكاملة ---
+# --- 5. عزل الحسابات أو عرض الكل للإدارة الشاملة ---
 selected_client = st.session_state.logged_in_customer
 
 if selected_client != "الكل":
@@ -222,15 +211,21 @@ if st.sidebar.button("🚪 تسجيل الخروج"):
     st.session_state.logged_in_customer = None
     st.rerun()
 
-# --- 6. عنوان الواجهة اللوجستية الرئيسي ---
+# --- 6. عنوان الواجهة الرئيسي ---
 st.title("📦 Logistics Dashboard — أطلس")
 st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **{selected_client if selected_client != 'الكل' else 'كافة العملاء (لوحة المدير)'}**")
 st.markdown("---")
 
-# التصفية الفورية المفتوحة
+# 🌟 أشرطة التصفية المفتوحة الحرة المباشرة 🌟
 container_options = ["الكل"] + list(df_client[container_col].dropna().unique()) if (container_col in df_client.columns and not df_client.empty) else ["الكل"]
 selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
 
-temp_df = df_client if selected_container == "الكل" or container_col not in df_client.columns else df_client[df_client[container_col] == selected_container]
+temp_df = df_client if selected_container == "الكل" or container_col not in df_client.columns or df_client.empty else df_client[df_client[container_col] == selected_container]
 
 shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique()) if (shipping_mark_col in temp_df.columns and not temp_df.empty) else ["الكل"]
+selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
+
+filtered_df = temp_df if selected_mark == "الكل" or shipping_mark_col not in temp_df.columns or temp_df.empty else temp_df[temp_df[shipping_mark_col] == selected_mark]
+
+# 🌟 ميزة العرض المباشر الصافي الحاسم: الحسابات تقرأ وتجمع حياً وتلقائياً دون أي حجب 🌟
+total_orders = len(filtered_df)
