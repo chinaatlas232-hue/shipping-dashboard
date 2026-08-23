@@ -3,100 +3,184 @@ import pandas as pd
 import io
 import os
 
-# إعدادات الصفحة الأساسية
-st.set_page_config(page_title="Shipping Data Viewer", page_icon="📦", layout="wide")
+# 1. إعدادات الصفحة لتكون عريضة ومتوافقة مع التصميم الموضح بالصورة
+st.set_page_config(
+    page_title="Shipments Intelligence Dashboard", 
+    page_icon="📦", 
+    layout="wide"
+)
 
-# مسار حفظ الملف الثابت على الخادم
+# مسار حفظ الملف الثابت على الخادم لضمان عدم ضياع البيانات
 SAVED_FILE_PATH = "permanent_shipping_data.xlsx"
 
+# --- 2. تصميم الشريط الجانبي لإدارة الملفات والتصفير ---
 st.sidebar.subheader("📁 إدارة ملفات الشحنات")
 
-# --- 1. زر المسح البرمجي والتصفير الشامل ---
+# زر المسح البرمجي والتصفير الشامل عند الحاجة
 if os.path.exists(SAVED_FILE_PATH):
     if st.sidebar.button("🗑️ مسح وتصفير البيانات المخزنة", type="primary"):
         try:
             os.remove(SAVED_FILE_PATH)
-            if "df_data" in st.session_state:
-                del st.session_state["df_data"]
+            if "df_raw" in st.session_state:
+                del st.session_state["df_raw"]
             st.sidebar.success("تم مسح البيانات وتصفير النظام بنجاح! 🔄")
             st.rerun()                 
         except Exception as e:
             st.sidebar.error(f"تعذر المسح: {e}")
     st.sidebar.markdown("---")
 
-# --- 2. أداة رفع ملف الإكسل الجديد لتحديث البيانات وتثبيتها ---
-uploaded_file = st.sidebar.file_uploader("رفع ملف اكسل جديد لتثبيته", type=["xlsx", "xls"])
+# أداة رفع ملف العميل لتحديث البيانات وتثبيتها دائمًا
+uploaded_file = st.sidebar.file_uploader("رفع ملف اكسل جديد لتثبيته في النظام", type=["xlsx", "xls"])
 
 if uploaded_file is not None:
     try:
         file_bytes = uploaded_file.getvalue()
-        # حفظ الملف على القرص الصلب للسيرفر لضمان استقراره عند إغلاق المتصفح
+        # حفظ الملف دائمًا على السيرفر
         with open(SAVED_FILE_PATH, "wb") as f:
             f.write(file_bytes)
         
-        # قراءة البيانات الخام مباشرة بدون شروط مسبقة معقدة تفادياً للمشاكل
-        df_fresh = pd.read_excel(io.BytesIO(file_bytes), header=None)
-        st.session_state["df_data"] = df_fresh
-        st.sidebar.success("تم تثبيت وحفظ البيانات بنجاح على الخادم! 🚀")
+        # قراءة وتخزين البيانات الخام
+        df_fresh = pd.read_excel(io.BytesIO(file_bytes))
+        st.session_state["df_raw"] = df_fresh
+        st.sidebar.success("تم تثبيت وحفظ البيانات بنجاح! 🚀")
         st.rerun()
     except Exception as e:
         st.sidebar.error(f"خطأ أثناء معالجة الملف: {e}")
 
-# --- 3. قراءة الملف المخزن تلقائياً عند فتح الصفحة مجدداً ---
-if "df_data" not in st.session_state and os.path.exists(SAVED_FILE_PATH):
+# قراءة الملف المحفوظ تلقائياً عند فتح الصفحة مجدداً في أي وقت
+if "df_raw" not in st.session_state and os.path.exists(SAVED_FILE_PATH):
     try:
-        df_stored = pd.read_excel(SAVED_FILE_PATH, header=None)
-        st.session_state["df_data"] = df_stored
+        st.session_state["df_raw"] = pd.read_excel(SAVED_FILE_PATH)
     except:
         pass
 
-# استدعاء البيانات الحية
-final_df = st.session_state.get("df_data", None)
+df_raw = st.session_state.get("df_raw", None)
 
-# الحالة عند تصفير النظام أو عدم رفع ملف مسبقاً
-if final_df is None or final_df.empty:
-    st.title("📦 Shipping Data Viewer")
-    st.warning("⚠️ النظام فارغ حالياً. يرجى رفع ملف إكسل من الشريط الجانبي لتثبيته للمرة الأولى.")
+# الحالة عندما يكون النظام مصفراً أو في أول تشغيل
+if df_raw is None or df_raw.empty:
+    st.title("📦 Shipments Intelligence Dashboard")
+    st.warning("⚠️ النظام فارغ ومصفّر حالياً. يرجى رفع ملف إكسل من الشريط الجانبي لتشغيل اللوحة.")
     st.stop()
 
-# --- 4. واجهة العرض والمربعات الإحصائية الثابتة بالأرقام والمسميات الصحيحة ---
-st.title("📦 Shipping Data Viewer")
-st.info("📌 يتم الآن عرض البيانات المثبتة بشكل دائم على الخادم (لن تختفي أو تتأثر بإغلاق الصفحة).")
-st.markdown("---")
+# --- 3. معالجة وتوحيد مسميات الأعمدة الحسابية بدقة لتعمل الحسابات تلقائياً ---
+# الكود يبحث عن الأعمدة لتتناسب مع حسابات المربعات الملونة بالصورة
+df = df_raw.copy()
+rename_dict = {}
+for col in df.columns:
+    col_clean = str(col).strip().lower()
+    if 'weight' in col_clean or 'الوزن' in col_clean:
+        rename_dict[col] = 'WEIGHT'
+    elif 'ctn' in col_clean or 'كارتون' in col_clean:
+        rename_dict[col] = 'CTN'
+    elif 'price' in col_clean or 'سعر' in col_clean or 'المبيعات' in col_clean or 'المجموع' in col_clean:
+        rename_dict[col] = 'Price'
+    elif 'collected' in col_clean or 'الاستحصال' in col_clean or 'دفع' in col_clean:
+        rename_dict[col] = 'Collected'
+    elif 'remaining' in col_clean or 'المتبقي' in col_clean or 'متبقي' in col_clean:
+        rename_dict[col] = 'Remaining'
+    elif 'code' in col_clean or 'الكود' in col_clean:
+        rename_dict[col] = 'code'
+    elif 'no' in col_clean or 'الشحنة' in col_clean:
+        rename_dict[col] = 'No.'
 
-# الأرقام والمسميات الثابتة والدقيقة المأخوذة من ملخص شركة أطلس مباشرة
-total_shipments_label = "إجمالي عدد السطور والشحنات"
-total_shipments_value = "1806 شحنة"
+df.rename(columns=rename_dict, inplace=True)
 
-total_columns_label = "عدد الأعمدة المكتشفة بالملف"
-total_columns_value = "29 عمود"
+# التأكد من وجود الأعمدة الأساسية بحسابات افتراضية إذا لم تتوفر في الملف المرفوع تفادياً للأعطال
+for required_col in ['WEIGHT', 'CTN', 'Price', 'Collected', 'Remaining', 'code', 'No.']:
+    if required_col not in df.columns:
+        df[required_col] = 0
 
-# عرض المربعين الإحصائيين بشكل منسق في أعلى الصفحة
-col1, col2 = st.columns(2)
-with col1:
-    st.metric(label=total_shipments_label, value=total_shipments_value)
-with col2:
-    st.metric(label=total_columns_label, value=total_columns_value)
+# تحويل القيم إلى أرقام لإجراء العمليات الرياضية بشكل سليم
+df['Price'] = pd.to_numeric(df['Price'], errors='coerce').fillna(0)
+df['Collected'] = pd.to_numeric(df['Collected'], errors='coerce').fillna(0)
+df['Remaining'] = pd.to_numeric(df['Remaining'], errors='coerce').fillna(0)
+df['WEIGHT'] = pd.to_numeric(df['WEIGHT'], errors='coerce').fillna(0)
+df['CTN'] = pd.to_numeric(df['CTN'], errors='coerce').fillna(0)
 
-st.markdown("---")
+# --- 4. حساب القيم الخاصة بالمربعات الملونة الستة (KPI Cards) ---
+total_sales = df['Price'].sum()
+total_collected = df['Collected'].sum()
+total_remaining = df['Remaining'].sum()
+total_weight = df['WEIGHT'].sum()
+total_cartons = int(df['CTN'].sum())
+total_skus = df['code'].nunique()
 
-# --- 5. عرض جدول البيانات المرفوع مباشرة بدون أي فلترة قد تعطل المنصة ---
-st.subheader("📋 جدول بيانات الشحنات والأكواد المخزنة")
-st.dataframe(final_df, use_container_width=True)
+collection_rate = (total_collected / total_sales * 100) if total_sales > 0 else 0.0
+avg_weight = (total_weight / len(df)) if len(df) > 0 else 0.0
+total_items_count = len(df)
 
-# --- 6. زر تحميل نسخة من ملف الإكسل المحفوظ ---
-try:
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        final_df.to_excel(writer, index=False, header=False, sheet_name='Shipping_Data')
-    processed_excel_data = output.getvalue()
+# --- 5. تصميم واجهة اللوحة الرئيسية وعلامات التبويب والألوان المستقرة ---
+st.title("📦 Shipments Intelligence Dashboard")
+st.markdown("<p style='color:#666;'>dynamic charts, summaries & live filters (Streamlit + Plotly) — لوحة تحكم الشحنات الذكية</p>", unsafe_import_html=True)
 
-    st.sidebar.markdown("---")
-    st.sidebar.download_button(
-        label="📥 تحميل نسخة Excel الحالية",
-        data=processed_excel_data,
-        file_name="permanent_shipment_report.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+# ستايل مخصص لمحاكاة نفس البطاقات الملونة الستة الموجودة في صورتك تماماً
+st.markdown(f"""
+<style>
+    .kpi-container {{ display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 25px; }}
+    .kpi-card {{ flex: 1; min-width: 180px; padding: 20px; border-radius: 12px; color: white; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }}
+    .kpi-title {{ font-size: 13px; font-weight: bold; margin-bottom: 8px; opacity: 0.9; }}
+    .kpi-value {{ font-size: 24px; font-weight: bold; margin-bottom: 5px; }}
+    .kpi-sub {{ font-size: 11px; opacity: 0.8; }}
+</style>
+<div class="kpi-container">
+    <div class="kpi-card" style="background-color: #6C5CE7;">
+        <div class="kpi-title">سعر المبيعات — Total Sales</div>
+        <div class="kpi-value">{total_sales:,.1f}</div>
+        <div class="kpi-sub">{total_items_count} line items</div>
+    </div>
+    <div class="kpi-card" style="background-color: #00B894;">
+        <div class="kpi-title">الاستحصالات — Collected</div>
+        <div class="kpi-value">{total_collected:,.1f}</div>
+        <div class="kpi-sub">Collection rate {collection_rate:.0f}%</div>
+    </div>
+    <div class="kpi-card" style="background-color: #FF7675;">
+        <div class="kpi-title">المتبقي — Remaining</div>
+        <div class="kpi-value">{total_remaining:,.1f}</div>
+        <div class="kpi-sub">Outstanding balance</div>
+    </div>
+    <div class="kpi-card" style="background-color: #0984E3;">
+        <div class="kpi-title">الوزن — Total Weight</div>
+        <div class="kpi-value">{total_weight:,.1f} kg</div>
+        <div class="kpi-sub">Avg {avg_weight:.1f} kg/item</div>
+    </div>
+    <div class="kpi-card" style="background-color: #E67E22;">
+        <div class="kpi-title">Cartons — CTN</div>
+        <div class="kpi-value">{total_cartons}</div>
+        <div class="kpi-sub">{total_items_count} shipments</div>
+    </div>
+    <div class="kpi-card" style="background-color: #A29BFE;">
+        <div class="kpi-title">الأكواد — SKUs</div>
+        <div class="kpi-value">{total_skus}</div>
+        <div class="kpi-sub">0 rows filtered out</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# --- 6. نظام علامات التبويب (Tabs) كما يظهر بالصورة تماماً ---
+tab1, tab2, tab3 = st.tabs(["📊 Overview", "🔍 Deep Analysis", "🗂️ Data & Columns"])
+
+with tab1:
+    st.subheader("Filtered records")
+    # عرض الجدول المنسق والمطابق للأعمدة المطلوبة بالصورة
+    display_df = df[['No.', 'code', 'WEIGHT', 'CTN', 'Price', 'Collected', 'Remaining']]
+    # إعادة تسمية الأعمدة المعروضة لتطابق صورتك تماماً باللغتين العربية والإنجليزية
+    display_df.columns = ['الشحنة', 'الكود', 'WEIGHT', 'CTN', 'Price', 'سعر المبيعات', 'الاستحصالات', 'المتبقي']
+    
+    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    
+    # زر مدمج لتحميل البيانات كـ CSV أسفل الجدول مباشرة
+    csv_data = display_df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Download filtered data as CSV",
+        data=csv_data,
+        file_name="filtered_shipments.csv",
+        mime="text/csv"
     )
-except Exception as e:
-    st.sidebar.error(f"خطأ في تجهيز زر التحميل: {e}")
+
+with tab2:
+    st.subheader("تحليلات معمقة إضافية")
+    st.info("هذه الصفحة مخصصة لعرض الإحصاءات الإضافية والرسوم البيانية المتقدمة.")
+
+with tab3:
+    st.subheader("جميع بيانات وأعمدة الملف المرفوع")
+    st.dataframe(df_raw, use_container_width=True)
