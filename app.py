@@ -121,9 +121,23 @@ if 'Container' in df_cleaned.columns:
 st.title("📊 Logistics Dashboard")
 
 if 'Shipping_mark' in df_cleaned.columns:
-    df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(lambda x: str(x).split('-') if '-' in str(x) else str(x))
-    raw_unique = pd.Series(df_cleaned['Main_Code'].unique()).dropna().astype(str)
-    unique_codes = sorted([c.strip() for c in raw_unique if c.strip()])
+    # دالة آمنة تضمن تفكيك المصفوفات وتحويل كل عنصر لنص فردي لمنع تكرار خطأ الـ TypeError
+    def extract_main_code(val):
+        val_str = str(val).strip()
+        if '-' in val_str:
+            parts = val_str.split('-')
+            return str(parts[0]).strip()
+        return val_str
+
+    df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(extract_main_code)
+    
+    # [الإصلاح الجذري الحاسم]: تصفية الأكواد بشكل نصوص حقيقية مصفاة ومحمية
+    unique_codes_list = []
+    for c in df_cleaned['Main_Code'].dropna():
+        c_clean = str(c).strip()
+        if c_clean and c_clean != "nan" and c_clean not in unique_codes_list:
+            unique_codes_list.append(c_clean)
+    unique_codes = sorted(unique_codes_list)
 else:
     unique_codes = ["B12"]
 
@@ -194,17 +208,14 @@ tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", 
 with tab1:
     st.subheader(f"📋 جدول التفاصيل التابع للكود المختار: {selected_code}")
     display_df = df_filtered[['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']].copy()
-    
-    # [تعديل التعريب الكامل]: تحويل الترويسة للغة العربية الفصحى بشكل منظم جداً
     display_df.columns = ['رقم الحاوية (Container NO.)', 'كود الشحن (Shipping mark)', 'المجموع (Amount)', 'الزبون دفع (Client paid)', 'المكتب دفع (Office paid)', 'مجموع الكراتين (Sum of Ctns)', 'مجموع الحجم (Sum of Cbm)']
     st.dataframe(display_df, use_container_width=True, hide_index=True)
 
 with tab2:
     st.subheader("📋 جدول ملف الإكسل الأصلي الكامل (دون تصفية)")
-    # [حل خطأ الـ ValueError]: معالجة وعزل تكرار المسميات برمجياً لضمان تشغيل الجدول الكامل بدون أخطاء حمراء
     full_display_df = df_raw.iloc[header_row_idx:].reset_index(drop=True)
     
-    raw_headers = [str(c).strip() for c in full_display_df.iloc]
+    raw_headers = [str(c).strip() for c in full_display_df.iloc[0]]
     clean_headers = []
     for i, h in enumerate(raw_headers):
         if h == "" or h == "nan":
