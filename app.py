@@ -98,7 +98,7 @@ def load_data_smart(file):
   if file is not None:
     try:
         xl = pd.ExcelFile(file)
-        target_sheet = xl.sheet_names[0]
+        target_sheet = xl.sheet_names
         for sheet in xl.sheet_names:
             test_df = pd.read_excel(file, sheet_name=sheet, nrows=5)
             if not test_df.empty and len(test_df.columns) > 2:
@@ -215,7 +215,7 @@ else:
                       st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة في النظام!")
       st.stop() 
 
-  # --- 5. عزل الحسابات الفردية لكل زبون تأميناً للسرية والخصوصية ---
+  # --- 5. فلترة وعزل الحسابات الفردية لكل زبون تأميناً للسرية والخصوصية ---
   selected_client = st.session_state.logged_in_customer
   
   if selected_client != "الكل" and client_name_col in df.columns:
