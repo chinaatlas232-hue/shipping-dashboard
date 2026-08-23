@@ -87,7 +87,7 @@ else:
   ctns_col = "عدد الكارتون"
   cbm_col = "حجم"
   
-  # 🌟 مسميات الأعمدة المالية الجديدة المستخرجة من صورتك بدقة
+  # مسميات الأعمدة المالية الجديدة المستخرجة من صورتك بدقة
   customs_col = "مبلغ الجمرك"
   collected_col = "قيمة الاستحصالات"
   remaining_col = "متبقي حقيقي"
@@ -223,25 +223,22 @@ else:
 
   st.markdown("---")
 
-  # --- 🌟 8. قسم التحليل المالي التفصيلي المضاف للشحنة المحددة 🌟 ---
+  # --- 8. قسم التحليل المالي التفصيلي للشحنة المحددة ---
   if selected_container != "الكل" and selected_mark != "الكل":
       st.subheader(f"🔍 التحليل المالي التفصيلي للشحنة: {selected_mark} داخل الحاوية {selected_container}")
       
-      # حساب قيم المؤشرات الجديدة الخاصة بالشحنة المحددة
       sh_customs = filtered_df[customs_col].sum() if customs_col in filtered_df.columns else 0
       sh_collected = filtered_df[collected_col].sum() if collected_col in filtered_df.columns else 0
       sh_remaining = filtered_df[remaining_col].sum() if remaining_col in filtered_df.columns else 0
       
-      # عرض المربعات المالية الجديدة للشحنة المحددة بألوان هادئة ومميزة
       sub_col1, sub_col2, sub_col3 = st.columns(3)
       with sub_col1:
-          render_custom_card("مبلغ الجمرك للشحنة", f"¥ {sh_customs:,.2f}", "🛡️", "#ef4444") # أحمر ناعم
+          render_custom_card("مبلغ الجمرك للشحنة", f"¥ {sh_customs:,.2f}", "🛡️", "#ef4444")
       with sub_col2:
-          render_custom_card("قيمة الاستحصالات للشحنة", f"¥ {sh_collected:,.2f}", "📈", "#3b82f6") # أزرق مالي
+          render_custom_card("قيمة الاستحصالات للشحنة", f"¥ {sh_collected:,.2f}", "📈", "#3b82f6")
       with sub_col3:
-          render_custom_card("متبقي حقيقي للشحنة", f"¥ {sh_remaining:,.2f}", "⏳", "#8b5cf6") # بنفسجي ملكي
+          render_custom_card("متبقي حقيقي للشحنة", f"¥ {sh_remaining:,.2f}", "⏳", "#8b5cf6")
           
-      # رسم بياني تفصيلي إضافي للشحنة المحددة
       st.markdown("##### 📊 المقارنة المالية التفاعلية للشحنة المحددة")
       sh_metrics = pd.DataFrame({
           "المؤشر المالي": ["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"],
@@ -259,7 +256,12 @@ else:
   st.subheader("📋 جدول البيانات الشاملة والنقية (الجدول الأم)")
   st.dataframe(filtered_df, use_container_width=True, height=450)
 
+  # 🌟 تم إصلاح إغلاق القوس البرمجي لزر التحميل هنا بنجاح ليعود التطبيق للعمل فوراً 🌟
   csv_data = filtered_df.to_csv(index=False).encode("utf-8")
   st.sidebar.markdown("---")
   st.sidebar.download_button(
-      label="📥 تحميل التقرير الحالي (CSV)",
+      label="📥 تحميل التقرير الحالي (CSV)", 
+      data=csv_data, 
+      file_name="logistics_report.csv", 
+      mime="text/csv"
+  )
