@@ -32,7 +32,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. الشريط الجانبي: مخصص لك لرفع قاعدة البيانات الموحدة ---
+# إدارة حالة تسجيل الدخول بذاكرة الجلسة
+if "logged_in_customer" not in st.session_state:
+    st.session_state.logged_in_customer = None
+
+# --- 2. الشريط الجانبي الذكي: مخصص للإدارة عند الحاجة ---
 with st.sidebar:
   if os.path.exists("logo.png"):
       st.image("logo.png", width=120)
@@ -44,18 +48,31 @@ with st.sidebar:
   st.title("إدارة النظام - أطلس")
   st.markdown("---")
 
-  # رفع ملف إكسل الشامل
-  st.subheader("📁 رفع قاعدة البيانات")
-  uploaded_file = st.file_uploader(
-      "رفع ملف الإكسيل الشامل لكافة العملاء (.xlsx)", type=["xlsx", "xls"]
-  )
+  # قراءة الملف الثابت المرفوع على GitHub لضمان استقرار الخدمة على الهواتف
+  if os.path.exists("data.xlsx"):
+      uploaded_file = "data.xlsx"
+  else:
+      uploaded_file = None
+
+  # إتاحة الرفع اليدوي للإدارة فقط كميزة احتياطية عند دخول المدير بكود 881988
+  if st.session_state.logged_in_customer == "الكل":
+      st.subheader("📁 تحديث قاعدة البيانات")
+      new_file = st.file_uploader(
+          "رفع ملف جديد لتحديث البيانات (.xlsx)", type=["xlsx", "xls"], key="admin_uploader"
+      )
+      if new_file is not None:
+          uploaded_file = new_file
 
 
 # --- 3. قراءة البيانات الأصلية النظيفة ---
 @st.cache_data
 def load_data(file):
   if file is not None:
-    raw_df = pd.read_excel(file, header=0)
+    # إذا كان النص عبارة عن مسار ملف ثابت (string) يقرأه مباشرة
+    if isinstance(file, str):
+        raw_df = pd.read_excel(file, header=0)
+    else:
+        raw_df = pd.read_excel(file, header=0)
     raw_df.columns = raw_df.columns.str.strip()
     return raw_df
   else:
@@ -70,9 +87,21 @@ if df.empty:
     <div class='login-box'>
         <h2 style='color: white;'>🏛️ شركة أطلس للشحن والتجارة العامة</h2>
         <h4 style='color: #4f46e5;'>بوابة العملاء اللوجستية</h4>
-        <p style='color: #94a3b8; margin-top: 15px;'>نظام الإدارة قيد الانتظار. يرجى من مدير النظام رفع قاعدة البيانات الشاملة من الشريط الجانبي لتفعيل الخدمة للعملاء.</p>
+        <p style='color: #94a3b8; margin-top: 15px;'>نظام الإدارة قيد الانتظار. يرجى التأكد من رفع ملف قاعدة البيانات باسم <b>data.xlsx</b> داخل حساب GitHub بجانب ملف الكود.</p>
     </div>
   """, unsafe_allow_html=True)
+  
+  # نموذج احتياطي لدخول الإدارة لتشغيل النظام لأول مرة
+  if st.session_state.logged_in_customer is None:
+      col_space1, col_admin_login, col_space2 = st.columns(3)
+      with col_admin_login:
+          with st.form("admin_login_initial"):
+              admin_pwd = st.text_input("🔑 دخول الإدارة المباشر:", type="password")
+              submit_admin = st.form_submit_button("دخول مدير النظام 👑")
+              if submit_admin and admin_pwd.strip() == "881988":
+                  st.session_state.logged_in_customer = "الكل"
+                  st.rerun()
+  st.stop()
 else:
   # تعيين العمود مصفح العملاء بناءً على اسم "code" الموجود في ملفك حرفياً
   client_name_col = "code"
@@ -89,7 +118,7 @@ else:
   collected_col = "قيمة الاستحصالات"
   remaining_col = "متبقي حقيقي"
 
-  # تحويل الحقول المالية والعددية إلى قيم رقمية نظيفة لحسابات دقيقة 100% وتطهير أي نصوص
+  # تحويل الحقول المادية والعددية إلى قيم رقمية نظيفة لحسابات دقيقة 100% ותطهير نصوص العملات
   all_numeric_cols = [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]
   for col in all_numeric_cols:
     if col in df.columns:
@@ -111,11 +140,7 @@ else:
   # --- 4. نظام تسجيل الدخول الاحترافي باسم شركة أطلس وبوابة العملاء ---
   valid_codes = list(df[client_name_col].dropna().unique())
   
-  if "logged_in_customer" not in st.session_state:
-      st.session_state.logged_in_customer = None
-
   if st.session_state.logged_in_customer is None:
-      # 🌟 تفعيل الهوية البصرية الرسمية لشركة أطلس في شاشة تسجيل الدخول المباشرة 🌟
       st.markdown("""
         <div style='text-align: center; margin-top: 30px;'>
             <h1 style='color: #4f46e5; font-family: sans-serif; font-weight: bold;'>شركة أطلس للشحن والتجارة العامة</h1>
@@ -216,18 +241,3 @@ else:
                 <span style="font-size: 22px;">{icon}</span>
             </div>
             <div style="font-size: 24px; font-weight: bold; letter-spacing: 0.5px;">{value}</div>
-        </div>
-        """
-    st.markdown(card_style, unsafe_allow_html=True)
-
-  # عرض لوحة المقاييس المعزولة بالكامل للعميل المختار بالدولار $
-  row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
-  with row1_col1: render_custom_card("إجمالي الشحنات الفرعية", f"{total_orders}", "📋", "#4f46e5")
-  with row1_col2: render_custom_card("عدد الحاويات", f"{total_containers}", "🚢", "#0ea5e9")
-  with row1_col3: render_custom_card("إجمالي المبالغ المطلوبة", f"$ {total_amount_val:,.2f}", "💵", "#10b981")
-  with row1_col4: render_custom_card("إجمالي مدفوعات الزبون", f"$ {total_client_paid:,.2f}", "🤝", "#f59e0b")
-  with row1_col5: render_custom_card("إجمالي المدفوع للمكتب", f"$ {total_office_paid:,.2f}", "🏢", "#6366f1")
-
-  row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
-  with row2_col1: render_custom_card("إجمالي عدد الكراتين", f"{total_cartons:,}", "📦", "#ec4899")
-  with row2_col2: render_custom_card("إجمالي الحجم الكلي (CBM)", f"{total_volume:,}", "📐", "#14b8a6")
