@@ -1,38 +1,48 @@
 import streamlit as st
-from PIL import Image
+import pandas as pd
+import io
 
-st.title("لوحة معالجة صور الشحنات")
+st.title("لوحة معالجة وتعديل ملفات إكسل الشحنات")
 
-# 1. إضافة أداة لرفع الصورة من الواجهة
-uploaded_file = st.file_uploader("قم برفع صورة الشحنات هنا", type=["jpg", "jpeg", "png"])
+# 1. تحديث أداة الرفع لتقبل ملفات الإكسل فقط
+uploaded_file = st.file_uploader("قم برفع ملف الإكسل هنا", type=["xlsx", "xls"])
 
 if uploaded_file is not None:
-    # 2. فتح الصورة المرفوعة مباشرة
-    img = Image.open(uploaded_file)
-    
-    # 3. الحصول على أبعاد الصورة
-    width, height = img.size
-    
-    # 4. تحديد منطقة القص (الاحتفاظ بأول 30% من الارتفاع)
-    crop_height = int(height * 0.30)
-    cropped_img = img.crop((0, 0, width, crop_height))
-    
-    # 5. عرض النتيجة للمستخدم على الشاشة
-    st.subheader("الصورة الناتجة بعد مسح الصندوق:")
-    st.image(cropped_img, use_container_width=True)
-    
-    # 6. زر اختياري لتحميل الصورة المقصوصة
-    # نحتاج لحفظها مؤقتاً في الذاكرة لتسهيل تحميلها
-    import io
-    buf = io.BytesIO()
-    cropped_img.save(buf, format="JPEG")
-    byte_im = buf.getvalue()
-    
-    st.download_button(
-        label="تحميل الصورة المعدلة",
-        data=byte_im,
-        file_name="cleared_image.jpg",
-        mime="image/jpeg"
-    )
+    try:
+        # 2. قراءة ملف الإكسل بدون عناوين أعمدة مسبقة لتفادي مشاكل الدمج
+        df = pd.read_excel(uploaded_file, header=None)
+        
+        st.success("تم رفع الملف بنجاح!")
+        
+        # 3. عرض البيانات الأصلية المرفوعة للمعاينة
+        st.subheader("معاينة البيانات الأصلية:")
+        st.dataframe(df.head(15), use_container_width=True)
+        
+        # 4. تنظيف وحذف الجدول السفلي
+        # بناءً على الصورة الأولى، ملخص الشحنات يقع في الأسطر الأولى (أول 5 إلى 6 أسطر تقريباً)
+        # سنقوم بالاحتفاظ بأول 6 أسطر فقط وحذف الباقي (الجدول الطويل)
+        cleaned_df = df.iloc[0:6, :]
+        
+        st.subheader("البيانات بعد مسح صندوق الجدول السفلي:")
+        st.dataframe(cleaned_df, use_container_width=True)
+        
+        # 5. تجهيز ملف الإكسل الجديد للتحميل
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            # حفظ بدون كشاف الأسطر (index) وبدون العناوين التلقائية (header)
+            cleaned_df.to_excel(writer, index=False, header=False, sheet_name='Summary')
+        
+        processed_data = output.getvalue()
+        
+        # 6. زر تحميل ملف الإكسل النظيف
+        st.download_button(
+            label="تحميل ملف الإكسل المعدل 📥",
+            data=processed_data,
+            file_name="cleaned_shipping_summary.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        
+    except Exception as e:
+        st.error(f"حدث خطأ أثناء قراءة الملف: {e}")
 else:
-    st.info("بانتظار رفع صورة لبدء عملية القص والمسح.")
+    st.info("بانتظار رفع ملف إكسل لبدء عملية التنظيف والمسح.")
