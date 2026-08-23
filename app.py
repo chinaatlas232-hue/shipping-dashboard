@@ -1,57 +1,98 @@
-import streamlit as st
 import pandas as pd
-import io
-import os
+import plotly.express as px
+import plotly.graph_objects as go
+import streamlit as st
 
-st.title("لوحة معالجة وتثبيت ملفات إكسل الشحنات")
+# إعدادات صفحة لوحة التحكم
+st.set_page_config(
+    page_title="Logistics Dashboard", page_icon="📦", layout="wide"
+)
 
-# مسار حفظ الملف الثابت على الخادم لضمان عدم ضياعه عند إغلاق المتصفح
-SAVED_FILE_PATH = "permanent_shipping_data.xlsx"
+# --- 1. نظام حماية بكلمة مرور ---
+PASSWORD = "1234"  # يمكنك تغيير كلمة المرور هنا إلى ما تريده
 
-# 1. أداة رفع الملفات
-uploaded_file = st.file_uploader("قم برفع نسخة جديدة من ملف الإكسل لتحديث البيانات:", type=["xlsx", "xls"])
+password_input = st.sidebar.text_input(
+    "🔒 أدخل كلمة المرور للوصول للوحة:", type="password"
+)
 
-# 2. إذا قام المستخدم برفع ملف جديد، يتم حفظه فوراً على الخادم واستبدال القديم
+if password_input != PASSWORD:
+    st.title("🔒 Logistics Dashboard — Protected")
+    st.warning(
+        "⚠️ يرجى إدخال كلمة المرور الصحيحة في الشريط الجانبي لعرض بيانات الشحنات."
+    )
+    st.stop()  # إيقاف عرض الصفحة بالكامل حتى يتم إدخال الباسورد الصحيح
+
+# --- 2. زر رفع ملف العميل الجديد ---
+st.sidebar.markdown("---")
+st.sidebar.subheader("📁 إدارة ملفات العملاء")
+uploaded_file = st.sidebar.file_uploader(
+    "رفع ملف اكسل العميل الجديد", type=["xlsx", "xls"]
+)
+
+DATA_FILE = "data.xlsx"  # الملف الافتراضي في النظام
+
 if uploaded_file is not None:
-    with open(SAVED_FILE_PATH, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    st.success("تم رفع النسخة الجديدة وحفظها بنجاح على الخادم!")
-    # إعادة تحميل الصفحة البرمجية لتحديث البيانات فوراً
-    st.rerun()
-
-# 3. التحقق من وجود ملف محفوظ مسبقاً لعرضه (سواء أغلقت الصفحة أو فتحتها)
-if os.path.exists(SAVED_FILE_PATH):
-    try:
-        # قراءة الملف المحفوظ ثابت الأثر
-        df = pd.read_excel(SAVED_FILE_PATH, header=None)
-        
-        st.info("📌 يتم الآن عرض البيانات المثبتة والمخزنة مسبقاً على الخادم.")
-        
-        # معاينة البيانات الأصلية
-        st.subheader("معاينة الملف الحالي:")
-        st.dataframe(df.head(15), use_container_width=True)
-        
-        # تنظيف وحذف الجدول السفلي (الاحتفاظ بأول 6 أسطر للملخص)
-        cleaned_df = df.iloc[0:6, :]
-        
-        st.subheader("البيانات الحالية بعد مسح الجدول السفلي:")
-        st.dataframe(cleaned_df, use_container_width=True)
-        
-        # تجهيز تحميل الملف النظيف للمستخدم الحالي أو أي مستخدم يفتح الرابط
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            cleaned_df.to_excel(writer, index=False, header=False, sheet_name='Summary')
-        
-        processed_data = output.getvalue()
-        
-        st.download_button(
-            label="تحميل ملف الإكسل المعدل الحالي 📥",
-            data=processed_data,
-            file_name="cleaned_shipping_summary.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        
-    except Exception as e:
-        st.error(f"حدث خطأ أثناء قراءة الملف المثبت: {e}")
+    file_to_use = uploaded_file
+    st.sidebar.success("تم رفع ملف العميل الجديد بنجاح! 🚀")
 else:
-    st.warning("⚠️ لا توجد بيانات مثبتة حالياً. يرجى رفع ملف إكسل للمرة الأولى لتثبيته في النظام.")
+    file_to_use = DATA_FILE
+
+
+# --- 3. دالة قراءة البيانات ---
+@st.cache_data
+def load_data(path):
+    try:
+        df = pd.read_excel(path)
+        return df
+    except Exception as e:
+        return None
+
+
+df = load_data(file_to_use)
+
+if df is None or df.empty:
+    st.error(
+        "⚠️ لم يتم العثور على بيانات أو أن الملف فارغ. يرجى التأكد من رفع ملف صحيح."
+    )
+    st.stop()
+
+# --- 4. تصميم واجهة لوحة التحكم ---
+st.title("📦 Logistics Dashboard")
+st.markdown("Interactive view of shipments by container, shipping mark, payments and freight")
+st.markdown("---")
+
+# عرض ملخص سريع للبيانات
+st.subheader("📋 جدول بيانات الشحنات")
+st.dataframe(df, use_container_width=True)
+
+# استخراج الأعمدة الرقمية للرسوم البيانية التفاعلية
+numeric_cols = df.select_dtypes(include=["float64", "int64"]).columns.tolist()
+
+if len(numeric_cols) >= 1 and len(df.columns) > 1:
+    st.markdown("---")
+    st.subheader("📈 الرسوم البيانية التفاعلية")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        x_axis = st.selectbox("اختر محور البيانات (X):", df.columns, index=0)
+    with col2:
+        y_axis = st.selectbox("اختر القيمة الرقمية (Y):", numeric_cols, index=0)
+
+    fig = px.bar(
+        df,
+        x=x_axis,
+        y=y_axis,
+        template="plotly_dark",
+        title=f"مخطط تفاعلي لـ {y_axis} حسب {x_axis}",
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+# زر لتحميل البيانات كملف CSV من الشريط الجانبي
+csv = df.to_csv(index=False).encode("utf-8")
+st.sidebar.markdown("---")
+st.sidebar.download_button(
+    label="📥 تحميل التقرير الحالي (CSV)",
+    data=csv,
+    file_name="shipment_report.csv",
+    mime="text/csv",
+)
