@@ -35,7 +35,7 @@ with st.sidebar:
                 st.error("الرقم السري غير صحيح!")
 
 
-# --- 3. دالة قراءة وتجهيز البيانات الحازمة ---
+# --- 3. دالة قراءة وتجهيز البيانات وحذف الإجماليات الصلبة ---
 @st.cache_data
 def load_data(file):
     if file is not None:
@@ -44,22 +44,24 @@ def load_data(file):
         # تنظيف مسافات العناوين
         raw_df.columns = raw_df.columns.str.strip()
         
-        # تعيين المسميات الحقيقية المتطابقة مع ملف الإكسيل
+        # تعيين المسميات الأساسية
         c_col = "Container NO." if "Container NO." in raw_df.columns else "container"
         s_col = "Shipping mark" if "Shipping mark" in raw_df.columns else "shipping_mark"
         
-        # 🌟 خطوة التطهير الحاسمة: إزالة أي أسطر فارغة أو تحتوي على كلمة إجمالي/Total تماماً
+        # 🌟 حذف سطر الـ Grand Total أو أي أسطر فارغة تماماً من أسفل الجدول لعدم تدمير الحسابات
         if s_col in raw_df.columns:
             raw_df = raw_df[raw_df[s_col].notna()]
             raw_df = raw_df[~raw_df[s_col].astype(str).str.contains('Total|إجمالي|Grand|cbm|ctns', case=False, na=False)]
             
-        # فك دمج خلايا عمود الحاوية بشكل آمن بعد تنظيف الجدول
         if c_col in raw_df.columns:
+            # حذف السطور التي تحتوي على كلمة إجمالي في عمود الحاوية أيضاً
+            raw_df = raw_df[~raw_df[c_col].astype(str).str.contains('Total|إجمالي|Grand', case=False, na=False)]
+            # فك دمج خلايا عمود الحاوية بشكل سليم للأسفل
             raw_df[c_col] = raw_df[c_col].ffill()
             
         return raw_df
     else:
-        # بيانات افتراضية سليمة لتشغيل التطبيق المبدئي في حال عدم رفع الملف
+        # بيانات افتراضية سليمة لتشغيل التطبيق المبدئي
         rows = [
             {"Container NO.": "RQ6025", "Shipping mark": "B12-102", "Amount": 12500, "Client paid": 100, "Office paid": 12400, "Sum of Ctns": 3, "Sum of Cbm": 0.513},
             {"Container NO.": "RQ6035", "Shipping mark": "B12-114", "Amount": 70800, "Client paid": 0, "Office paid": 70800, "Sum of Ctns": 13, "Sum of Cbm": 3.211},
@@ -78,7 +80,7 @@ amt_col = "Amount" if "Amount" in df.columns else "Total_Amount"
 client_col = "Client paid" if "Client paid" in df.columns else "Client_Paid"
 office_col = "Office paid" if "Office paid" in df.columns else "Office_Paid"
 
-# تحويل الأعمدة بالكامل إلى قيم رقمية نقية وتطهيرها من رموز العملات والفواصل النصية
+# تحويل كافة الأعمدة إلى قيم رقمية نظيفة وحذف الفواصل ورموز العملات لتجنب الأخطاء
 for col in [amt_col, client_col, office_col, ctns_col, cbm_col]:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col].astype(str).str.replace(r'[^\d.]', '', regex=True), errors='coerce').fillna(0)
@@ -99,7 +101,7 @@ if selected_container != "الكل":
 else:
     filtered_df = df
 
-# --- 6. حساب المؤشرات الدقيقة 100% بدون أي تكرار عشوائي ---
+# --- 6. حساب المؤشرات الدقيقة والمطابقة 100% بدون سطر الإجمالي القديم ---
 total_orders = len(filtered_df)
 total_containers = filtered_df[container_col].nunique()
 
@@ -195,7 +197,7 @@ with chart_col2:
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
-# --- 8. عرض جدول البيانات الكامل بعد التطهير والمعالجة ---
+# --- 8. عرض جدول البيانات الكامل بعد التنظيف الصارم ---
 with st.expander("📋 عرض جدول البيانات الكاملة والنقية (الجدول الأم)"):
     st.dataframe(filtered_df, use_container_width=True)
 
