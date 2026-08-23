@@ -82,10 +82,11 @@ for idx, row in df_processed.iterrows():
         header_row_idx = idx
         break
 
+# استخراج العناوين الأصلية الـ 29 كاملة وتطبيقها كأعمدة أساسية
 df_processed.columns = [str(c).strip() for c in df_processed.iloc[header_row_idx]]
 df_data = df_processed.iloc[header_row_idx + 1:].reset_index(drop=True)
 
-# ربط الأعمدة والمسميات الحسابية تلقائياً لتطابق الجدول المرفوع
+# ربط الكلمات المفتاحية فقط لحساب المربعات الإحصائية العلوية الستة دون المساس بحجم الجدول
 keywords_map = {
     'Container': ['container no.', 'container', 'الحاوية', 'رقم الحاوية'],
     'Shipping_mark': ['shipping mark', 'رمز الشحن', 'ماركة', 'كود'],
@@ -96,48 +97,42 @@ keywords_map = {
     'Cbm': ['sum of cbm', 'cbm', 'الحجم']
 }
 
-final_columns = {}
+# حسابات المربعات الملونة معزولة تماماً للحفاظ على حيوية الملف وعرضه الأصلي
 for target, keywords in keywords_map.items():
     matched_col = None
     for col in df_data.columns:
         if any(k in str(col).lower() for k in keywords):
             matched_col = col
             break
-            
     if matched_col is not None:
-        series_data = df_data[matched_col]
-        if isinstance(series_data, pd.DataFrame):
-            series_data = series_data.iloc[:, 0]
-            
         if target in ['Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']:
-            series_clean = series_data.astype(str).str.replace('¥', '').str.replace('$', '').str.replace(',', '').str.strip()
-            final_columns[target] = pd.to_numeric(series_clean, errors='coerce').fillna(0)
+            df_data[f'calc_{target}'] = pd.to_numeric(df_data[matched_col].astype(str).str.replace('¥', '').str.replace('$', '').str.replace(',', '').str.strip(), errors='coerce').fillna(0)
         else:
-            final_columns[target] = series_data.fillna("").astype(str).str.strip()
+            df_data[f'calc_{target}'] = df_data[matched_col].fillna("").astype(str).str.strip()
     else:
-        final_columns[target] = pd.Series(0, index=range(len(df_data)))
+        df_data[f'calc_{target}'] = 0
 
-df_cleaned = pd.DataFrame(final_columns)
-df_cleaned = df_cleaned[df_cleaned['Shipping_mark'] != ""].reset_index(drop=True)
+# تصفية الأسطر الفارغة من ملفك
+df_data = df_data[df_data['calc_Shipping_mark'] != ""].reset_index(drop=True)
 
-if 'Container' in df_cleaned.columns:
-    df_cleaned['Container'] = df_cleaned['Container'].astype(str).str.strip().replace('nan', '')
+if 'calc_Container' in df_data.columns:
+    df_data['calc_Container'] = df_data['calc_Container'].astype(str).str.strip().replace('nan', '')
 
 # --- 3. واجهة البحث والتصفية التفاعلية ---
 st.title("📊 Logistics Dashboard")
 
-if 'Shipping_mark' in df_cleaned.columns:
+if 'calc_Shipping_mark' in df_data.columns:
     def extract_main_code(val):
         val_str = str(val).strip()
         if '-' in val_str:
             parts = val_str.split('-')
-            return str(parts).strip()
+            return str(parts[0]).strip()
         return val_str
 
-    df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(extract_main_code)
+    df_data['Main_Code'] = df_data['calc_Shipping_mark'].apply(extract_main_code)
     
     unique_codes_list = []
-    for c in df_cleaned['Main_Code'].dropna():
+    for c in df_data['Main_Code'].dropna():
         c_clean = str(c).strip()
         if c_clean and c_clean != "nan" and c_clean not in unique_codes_list:
             unique_codes_list.append(c_clean)
@@ -150,26 +145,26 @@ if not unique_codes:
 
 selected_code = st.selectbox("🔍 اختر أو ابحث عن كود الشحن لتتجمع البيانات الخاصة به تلقائياً:", unique_codes)
 
-# تصفية الجدول بناءً على الكود المحدد
-df_filtered = df_cleaned[df_cleaned['Main_Code'] == selected_code].reset_index(drop=True)
+# [التصفية الحقيقية والمكتملة]: تصفية الملف الأصلي والكامل بناءً على الكود المحدد
+df_filtered_full = df_data[df_data['Main_Code'] == selected_code].reset_index(drop=True)
 
-# حساب الإحصائيات التجميعية الحقيقية لملفك الحركي
-total_orders = df_filtered['Shipping_mark'].nunique() if len(df_filtered) > 0 else 0
+# حساب الإحصائيات التجميعية الحقيقية للمربعات الستة
+total_orders = df_filtered_full['calc_Shipping_mark'].nunique() if len(df_filtered_full) > 0 else 0
 if selected_code.startswith("BS") and total_orders > 1:
-    base_codes = df_filtered['Shipping_mark'].apply(lambda x: str(x).split('-') if '-' in str(x) else str(x))
+    base_codes = df_filtered_full['calc_Shipping_mark'].apply(lambda x: str(x).split('-') if '-' in str(x) else str(x))
     if base_codes.nunique() == 1:
         total_orders = 1
 
-valid_containers = df_filtered['Container'][df_filtered['Container'] != '']
+valid_containers = df_filtered_full['calc_Container'][df_filtered_full['calc_Container'] != '']
 total_containers = valid_containers.nunique() if len(valid_containers) > 0 else 0
-if total_containers == 0 and len(df_filtered) > 0:
+if total_containers == 0 and len(df_filtered_full) > 0:
     total_containers = 1
 
-total_amount = float(df_filtered['Amount'].sum())
-total_client_paid = float(df_filtered['Client_paid'].sum())
-total_office_paid = float(df_filtered['Office_paid'].sum())
-total_cartons = int(df_filtered['Ctns'].sum())
-total_cbm = float(df_filtered['Cbm'].sum())
+total_amount = float(df_filtered_full['calc_Amount'].sum())
+total_client_paid = float(df_filtered_full['calc_Client_paid'].sum())
+total_office_paid = float(df_filtered_full['calc_Office_paid'].sum())
+total_cartons = int(df_filtered_full['calc_Ctns'].sum())
+total_cbm = float(df_filtered_full['calc_Cbm'].sum())
 
 # --- 4. الشاشات العلوية الست الملونة التفاعلية المرتبة من اليمين لليسار ---
 st.markdown(f"""
@@ -221,34 +216,32 @@ with col2:
 
 st.markdown("---")
 
-# --- 5. نظام التبويبات لعرض الجداول بالمساحات المضغوطة الملمومة والمثالية الحقيقية ---
+# --- 5. نظام التبويبات لعرض الجداول بكافة تفاصيلها الـ 29 الأصلية وبأبعاد مضغوطة ملمومة ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
 
 with tab1:
-    st.subheader(f"📋 جدول التفاصيل التابع للكود المختار: {selected_code}")
-    display_df = df_filtered[['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']].copy()
-    display_df.columns = ['رقم الحاوية', 'كود الشحن', 'المجموع (Amount)', 'الزبون دفع', 'المكتب دفع', 'مجموع الكراتين', 'مجموع الحجم']
-    st.dataframe(display_df, use_container_width=False, hide_index=True)
+    st.subheader(f"📋 جدول التفاصيل الكامل والمثبت التابع للكود المختار: {selected_code}")
+    
+    # [حل المشكلة جذرياً]: استبعاد الأعمدة الحسابية المؤقتة وإظهار كافة الأعمدة الأصلية الـ 29 لملف الإكسل دون قص
+    display_cols = [c for c in df_filtered_full.columns if not str(c).startswith('calc_') and c != 'Main_Code']
+    final_filtered_display = df_filtered_full[display_cols].copy()
+    
+    # عرض الجدول المصفى بكافة تفاصيله الأصلية الشاملة وبشكل مضغوط ملموم
+    st.dataframe(final_filtered_display, use_container_width=False, hide_index=True)
 
 with tab2:
     st.subheader("📋 جدول ملف الإكسل الأصلي الكامل (دون تصفية)")
-    full_display_df = df_raw.iloc[header_row_idx:].reset_index(drop=True)
-    
-    raw_headers = [str(c).strip() for c in full_display_df.iloc]
+    # تنظيف ترويسة الجدول الكامل للتوافق الشامل
+    raw_headers = [str(c).strip() for c in df_processed.columns]
     clean_headers = []
     
-    # [تم الإصلاح الحاسم للمسافات البادئة والـ Indentation بنجاح تام]
-    num_cols_fixed = full_display_df.shape[1]
-    for i in range(num_cols_fixed):
-        if i < len(raw_headers):
-            h = raw_headers[i]
-            if h == "" or h == "nan":
-                clean_headers.append(f"فارغ_{i}")
-            else:
-                clean_headers.append(h)
+    for i, h in enumerate(raw_headers):
+        if h == "" or h == "nan" or h.startswith('Unnamed:'):
+            clean_headers.append(f"عمود_{i}")
         else:
-            clean_headers.append(f"عمود_إضافي_{i}")
+            clean_headers.append(h)
             
-    full_display_df.columns = clean_headers
-    full_display_df = full_display_df.iloc[1:].reset_index(drop=True)
-    st.dataframe(full_display_df, use_container_width=False, hide_index=True)
+    df_data_display = df_data[[c for c in df_data.columns if not str(c).startswith('calc_') and c != 'Main_Code']].copy()
+    
+    # التأكد من مطابقة طول عناوين الجدول الكامل وحمايتها برمجياً من الأخطاء
+    if len(clean_headers) >= df_data_display.shape[1]:
