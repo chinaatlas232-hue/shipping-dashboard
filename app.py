@@ -19,6 +19,16 @@ st.markdown("""
     div[data-testid="stDataFrame"] div {
         font-family: sans-serif !important;
     }
+    /* تنسيق صندوق تسجيل الدخول */
+    .login-box {
+        background-color: #1e293b;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        max-width: 500px;
+        margin: 50px auto;
+        text-align: center;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -34,7 +44,7 @@ with st.sidebar:
   st.title("إدارة النظام - B12")
   st.markdown("---")
 
-  # رفع ملف إكسل الأم الموحد الذي يحتوي على كل العملاء والشحنات الـ 55 الجديدة
+  # رفع ملف إكسل الأم الموحد الذي يحتوي على كل العملاء والشحنات
   st.subheader("📁 رفع قاعدة البيانات")
   uploaded_file = st.file_uploader(
       "رفع ملف الإكسيل الشامل لكافة العملاء (.xlsx)", type=["xlsx", "xls"]
@@ -56,7 +66,12 @@ df = load_data(uploaded_file)
 
 # التحقق من وجود بيانات لبدء العرض
 if df.empty:
-  st.info("👋 مرحباً بك! يرجى رفع ملف الإكسيل الشامل الذي يحتوي على كافة الشحنات والعملاء من الشريط الجانبي لبدء التشغيل.")
+  st.markdown("""
+    <div class='login-box'>
+        <h2 style='color: white;'>📦 منصة B12 اللوجستية الذكية</h2>
+        <p style='color: #94a3b8;'>نظام الإدارة قيد الانتظار. يرجى من مدير النظام رفع قاعدة البيانات الشاملة من الشريط الجانبي لتفعيل الخدمة للعملاء.</p>
+    </div>
+  """, unsafe_allow_html=True)
 else:
   # تعيين العمود مصفح العملاء بناءً على اسم "code" الموجود في ملفك حرفياً
   client_name_col = "code"
@@ -92,28 +107,71 @@ else:
           
   df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. عنوان الواجهة الرئيسي للزبائن ---
-  st.title("📦 Logistics Dashboard — B12")
-  st.markdown("Interactive view of shipments, payments and dynamic balances")
-  st.markdown("---")
-
-  # --- 5. أشرطة التصفية السريعة المترابطة لعزل معلومات العميل بدقة ---
-  st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
+  # --- 🌟 4. نظام تسجيل الدخول الاحترافي بكود العميل (الباسورد) 🌟 ---
+  # جلب قائمة بكافة الأكواد الصحيحة الموجودة في ملف الإكسيل المرفوع
+  valid_codes = list(df[client_name_col].dropna().unique())
   
-  # الفلتر الأول: اختيار كود العميل لحسم الخصوصية فوراً
-  if client_name_col in df.columns:
-      client_options = ["الكل"] + list(df[client_name_col].dropna().unique())
-      selected_client = st.pills("اختر الكود الخاص بك (Customer Code):", options=client_options, default="الكل", key="client_pill")
+  # إدارة جلسة تسجيل الدخول بذاكرة المتصفح للزبون
+  if "logged_in_customer" not in st.session_state:
+      st.session_state.logged_in_customer = None
+
+  if st.session_state.logged_in_customer is None:
+      # عرض شاشة الدخول الأنيقة للزبون
+      st.markdown("""
+        <div style='text-align: center; margin-top: 30px;'>
+            <h1 style='color: #4f46e5; font-family: sans-serif; font-weight: bold;'>B12 Logistics Portal</h1>
+            <p style='color: gray;'>مرحباً بك في بوابة العميل الآمنة - يرجى تسجيل الدخول لمتابعة حساباتك</p>
+        </div>
+      """, unsafe_allow_html=True)
       
-      if selected_client != "الكل":
-          df_client = df[df[client_name_col] == selected_client]
-      else:
-          df_client = df
+      # صندوق إدخال الباسورد (كود العميل)
+      col_space1, col_login, col_space2 = st.columns([1, 2, 1])
+      with col_login:
+          with st.form("login_form"):
+              password_input = st.text_input("🔑 أدخل كلمة المرور الخاصة بك (Customer Code):", type="password", help="كلمة المرور هي كود العميل الخاص بك مثل B12")
+              submit_login = st.form_submit_button("تسجيل الدخول الآمن 🔓")
+              
+              if submit_login:
+                  # تنظيف النص المدخل من أي مسافات
+                  clean_pwd = password_input.strip()
+                  if clean_pwd in valid_codes:
+                      st.session_state.logged_in_customer = clean_pwd
+                      st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم الخاصة بك...")
+                      st.rerun()
+                  elif clean_pwd == "881988": # كود دخول الماستر لك لتشاهد لوحة التحكم كاملة
+                      st.session_state.logged_in_customer = "الكل"
+                      st.success("مرحباً بك يا مدير النظام!")
+                      st.rerun()
+                  else:
+                      st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة في النظام!")
+      st.stop() # إيقاف الكود هنا وعدم عرض أي بيانات حتى يتم تسجيل الدخول
+
+  # --- 5. فلترة وعزل البيانات بناءً على تسجيل الدخول الناجح للعميل ---
+  selected_client = st.session_state.logged_in_customer
+  
+  if selected_client != "الكل":
+      df_client = df[df[client_name_col] == selected_client]
+      # زر تسجيل الخروج للزبون لحماية خصوصيته
+      st.sidebar.markdown(f"👤 العميل الحالي: **{selected_client}**")
+      if st.sidebar.button("🚪 تسجيل الخروج الآمن"):
+          st.session_state.logged_in_customer = None
+          st.rerun()
   else:
       df_client = df
-      st.warning(f"⚠️ لم نجد عمود باسم '{client_name_col}' في ملفك الحقيقي.")
+      st.sidebar.markdown("👑 صلاحية: **مدير النظام**")
+      if st.sidebar.button("🚪 خروج الإدارة"):
+          st.session_state.logged_in_customer = None
+          st.rerun()
 
-  # الفلتر الثاني الديناميكي: يعرض فقط الحاويات المتاحة للزبون المختار (يمنع تداخل الحاوية المشتركة)
+  # --- 6. عنوان الواجهة الرئيسي للزبون بعد تسجيل الدخول ---
+  st.title("📦 Logistics Dashboard — B12")
+  st.markdown(f"Secure session for Client Code: **{selected_client if selected_client != 'الكل' else 'ALL'}**")
+  st.markdown("---")
+
+  # --- 7. أشرطة التصفية السريعة المتبقية (الحاوية + الماركة) معزولة تماماً للعميل ---
+  st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
+  
+  # فلاتر الحاويات والماركات تعرض فقط ما يخص العميل المسجل دخول حالياً
   container_options = ["الكل"] + list(df_client[container_col].dropna().unique())
   selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
 
@@ -122,16 +180,14 @@ else:
   else:
       temp_df = df_client
 
-  # الفلتر الثالث الديناميكي: يعرض فقط ماركات الشحن الخاصة بالزبون والحاوية المختارة
   shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique())
   selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
 
-  # التصفية النهائية الناتجة عن عزل معلومات الزبون تماماً داخل الحاوية المشتركة
   filtered_df = temp_df
   if selected_mark != "الكل":
       filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
 
-  # --- 6. العمليات الحسابية والمؤشرات الديناميكية للعميل المختار حصرياً بالدولار $ ---
+  # --- 8. العمليات الحسابية والمؤشرات الديناميكية المعزولة والمطابقة 100% ---
   total_orders = len(filtered_df)
   total_containers = filtered_df[container_col].nunique()
   total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
@@ -177,43 +233,3 @@ else:
   with row1_col5: render_custom_card("Office Paid", f"$ {total_office_paid:,.2f}", "🏢", "#6366f1")
 
   row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
-  with row2_col1: render_custom_card("Cartons (الكراتين)", f"{total_cartons:,}", "📦", "#ec4899")
-  with row2_col2: render_custom_card("Volume (الحجم)", f"{total_volume:,}", "📐", "#14b8a6")
-  with row2_col3: render_custom_card("حالة دفع الزبون للشحنة", f"{payment_status_text}", "💳", status_card_color)
-
-  st.markdown("---")
-
-  # --- 7. قسم التحليل المالي التفصيلي للشحنة المحددة والجمارك (بالدولار $) ---
-  if selected_container != "الكل" and selected_mark != "الكل":
-      st.subheader(f"🔍 التحليل المالي التفصيلي المتقدم للشحنة: {selected_mark}")
-      
-      sub_col1, sub_col2, sub_col3 = st.columns(3)
-      with sub_col1: render_custom_card("مبلغ الجمرك للشحنة", f"$ {sh_customs:,.2f}", "🛡️", "#ef4444")
-      with sub_col2: render_custom_card("قيمة الاستحصالات للشحنة", f"$ {sh_collected:,.2f}", "📈", "#3b82f6")
-      with sub_col3: render_custom_card("متبقي حقيقي للشحنة", f"$ {sh_remaining:,.2f}", "⏳", "#8b5cf6")
-          
-      st.markdown("##### 📊 المقارنة المالية التفاعلية للشحنة المحددة")
-      sh_metrics = pd.DataFrame({
-          "المؤشر": ["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"],
-          "القيمة": [sh_customs, sh_collected, sh_remaining]
-      })
-      
-      fig_sh_bar = px.bar(
-          sh_metrics, x="المؤشر", y="القيمة", color="المؤشر", template="plotly_dark",
-          color_discrete_sequence=["#ef4444", "#3b82f6", "#8b5cf6"]
-      )
-      st.plotly_chart(fig_sh_bar, use_container_width=True)
-      st.markdown("---")
-
-  # --- 8. عرض جدول البيانات المفتوح دائماً والمصفى بدقة متناهية لحماية خصوصية العميل ---
-  st.subheader("📋 جدول البيانات الشاملة والنقية (الجدول الأم الكامل)")
-  st.dataframe(filtered_df, use_container_width=True, height=550)
-
-  csv_data = filtered_df.to_csv(index=False).encode("utf-8")
-  st.sidebar.markdown("---")
-  st.sidebar.download_button(
-      label="📥 تحميل التقرير الحالي (CSV)", 
-      data=csv_data, 
-      file_name="logistics_report.csv", 
-      mime="text/csv"
-  )
