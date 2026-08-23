@@ -51,7 +51,7 @@ with st.sidebar:
   # تحديد مسار الملف الافتراضي المرفوع على السيرفر
   uploaded_file = "data.xlsx" if os.path.exists("data.xlsx") else None
 
-  # ميزة الرفع الفوري والتحديث المباشر للإدارة عند دخول المدير بكود 881988
+  # ميزة الرفع اليدوي والتحديث المباشر للإدارة عند دخول المدير بكود 881988
   if st.session_state.logged_in_customer == "الكل":
       st.subheader("📁 تحديث قاعدة البيانات")
       new_file = st.file_uploader(
@@ -147,10 +147,8 @@ else:
             return "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الاحترافي المحدث والمحصن بالكامل 🌟 ---
+  # --- 4. نظام تسجيل الدخول الاحترافي المحدث والمحصن بالكامل ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
-  
-  # 🌟 تنظيف الأكواد الأصلية في الإكسيل (حذف حرف B/b إن وجد وتحويلها لنصوص صافية ممسوحة المسافات)
   valid_codes_clean = [str(c).strip().lower().replace('b', '') for c in valid_codes]
 
   if st.session_state.logged_in_customer is None:
@@ -169,7 +167,6 @@ else:
               submit_login = st.form_submit_button("تسجيل الدخول الآمن 🔓")
               
               if submit_login:
-                  # 🌟 التطهير الذكي لمدخلات الزبون: إزالة أي حرف b أو B ومسح المسافات تلقائياً 🌟
                   clean_input = str(password_input).strip().lower().replace('b', '')
                   
                   if clean_input in valid_codes_clean:
@@ -225,4 +222,7 @@ else:
   selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
 
   filtered_df = temp_df
+  # 🌟 تم إصلاح مسافات الإزاحة البرمجية (Indentation) هنا وفي الأسطر التالية ليعود النظام للعمل فوراً 🌟
   if selected_mark != "الكل" and shipping_mark_col in filtered_df.columns:
+      filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
+
