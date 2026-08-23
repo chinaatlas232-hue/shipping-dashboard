@@ -3,7 +3,7 @@ import pandas as pd
 import io
 import os
 
-# 1. إعدادات الصفحة لتكون عريضة ومتوافقة مع كامل الشاشة
+# 1. إعدادات الصفحة لتكون عريضة ومتوافقة مع التصميم الموضح بالصورة
 st.set_page_config(
     page_title="Logistics Dashboard", 
     page_icon="📦", 
@@ -13,14 +13,6 @@ st.set_page_config(
 # حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً عريضة
 st.markdown("""
 <style>
-    /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه الحقيقي */
-    div[data-testid="stDataFrame"] table {
-        font-size: 13px !important;
-        width: auto !important; 
-        margin: 0 auto !important; 
-        table-layout: auto !important; 
-    }
-    
     /* تكبير خط الترويسة العلوية وجعلها ثخينة جداً وعريضة بارزة البنية */
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
@@ -93,9 +85,9 @@ for i, h in enumerate(detected_headers):
     else:
         clean_headers.append(h)
 
-# قص البيانات الصافية وحصرها في الأعمدة الـ 29 الأساسية الأولى فقط بدقة تامة
+# قص البيانات الصافية وحصرها في الأعمدة الـ 29 الأساسية الأولى فقط بدقة تامة لضمان الحماية
 df_data = df_processed.iloc[header_row_idx + 1:, :len(clean_headers)].reset_index(drop=True)
-df_data.columns = clean_headers[:df_data.shape[1]]
+df_data.columns = clean_headers
 
 # ربط الكلمات المفتاحية بالكامل وتوسيع مسميات الـ CBM لتفعيل مربع الحجم
 keywords_map = {
@@ -122,18 +114,14 @@ for target, keywords in keywords_map.items():
         else:
             df_data[f'calc_{target}'] = df_data[matched_col].astype(str).str.strip()
     else:
-        df_data[f'calc_{target}'] = 0
+        df_data[f'calc_{target}'] = pd.Series(0, index=df_data.index)
 
-# تصفية الأسطر الفارغة من ملفك بناءً على الكود الحسابي المحمي والنظيف
-df_data = df_data[(df_data['calc_Code'] != "") & (df_data['calc_Code'] != "nan")].reset_index(drop=True)
-
+# ملء خلايا رقم الحاوية المدمجة والـ nan لضمان استقرار العرض
 if 'calc_Container' in df_data.columns:
-    df_data['calc_Container'] = df_data['calc_Container'].astype(str).str.strip().replace('nan', '')
+    df_data['calc_Container'] = df_data['calc_Container'].replace('nan', '')
 
 # --- 3. واجهة البحث والتصفية التفاعلية ---
-st.title("📊 Logistics Dashboard")
-
-# استخراج الأكواد من عمود "رقم الكود / الطلب" (code) بدقة
+# استخراج الأكواد من عمود "رقم الكود / الطلب" (code) بدقة وعزل الفراغات
 if 'calc_Code' in df_data.columns:
     unique_codes = sorted([str(c).strip() for c in df_data['calc_Code'].unique() if str(c).strip() and str(c).strip() != 'nan'])
 else:
@@ -151,7 +139,6 @@ df_filtered_full = df_data[df_data['calc_Code'] == str(selected_code).strip()].r
 total_orders = len(df_filtered_full)
 
 valid_containers = df_filtered_full['calc_Container'][df_filtered_full['calc_Container'] != '']
-valid_containers = valid_containers[valid_containers != 'nan']
 total_containers = int(valid_containers.nunique())
 if total_containers == 0 and len(df_filtered_full) > 0:
     total_containers = 1
@@ -220,7 +207,6 @@ st.markdown(f"""
 
 st.markdown("---")
 
-# --- 5. [تصحيح حتمي آمن]: دالة عرض الجداول المباشرة والمحمية 100% من أخطاء الـ Indentation ---
 # تحويل تواريخ عمود التوزيع بشكل مباشر ومؤمن لكل خلية على حدة
 def fix_date_cell_value(val):
     x_str = str(val).strip()
@@ -237,8 +223,21 @@ def fix_date_cell_value(val):
 for col in df_data.columns:
     col_clean = str(col).strip().lower()
     if 'تاريخ' in col_clean or 'date' in col_clean:
-        df_filtered_full[col] = df_filtered_full[col].apply(fix_date_cell_value).fillna(df_filtered_full[col].astype(str))
-        df_data[col] = df_data[col].apply(fix_date_cell_value).fillna(df_data[col].astype(str))
+        try:
+            df_filtered_full[col] = df_filtered_full[col].apply(fix_date_cell_value)
+            df_data[col] = df_data[col].apply(fix_date_cell_value)
+        except:
+            pass
 
+# --- 5. العرض المباشر والمستقر للجدولين بالكامل دون أي شروط فلاتر معقدة ---
 st.subheader(f"📊 1. جدول التفاصيل المصفى للـ 29 عموداً التابع للكود الحالي: {selected_code}")
 display_cols_1 = [c for c in df_filtered_full.columns if not str(c).startswith('calc_') and c != 'Main_Code']
+final_filtered_display = df_filtered_full[display_cols_1].copy()
+st.dataframe(final_filtered_display, use_container_width=True, hide_index=True)
+
+st.markdown("<br><hr><br>", unsafe_allow_html=True)
+
+st.subheader("🗂️ 2. جدول ملف الإكسل الأصلي الكامل (الجدول الأم دون تصفية)")
+display_cols_2 = [c for c in df_data.columns if not str(c).startswith('calc_') and c != 'Main_Code']
+df_data_display = df_data[display_cols_2].copy()
+st.dataframe(df_data_display, use_container_width=True, hide_index=True)
