@@ -259,7 +259,11 @@ else:
           "المؤشر المالي": ["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"],
           "القيمة بالين": [sh_customs, sh_collected, sh_remaining]
       })
-      # 🌟 تم إصلاح إغلاق قوس الـ px.bar المسبب للـ SyntaxError هنا 🌟
+      
+      # 🌟 تم تصحيح القوس هنا وإغلاقه بشكل آمن ومبسط 100% 🌟
       fig_sh_bar = px.bar(
-          sh_metrics, x="المؤشر المالي", y="القيمة بالين", 
-          color="المؤشر المالي", template="plotly_dark",
+          sh_metrics, 
+          x="المؤشر المالي", 
+          y="القيمة بالين", 
+          color="المؤشر المالي", 
+          template="plotly_dark",
