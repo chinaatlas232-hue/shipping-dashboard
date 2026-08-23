@@ -36,7 +36,7 @@ st.markdown("""
 if "logged_in_customer" not in st.session_state:
     st.session_state.logged_in_customer = None
 
-# --- 2. الشريط الجانبي الذكي ---
+# --- 2. الشريط الجانبي الذكي لمدير النظام ---
 with st.sidebar:
   if os.path.exists("logo.png"):
       st.image("logo.png", width=120)
@@ -64,9 +64,8 @@ with st.sidebar:
           uploaded_file = new_file
 
 
-# --- 3. دالة قراءة وتجهيز البيانات النظيفة ---
-@st.cache_data
-def load_data(file):
+# --- 3. دالة قراءة وتجهيز البيانات النظيفة والمباشرة (تم إلغاء الكاش لضمان التحديث الفوري) 🌟 ---
+def load_data_fresh(file):
   if file is not None:
     raw_df = pd.read_excel(file, header=0)
     raw_df.columns = raw_df.columns.str.strip()
@@ -75,7 +74,7 @@ def load_data(file):
     return pd.DataFrame()
 
 
-df = load_data(uploaded_file)
+df = load_data_fresh(uploaded_file)
 
 # التحقق من وجود بيانات لبدء العرض
 if df.empty:
@@ -92,8 +91,8 @@ if df.empty:
       with col_admin_login:
           with st.form("admin_login_initial"):
               admin_pwd = st.text_input("🔑 دخول الإدارة المباشر:", type="password")
-              submit_admin = st.form_submit_button("دخول مدير النظام 👑")
-              if submit_admin and admin_pwd.strip() == "881988":
+              admin_submit = st.form_submit_button("دخول مدير النظام 👑")
+              if admin_submit and admin_pwd.strip() == "881988":
                   st.session_state.logged_in_customer = "الكل"
                   st.rerun()
   st.stop()
@@ -141,10 +140,8 @@ else:
             return "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الاحترافي المحدث والمحصن ضد المسافات والخلايا النصية 🌟 ---
+  # --- 4. نظام تسجيل الدخول الاحترافي المحدث والمنظف من الكاش الفاسد 🌟 ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
-  
-  # 🌟 التطهير المطلق: تحويل كافة قيم الإكسيل لنصوص صافية بدون مسافات خفية وبحروف صغيرة 🌟
   valid_codes_clean = [str(c).strip().lower() for c in valid_codes]
 
   if st.session_state.logged_in_customer is None:
@@ -163,14 +160,12 @@ else:
               submit_login = st.form_submit_button("تسجيل الدخول الآمن 🔓")
               
               if submit_login:
-                  # تنظيف مدخلات العميل من أي مسافات زائدة وتحويلها لحروف صغيرة
                   clean_input = str(password_input).strip().lower()
                   
                   if clean_input in valid_codes_clean:
-                      # جلب الاسم المطابق الأصلي من الإكسيل لتثبيته في الجلسة
                       actual_code = valid_codes[valid_codes_clean.index(clean_input)]
                       st.session_state.logged_in_customer = actual_code
-                      st.success("تم التحقق بنجاح! Jاري تحميل لوحة التحكم الخاصة بك...")
+                      st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم الخاصة بك...")
                       st.rerun()
                   elif password_input.strip() == "881988": 
                       st.session_state.logged_in_customer = "الكل"
@@ -178,13 +173,14 @@ else:
                       st.rerun()
                   else:
                       st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة في النظام!")
+                      # ميزة لمساعدتك كمدير نظام لمعرفة ما يقرأه بايثون فعلياً من ملف data.xlsx إن رغبت
+                      st.info(f"نصيحة للإدارة: تأكد أن الكود مكتوب في الإكسيل في عمود {client_name_col}")
       st.stop() 
 
   # --- 5. فلترة وعزل البيانات بناءً على تسجيل الدخول الناجح للعميل ---
   selected_client = st.session_state.logged_in_customer
   
   if selected_client != "الكل" and client_name_col in df.columns:
-      # تحويل العمود لمقارنة نصية آمنة ومطابقة دقيقة للكود الحالي
       df[client_name_col] = df[client_name_col].astype(str).str.strip()
       df_client = df[df[client_name_col].str.lower() == str(selected_client).lower().strip()]
       st.sidebar.markdown(f"👤 العميل الحالي: **{selected_client}**")
@@ -225,3 +221,4 @@ else:
   total_orders = len(filtered_df)
   total_containers = filtered_df[container_col].nunique() if container_col in filtered_df.columns else 0
   total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
+  total_client_paid = filtered_df[client_col].sum() if client_col in filtered_df.columns else 0
