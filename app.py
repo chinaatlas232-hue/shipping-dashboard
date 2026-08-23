@@ -121,7 +121,8 @@ else:
         </div>
       """, unsafe_allow_html=True)
       
-      col_space1, col_login, col_space2 = st.columns()
+      # 🌟 تم إصلاح دالة رسم الأعمدة وإضافة الرقم 3 لإزالة الـ TypeError نهائياً 🌟
+      col_space1, col_login, col_space2 = st.columns(3)
       with col_login:
           with st.form("login_form"):
               password_input = st.text_input("🔑 أدخل كلمة المرور الخاصة بك (كود العميل):", type="password", help="كلمة المرور هي كود العميل الخاص بك مثل B12")
@@ -138,7 +139,7 @@ else:
                       st.success("مرحباً بك يا مدير النظام!")
                       st.rerun()
                   else:
-                      st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة in النظام!")
+                      st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة في النظام!")
       st.stop() 
 
   # --- 5. فلترة وعزل البيانات بناءً على تسجيل الدخول الناجح للعميل ---
@@ -176,7 +177,7 @@ else:
   shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique())
   selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
 
-  # 🌟 إصلاح منطق التصفية النهائي لضمان عدم اختفاء الجدول عند اختيار "الكل" 🌟
+  # إصلاح منطق التصفية النهائي لضمان عدم اختفاء الجدول عند اختيار "الكل"
   filtered_df = temp_df
   if selected_mark != "الكل":
       filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
@@ -233,4 +234,3 @@ else:
 
   st.markdown("---")
 
-  # --- 9. قسم التحليل المالي المتقدم ---
