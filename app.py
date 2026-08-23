@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import io
 import os
 
@@ -10,7 +8,7 @@ st.set_page_config(
     page_title="Logistics Dashboard", page_icon="📦", layout="wide"
 )
 
-# مسار حفظ الملف الثابت على الخادم لضمان عدم ضياع البيانات عند إغلاق المتصفح
+# مسار حفظ الملف الثابت على الخادم
 SAVED_FILE_PATH = "permanent_shipping_data.xlsx"
 
 # --- 1. إدارة ملفات العملاء وتثبيتها في الشريط الجانبي ---
@@ -30,10 +28,10 @@ if uploaded_file is not None:
 # --- 2. دالة قراءة وتجهيز البيانات المثبتة ---
 def load_and_clean_data(path):
     try:
-        # قراءة ملف الإكسل بدون عناوين مسبقة لتجنب مشاكل دمج الخلايا في الملخص العلوي
+        # قراءة ملف الإكسل بدون عناوين مسبقة لتجنب مشاكل دمج الخلايا
         df = pd.read_excel(path, header=None)
         
-        # تنفيذ عملية المسح: الاحتفاظ بأول 6 أسطر فقط (صندوق الملخص) وحذف الجدول السفلي الطويل
+        # تنفيذ عملية المسح الحقيقية: الاحتفاظ بأول 6 أسطر فقط وحذف الجدول السفلي الطويل
         cleaned_df = df.iloc[0:6, :]
         return cleaned_df
     except Exception as e:
@@ -57,35 +55,14 @@ st.title("📦 Logistics Dashboard")
 st.markdown("Interactive view of shipments by container, shipping mark, payments and freight")
 st.markdown("---")
 
-# عرض ملخص البيانات بعد مسح الجدول السفلي
+# عرض ملخص البيانات بعد مسح الجدول السفلي (6 أسطر فقط)
 st.subheader("📋 صندوق ملخص الشحنات الحالي (بعد المسح والتنظيف)")
 st.dataframe(df, use_container_width=True)
 
-# استخراج الأعمدة الرقمية للرسوم البيانية التفاعلية إذا كانت متوفرة في الملخص
-numeric_cols = df.select_dtypes(include=["float64", "int64"]).columns.tolist()
-
-if len(numeric_cols) >= 1 and len(df.columns) > 1:
-    st.markdown("---")
-    st.subheader("📈 الرسوم البيانية التفاعلية للملخص")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        x_axis = st.selectbox("اختر محور البيانات (X):", df.columns, index=0)
-    with col2:
-        y_axis = st.selectbox("اختر القيمة الرقمية (Y):", numeric_cols, index=0)
-
-    fig = px.bar(
-        df,
-        x=x_axis,
-        y=y_axis,
-        template="plotly_dark",
-        title=f"مخطط تفاعلي لـ {y_axis} حسب {x_axis}",
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-# --- 4. إعداد زر تحميل الملف النظيف من الشريط الجانبي ---
+# --- 4. إعداد زر تحميل الملف النظيف باستخدام المحرك الافتراضي المدمج لـ Pandas ---
 output = io.BytesIO()
-with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+# قمنا بإزالة 'xlsxwriter' واستبداله بالمحرك الافتراضي المدمج ليتوافق مع السيرفر تلقائياً
+with pd.ExcelWriter(output, engine='openpyxl') as writer:
     df.to_excel(writer, index=False, header=False, sheet_name='Summary')
 processed_excel_data = output.getvalue()
 
