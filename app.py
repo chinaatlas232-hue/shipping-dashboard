@@ -10,7 +10,7 @@ st.set_page_config(
 
 # --- 2. الشريط الجانبي: إدارة الملفات والأمان ---
 with st.sidebar:
-    st.image("https://img.icons8.com/color/96/logistic-control.png", width=80) 
+    st.image("https://icons8.com", width=80) 
     st.title("لوحة التحكم اللوجستية")
     st.markdown("---")
     
@@ -20,7 +20,7 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # ب. زر التحديث الآمن برقم سري (881988)
+    # b. زر التحديث الآمن برقم سري (881988)
     st.subheader("🔄 تحديث النظام")
     with st.form("refresh_form"):
         entered_password = st.text_input("أدخل الرقم السري للتحديث:", type="password")
@@ -35,28 +35,27 @@ with st.sidebar:
                 st.error("الرقم السري غير صحيح!")
 
 
-# --- 3. قراءة البيانات ---
+# --- 3. قراءة البيانات (تم ضبط أرقام افتراضية مطابقة لجدولك تماماً) ---
 @st.cache_data
 def load_data(file):
     if file is not None:
         return pd.read_excel(file)
     else:
-        # بيانات تجريبية في حال عدم رفع ملف
+        # بيانات تجريبية مطابقة تماماً للشحنات الأخيرة في صورتك (RQ6035 و RQ6036 وغيرها)
         rows = [
-            {"container": "RQ6025", "shipping_mark": "B12-116", "total_amount": 700000, "office_paid": 550000, "client_paid": 150000, "cartons": 50, "volume_cbm": 12.5, "orders": 12},
-            {"container": "RQ6027", "shipping_mark": "B12-115", "total_amount": 480000, "office_paid": 400000, "client_paid": 80000,  "cartons": 40, "volume_cbm": 10.0, "orders": 10},
-            {"container": "RQ6036", "shipping_mark": "B12-114", "total_amount": 290000, "office_paid": 100000, "client_paid": 190000, "cartons": 35, "volume_cbm": 8.5,  "orders": 8},
-            {"container": "RQ6026", "shipping_mark": "B12-80",  "total_amount": 270000, "office_paid": 220000, "client_paid": 50000,  "cartons": 30, "volume_cbm": 7.0,  "orders": 7},
-            {"container": "RQ6033", "shipping_mark": "B12-52",  "total_amount": 160000, "office_paid": 100000, "client_paid": 60000,  "cartons": 25, "volume_cbm": 5.5,  "orders": 6},
-            {"container": "RQ6028", "shipping_mark": "B12-60",  "total_amount": 50000,  "office_paid": 40000,  "client_paid": 10000,  "cartons": 20, "volume_cbm": 4.0,  "orders": 5},
-            {"container": "RQ6035", "shipping_mark": "B12-97",  "total_amount": 70000,  "office_paid": 50000,  "client_paid": 20000,  "cartons": 15, "volume_cbm": 3.0,  "orders": 4}
+            {"Container NO.": "RQ6033", "Shipping mark": "B12-115", "Amount": 156721, "Client paid": 156721, "Office paid": 0, "Sum of Ctns": 34, "Sum of Cbm": 5.544, "Orders": 1},
+            {"Container NO.": "RQ6035", "Shipping mark": "B12-114", "Amount": 70800,  "Client paid": 0,      "Office paid": 70800, "Sum of Ctns": 13, "Sum of Cbm": 3.211, "Orders": 1},
+            {"Container NO.": "RQ6036", "Shipping mark": "B12-116", "Amount": 282519, "Client paid": 282519, "Office paid": 0, "Sum of Ctns": 54, "Sum of Cbm": 8.798, "Orders": 1}
         ]
         return pd.DataFrame(rows)
 
 df = load_data(uploaded_file)
 
-# 🌟 خطوة الحماية الذكية: توحيد أسماء الأعمدة لتفادي خطأ KeyError نهائياً
-df.columns = df.columns.str.strip().str.lower().str.replace(' ', '_')
+# تنظيف مسافات الأعمدة لضمان مطابقة الأسماء
+df.columns = df.columns.str.strip()
+
+# جلب الاسم الحقيقي لعمود الكونتينر سواء كان container أو Container NO.
+container_col = "Container NO." if "Container_NO." not in df.columns and "Container NO." in df.columns else "container"
 
 # --- 4. عنوان الواجهة الرئيسي ---
 st.title("📦 Logistics Dashboard — B12")
@@ -64,7 +63,6 @@ st.markdown("Interactive view of shipments by container, shipping mark, payments
 st.markdown("---")
 
 # --- 5. الشريط الأفقي السريع (Pills Filter) للكونتينرات ---
-container_col = "container" if "container" in df.columns else df.columns[0]
 container_options = ["الكل"] + list(df[container_col].unique())
 st.markdown("##### 🗂️ شريط التصفية السريع للكونتينرات:")
 selected_container = st.pills("اختر الكونتينر", options=container_options, default="الكل", label_visibility="collapsed")
@@ -74,15 +72,21 @@ if selected_container != "الكل":
 else:
     filtered_df = df
 
-# --- 6. لوحة المؤشرات العلوية (المربعات الملونة المصممة) ---
-# جلب القيم بأمان حتى لو اختلف المسمى قليلاً في ملفك
-total_orders = int(filtered_df["orders"].sum()) if "orders" in filtered_df.columns else len(filtered_df)
+# --- 6. لوحة المؤشرات العلوية (المربعات الملونة المصممة بحسابات دقيقة وصحيحة) ---
+# دعم الحسابات بناءً على مسميات جدولك الأصلي (Sum of Ctns و Sum of Cbm)
+ctns_col = "Sum of Ctns" if "Sum of Ctns" in filtered_df.columns else ("Cartons" if "Cartons" in filtered_df.columns else None)
+cbm_col = "Sum of Cbm" if "Sum of Cbm" in filtered_df.columns else ("Volume_CBM" if "Volume_CBM" in filtered_df.columns else None)
+amt_col = "Amount" if "Amount" in filtered_df.columns else "Total_Amount"
+client_col = "Client paid" if "Client paid" in filtered_df.columns else "Client_Paid"
+office_col = "Office paid" if "Office paid" in filtered_df.columns else "Office_Paid"
+
+total_orders = int(filtered_df["Orders"].sum()) if "Orders" in filtered_df.columns else len(filtered_df)
 total_containers = filtered_df[container_col].nunique()
-total_amount_val = filtered_df["total_amount"].sum() if "total_amount" in filtered_df.columns else 0
-total_client_paid = filtered_df["client_paid"].sum() if "client_paid" in filtered_df.columns else 0
-total_office_paid = filtered_df["office_paid"].sum() if "office_paid" in filtered_df.columns else 0
-total_cartons = int(filtered_df["cartons"].sum()) if "cartons" in filtered_df.columns else 0
-total_volume = round(filtered_df["volume_cbm"].sum(), 2) if "volume_cbm" in filtered_df.columns else 0.0
+total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
+total_client_paid = filtered_df[client_col].sum() if client_col in filtered_df.columns else 0
+total_office_paid = filtered_df[office_col].sum() if office_col in filtered_df.columns else 0
+total_cartons = int(filtered_df[ctns_col].sum()) if ctns_col and ctns_col in filtered_df.columns else 0
+total_volume = round(filtered_df[cbm_col].sum(), 3) if cbm_col and cbm_col in filtered_df.columns else 0.0
 
 # دالة لتصميم بطاقة المؤشر بألوان هادئة وأيقونات مدمجة
 def render_custom_card(title, value, icon, bg_color):
@@ -115,22 +119,22 @@ with row1_col2:
     render_custom_card("Containers (الكونتينرات)", f"{total_containers}", "🚢", "#0ea5e9")
 
 with row1_col3:
-    render_custom_card("Total Amount", f"{total_amount_val:,.0f}", "💵", "#10b981")
+    render_custom_card("Total Amount", f"{total_amount_val:,.2f}" if total_amount_val > 0 else "0", "💵", "#10b981")
 
 with row1_col4:
-    render_custom_card("Client Paid", f"{total_client_paid:,.0f}", "🤝", "#f59e0b")
+    render_custom_card("Client Paid", f"{total_client_paid:,.2f}" if total_client_paid > 0 else "0", "🤝", "#f59e0b")
 
 with row1_col5:
-    render_custom_card("Office Paid", f"{total_office_paid:,.0f}", "🏢", "#6366f1")
+    render_custom_card("Office Paid", f"{total_office_paid:,.2f}" if total_office_paid > 0 else "0", "🏢", "#6366f1")
 
-# السطر الثاني من المربعات الملونة مع توزيع الفراغات
+# السطر الثاني من المربعات الملونة
 row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
 
 with row2_col1:
     render_custom_card("Cartons (الكراتين)", f"{total_cartons}", "📦", "#ec4899")
 
 with row2_col2:
-    st.write("") 
+    st.write("") # فراغ لمطابقة التوزيع المطلوب بالصورة
 
 with row2_col3:
     render_custom_card("Volume (CBM الحجم)", f"{total_volume}", "📐", "#14b8a6")
@@ -142,7 +146,7 @@ chart_col1, chart_col2 = st.columns(2)
 
 with chart_col1:
     st.subheader("📊 Payments & Amount by Container")
-    y_cols = [c for c in ["total_amount", "office_paid", "client_paid"] if c in filtered_df.columns]
+    y_cols = [c for c in [amt_col, office_col, client_col] if c in filtered_df.columns]
     if y_cols:
         fig_bar = px.bar(
             filtered_df,
@@ -168,19 +172,6 @@ with chart_col2:
         template="plotly_dark"
     )
     st.plotly_chart(fig_pie, use_container_width=True)
-
-shipping_mark_col = "shipping_mark" if "shipping_mark" in filtered_df.columns else filtered_df.columns[1]
-st.subheader("🏷️ Top Shipping Marks by Amount")
-if "total_amount" in filtered_df.columns:
-    fig_marks = px.bar(
-        filtered_df,
-        x="total_amount",
-        y=shipping_mark_col,
-        orientation="h",
-        template="plotly_dark",
-        color=container_col
-    )
-    st.plotly_chart(fig_marks, use_container_width=True)
 
 # --- 8. جدول عرض البيانات التفصيلية ---
 with st.expander("📋 عرض جدول البيانات الكاملة"):
