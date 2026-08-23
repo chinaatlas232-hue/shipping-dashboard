@@ -3,50 +3,45 @@ import pandas as pd
 import io
 import os
 
-# 1. إعدادات الصفحة لتكون عريضة ومتوافقة مع كامل الشاشة
+# 1. إعدادات الصفحة لتكون عريضة
 st.set_page_config(
     page_title="Logistics Dashboard", 
     page_icon="📦", 
     layout="wide"
 )
 
-# [تعديل فرد الجدول والترويسة بالكامل]: حقن تنسيقات مخصصة لفرد الأعمدة على كامل المساحة المتاحة
+# [تعديل تقليص المسافات]: حقن تنسيقات مخصصة لتصغير الفراغات العريضة بين الأعمدة وجعل الجدول ملموماً ومتناسقاً
 st.markdown("""
 <style>
-    /* إجبار حاوية الجداول على التمدد والظهور بكامل عرض الشاشة لتظهر البيانات فسيحة */
-    div[data-testid="stDataFrame"] {
-        width: 100% !important;
-    }
-    div[data-testid="stDataFrame"] > div {
-        width: 100% !important;
-    }
+    /* إلغاء التمدد الإجباري العريض وجعل الجدول ملموماً بحجم نصوصه */
     div[data-testid="stDataFrame"] table {
         font-size: 13px !important;
-        width: 100% !important; /* فرد الجدول بنسبة 100% على كامل عرض الشاشة البيضاء */
-        table-layout: fixed !important; /* توزيع المساحات بين الأعمدة بشكل متساوٍ ومنظم */
+        width: auto !important; /* السماح للجدول بأخذ الحجم الطبيعي المضغوط للبيانات */
+        margin: 0 auto !important; /* محاذاة الجدول في المنتصف بشكل أنيق */
+        table-layout: auto !important; /* جعل عرض الأعمدة يتحدد تلقائياً حسب طول الكلمات دون فراغات زائدة */
     }
     
-    /* تنسيق ترويسة الجدول العلوية */
+    /* تنسيق ترويسة الجدول العلوية - مسافات مضغوطة وملمومة */
     div[data-testid="stDataFrame"] th {
         background-color: #f8f9fa !important;
         color: #2c3e50 !important;
         font-weight: bold !important;
         text-align: center !important;
-        padding: 10px 16px !important;
+        padding: 6px 12px !important; /* تصغير الحشوة الداخلية (Padding) لمنع الفراغات العريضة */
         white-space: nowrap !important; /* منع التفاف الكلمات أو قص الترويسة */
     }
     
-    /* تنسيق خلايا البيانات */
+    /* تنسيق خلايا البيانات - مسافات مضغوطة وملمومة */
     div[data-testid="stDataFrame"] td {
-        padding: 8px 16px !important;
+        padding: 6px 12px !important; /* تقليص مسافات الخلايا العريضة بالكامل */
         text-align: center !important;
         white-space: nowrap !important;
     }
     
-    /* شريط التمرير (السكرول) عريض جداً ومريح للإمساك بالماوس */
+    /* شريط التمرير (السكرول) عريض ومريح للإمساك بالماوس */
     ::-webkit-scrollbar {
-        width: 15px !important;  
-        height: 15px !important; 
+        width: 14px !important;  
+        height: 14px !important; 
     }
     ::-webkit-scrollbar-track {
         background: #f1f1f1 !important;
@@ -226,7 +221,7 @@ with col2:
 
 st.markdown("---")
 
-# --- 5. نظام التبويبات لعرض الجداول بكامل مساحة عرض الشاشة التلقائية ---
+# --- 5. نظام التبويبات لعرض الجداول بالمساحات المضغوطة الملمومة والمثالية ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
 
 with tab1:
@@ -234,8 +229,8 @@ with tab1:
     display_df = df_filtered[['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']].copy()
     display_df.columns = ['رقم الحاوية', 'كود الشحن', 'المجموع (Amount)', 'الزبون دفع', 'المكتب دفع', 'مجموع الكراتين', 'مجموع الحجم']
     
-    # فرد الجدول بالكامل على مساحة الشاشة 100%
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    # إلغاء التوسيع الإجباري وعرض الجدول بحجمه الطبيعي الملموم
+    st.dataframe(display_df, use_container_width=False, hide_index=True)
 
 with tab2:
     st.subheader("📋 جدول ملف الإكسل الأصلي الكامل (دون تصفية)")
@@ -244,13 +239,10 @@ with tab2:
     raw_headers = [str(c).strip() for c in full_display_df.iloc]
     clean_headers = []
     
-    num_cols_fixed = full_display_df.shape[1]
+    num_cols_fixed = full_display_df.shape
     for i in range(num_cols_fixed):
         if i < len(raw_headers):
             h = raw_headers[i]
             if h == "" or h == "nan":
                 clean_headers.append(f"فارغ_{i}")
             else:
-                clean_headers.append(h)
-        else:
-            clean_headers.append(f"عمود_إضافي_{i}")
