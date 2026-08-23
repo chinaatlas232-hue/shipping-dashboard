@@ -34,7 +34,7 @@ with st.sidebar:
   st.title("إدارة النظام - B12")
   st.markdown("---")
 
-  # رفع ملف إكسل الأم الموحد الذي يحتوي على كل العملاء
+  # رفع ملف إكسل الأم الموحد الذي يحتوي على كل العملاء والشحنات الـ 55 الجديدة
   st.subheader("📁 رفع قاعدة البيانات")
   uploaded_file = st.file_uploader(
       "رفع ملف الإكسيل الشامل لكافة العملاء (.xlsx)", type=["xlsx", "xls"]
@@ -56,7 +56,7 @@ df = load_data(uploaded_file)
 
 # التحقق من وجود بيانات لبدء العرض
 if df.empty:
-  st.info("👋 مرحباً بك! يرجى رفع ملف الإكسيل الشامل من الشريط الجانبي لبدء تشغيل لوحة تحكم العملاء.")
+  st.info("👋 مرحباً بك! يرجى رفع ملف الإكسيل الشامل الذي يحتوي على كافة الشحنات والعملاء من الشريط الجانبي لبدء التشغيل.")
 else:
   # تعيين العمود مصفح العملاء بناءً على اسم "code" الموجود في ملفك حرفياً
   client_name_col = "code"
@@ -73,13 +73,13 @@ else:
   collected_col = "قيمة الاستحصالات"
   remaining_col = "متبقي حقيقي"
 
-  # تحويل الحقول المالية والعددية إلى قيم رقمية نظيفة لحسابات دقيقة 100%
+  # تحويل الحقول المالية والعددية إلى قيم رقمية نظيفة لحسابات دقيقة 100% وتطهير أي نصوص
   all_numeric_cols = [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]
   for col in all_numeric_cols:
     if col in df.columns:
       df[col] = pd.to_numeric(df[col].astype(str).str.replace(r"[^\d.]", "", regex=True), errors="coerce").fillna(0)
 
-  # استبعاد أسطر الإجماليات يدوية الصنع
+  # استبعاد أسطر الإجماليات يدوية الصنع لحماية الحسابات الديناميكية
   df = df[~df[shipping_mark_col].astype(str).str.lower().str.contains("total|grand|إجمالي", na=False)]
   df = df[df[container_col].notna()]
 
@@ -97,10 +97,10 @@ else:
   st.markdown("Interactive view of shipments, payments and dynamic balances")
   st.markdown("---")
 
-  # --- 5. أشرطة التصفية السريعة المترابطة لحماية الخصوصية وعزل معلومات العميل 🌟 ---
+  # --- 5. أشرطة التصفية السريعة المترابطة لعزل معلومات العميل بدقة ---
   st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
   
-  # الفلتر الأول (الأعلى صلاحية): اختيار كود العميل لحسم الخصوصية فوراً
+  # الفلتر الأول: اختيار كود العميل لحسم الخصوصية فوراً
   if client_name_col in df.columns:
       client_options = ["الكل"] + list(df[client_name_col].dropna().unique())
       selected_client = st.pills("اختر الكود الخاص بك (Customer Code):", options=client_options, default="الكل", key="client_pill")
@@ -111,9 +111,9 @@ else:
           df_client = df
   else:
       df_client = df
-      st.warning(f"⚠️ لم نجد عمود باسم '{client_name_col}' في ملفك الحالي.")
+      st.warning(f"⚠️ لم نجد عمود باسم '{client_name_col}' في ملفك الحقيقي.")
 
-  # الفلتر الثاني الديناميكي: يعرض فقط الحاويات المتاحة للزبون المختار (يمنع تداخل الحاوية المشتركة) 🌟
+  # الفلتر الثاني الديناميكي: يعرض فقط الحاويات المتاحة للزبون المختار (يمنع تداخل الحاوية المشتركة)
   container_options = ["الكل"] + list(df_client[container_col].dropna().unique())
   selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
 
@@ -126,12 +126,12 @@ else:
   shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique())
   selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
 
-  # التصفية النهائية الناتجة عن عزل العميل تماماً داخل الحاوية المشتركة
+  # التصفية النهائية الناتجة عن عزل معلومات الزبون تماماً داخل الحاوية المشتركة
   filtered_df = temp_df
   if selected_mark != "الكل":
       filtered_df = filtered_df[filtered_df[shipping_mark_col] == selected_mark]
 
-  # --- 6. العمليات الحسابية والمؤشرات الديناميكية للعميل المختار حصرياً ---
+  # --- 6. العمليات الحسابية والمؤشرات الديناميكية للعميل المختار حصرياً بالدولار $ ---
   total_orders = len(filtered_df)
   total_containers = filtered_df[container_col].nunique()
   total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
@@ -168,7 +168,7 @@ else:
         """
     st.markdown(card_style, unsafe_allow_html=True)
 
-  # عرض لوحة المقاييس المعزولة بالكامل للعميل المختار بالدولار
+  # عرض لوحة المقاييس المعزولة بالكامل للعميل المختار بالدولار $
   row1_col1, row1_col2, row1_col3, row1_col4, row1_col5 = st.columns(5)
   with row1_col1: render_custom_card("Orders (الطلبات الفرعية)", f"{total_orders}", "📋", "#4f46e5")
   with row1_col2: render_custom_card("Containers (الحاويات)", f"{total_containers}", "🚢", "#0ea5e9")
