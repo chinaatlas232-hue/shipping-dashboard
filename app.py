@@ -10,7 +10,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً عريضة
+# حقن تنسيقات مخصصة لتصغير الفراغات وتكبير خط الترويسة وجعلها ثخينة جداً وعريضة
 st.markdown("""
 <style>
     /* إلغاء التمدد الإجمالي العريض وجعل الجدول ملموماً بحجم نصوصه */
@@ -200,7 +200,7 @@ st.markdown(f"""
 <div class="kpi-container">
     <div class="kpi-card" style="background-color: #D35400;">
         <div class="kpi-title">📦 إجمالي عدد الكراتين المجمعة (Sum of Ctns)</div>
-        <div class="kpi-value">{total_cartons:,} كارتون</div>
+        <div class="kpi-value">{total_cartons:} كارتون</div>
     </div>
     <div class="kpi-card" style="background-color: #34495E;">
         <div class="kpi-title">📐 إجمالي الحجم الكلي المجمع (Sum of Cbm)</div>
@@ -239,7 +239,5 @@ def process_dataframe_safely(dataframe):
                 configs[col] = st.column_config.TextColumn(col, alignment="center")
     return configs
 
-# --- 5. [ضبط وتأمين المسافات البادئة بالكامل]: نظام التبويبات لعرض الجدولين معاً بالأسفل دون أخطاء ---
-tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل (الجدول الأم)"])
-
-with tab1:
+# --- 5. [الحل النهائي المستقر للـ المسافات]: عرض الجداول تحت بعضها مباشرة دون نظام تبويبات مسبب للمشاكل ---
+st.subheader(f"📊 1. جدول التفاصيل المصفى للـ 29 عموداً التابع للكود الحالي: {selected_code}")
