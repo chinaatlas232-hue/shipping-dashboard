@@ -126,7 +126,7 @@ if 'calc_Shipping_mark' in df_data.columns:
         val_str = str(val).strip()
         if '-' in val_str:
             parts = val_str.split('-')
-            return str(parts[0]).strip()
+            return str(parts).strip()
         return val_str
 
     df_data['Main_Code'] = df_data['calc_Shipping_mark'].apply(extract_main_code)
@@ -145,7 +145,7 @@ if not unique_codes:
 
 selected_code = st.selectbox("🔍 اختر أو ابحث عن كود الشحن لتتجمع البيانات الخاصة به تلقائياً:", unique_codes)
 
-# [التصفية الحقيقية والمكتملة]: تصفية الملف الأصلي والكامل بناءً على الكود المحدد
+# تصفية الملف الأصلي والكامل بناءً على الكود المحدد
 df_filtered_full = df_data[df_data['Main_Code'] == selected_code].reset_index(drop=True)
 
 # حساب الإحصائيات التجميعية الحقيقية للمربعات الستة
@@ -221,18 +221,14 @@ tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", 
 
 with tab1:
     st.subheader(f"📋 جدول التفاصيل الكامل والمثبت التابع للكود المختار: {selected_code}")
-    
-    # [حل المشكلة جذرياً]: استبعاد الأعمدة الحسابية المؤقتة وإظهار كافة الأعمدة الأصلية الـ 29 لملف الإكسل دون قص
     display_cols = [c for c in df_filtered_full.columns if not str(c).startswith('calc_') and c != 'Main_Code']
     final_filtered_display = df_filtered_full[display_cols].copy()
-    
-    # عرض الجدول المصفى بكافة تفاصيله الأصلية الشاملة وبشكل مضغوط ملموم
     st.dataframe(final_filtered_display, use_container_width=False, hide_index=True)
 
 with tab2:
     st.subheader("📋 جدول ملف الإكسل الأصلي الكامل (دون تصفية)")
-    # تنظيف ترويسة الجدول الكامل للتوافق الشامل
-    raw_headers = [str(c).strip() for c in df_processed.columns]
+    full_display_df = df_raw.iloc[header_row_idx:].reset_index(drop=True)
+    raw_headers = [str(c).strip() for c in full_display_df.iloc]
     clean_headers = []
     
     for i, h in enumerate(raw_headers):
@@ -243,5 +239,9 @@ with tab2:
             
     df_data_display = df_data[[c for c in df_data.columns if not str(c).startswith('calc_') and c != 'Main_Code']].copy()
     
-    # التأكد من مطابقة طول عناوين الجدول الكامل وحمايتها برمجياً من الأخطاء
+    # [تم الإصلاح الدقيق هنا لإلغاء خطأ الـ Indentation والمسافات تماماً]
     if len(clean_headers) >= df_data_display.shape[1]:
+        df_data_display.columns = clean_headers[:df_data_display.shape[1]]
+    else:
+        while len(clean_headers) < df_data_display.shape[1]:
+            clean_headers.append(f"إضافي_{len(clean_headers)}")
