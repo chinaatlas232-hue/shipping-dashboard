@@ -10,13 +10,13 @@ st.set_page_config(
     layout="wide"
 )
 
-# [تعديل عرض الأعمدة والترويسة]: حقن تنسيقات مخصصة لتصغير العرض المفرط وجعل الجدول متناسقاً
+# حقن تنسيقات مخصصة لتصغير العرض المفرط وجعل الجدول متناسقاً
 st.markdown("""
 <style>
     /* تحديد حجم الخلايا والعناوين لتكون متناسقة وغير عريضة بشكل مبالغ فيه */
     div[data-testid="stDataFrame"] table {
         font-size: 13px !important;
-        width: auto !important; /* إلغاء التمدد العريض الإجباري */
+        width: auto !important;
         margin: 0 auto !important;
     }
     div[data-testid="stDataFrame"] th {
@@ -25,7 +25,7 @@ st.markdown("""
         font-weight: bold !important;
         text-align: center !important;
         padding: 6px 14px !important;
-        max-width: 150px !important; /* تحديد حد أقصى لعرض العمود */
+        max-width: 150px !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
         white-space: nowrap !important;
@@ -71,7 +71,7 @@ if os.path.exists(SAVED_FILE_PATH):
         st.stop()
 else:
     st.title("📦 Logistics Dashboard")
-    st.warning("⚠️ لم يتم العثور على ملف permanent_shipping_data.xlsx في المستودع.")
+    st.warning("⚠️ لم يتم العثور على ملف permanent_shipping_data.xlsx in المستودع.")
     st.stop()
 
 # --- 2. البحث التلقائي الديناميكي عن سطر العناوين الحقيقي في جدولك ---
@@ -133,7 +133,7 @@ if 'Shipping_mark' in df_cleaned.columns:
         val_str = str(val).strip()
         if '-' in val_str:
             parts = val_str.split('-')
-            return str(parts[0]).strip()
+            return str(parts).strip()
         return val_str
 
     df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(extract_main_code)
@@ -214,8 +214,6 @@ tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", 
 with tab1:
     st.subheader(f"📋 جدول التفاصيل التابع للكود المختار: {selected_code}")
     display_df = df_filtered[['Container', 'Shipping_mark', 'Amount', 'Client_paid', 'Office_paid', 'Ctns', 'Cbm']].copy()
-    
-    # مسميات الترويسة باللغة العربية ومكتملة تماماً وعرضها ذكي ومناسب
     display_df.columns = ['رقم الحاوية', 'كود الشحن', 'المجموع (Amount)', 'الزبون دفع', 'المكتب دفع', 'مجموع الكراتين', 'مجموع الحجم']
     st.dataframe(display_df, use_container_width=True, hide_index=True)
 
@@ -223,13 +221,20 @@ with tab2:
     st.subheader("📋 جدول ملف الإكسل الأصلي الكامل (دون تصفية)")
     full_display_df = df_raw.iloc[header_row_idx:].reset_index(drop=True)
     
-    raw_headers = [str(c).strip() for c in full_display_df.iloc]
+    raw_headers = [str(c).strip() for c in full_display_df.iloc[0]]
     clean_headers = []
-    for i, h in enumerate(raw_headers):
-        if h == "" or h == "nan":
-            clean_headers.append(f"فارغ_{i}")
+    
+    # [تم الإصلاح الجذري لحل مشكلة الـ ValueError]: موازنة وضمان تطابق الطول بين العناوين والأعمدة
+    num_cols = full_display_df.shape[1]
+    for i in range(num_cols):
+        if i < len(raw_headers):
+            h = raw_headers[i]
+            if h == "" or h == "nan":
+                clean_headers.append(f"فارغ_{i}")
+            else:
+                clean_headers.append(h)
         else:
-            clean_headers.append(h)
+            clean_headers.append(f"عمود_إضافي_{i}")
             
     full_display_df.columns = clean_headers
     full_display_df = full_display_df.iloc[1:].reset_index(drop=True)
