@@ -36,7 +36,7 @@ st.markdown("""
 if "logged_in_customer" not in st.session_state:
     st.session_state.logged_in_customer = None
 
-# --- 2. الشريط الجانبي الذكي: مخصص للإدارة عند الحاجة ---
+# --- 2. الشريط الجانبي الذكي ---
 with st.sidebar:
   if os.path.exists("logo.png"):
       st.image("logo.png", width=120)
@@ -48,13 +48,13 @@ with st.sidebar:
   st.title("إدارة النظام - أطلس")
   st.markdown("---")
 
-  # قراءة الملف الثابت المرفوع على GitHub لضمان استقرار الخدمة على الهواتف
+  # قراءة الملف الثابت data.xlsx المرفوع على GitHub لضمان استقرار الخدمة على الهواتف
   if os.path.exists("data.xlsx"):
       uploaded_file = "data.xlsx"
   else:
       uploaded_file = None
 
-  # إتاحة الرفع اليدوي للإدارة فقط كميزة احتياطية عند دخول المدير بكود 881988
+  # إتاحة الرفع اليدوي للإدارة فقط عند دخول المدير بكود 881988
   if st.session_state.logged_in_customer == "الكل":
       st.subheader("📁 تحديث قاعدة البيانات")
       new_file = st.file_uploader(
@@ -64,15 +64,11 @@ with st.sidebar:
           uploaded_file = new_file
 
 
-# --- 3. قراءة البيانات الأصلية النظيفة ---
+# --- 3. دالة قراءة وتجهيز البيانات النظيفة ---
 @st.cache_data
 def load_data(file):
   if file is not None:
-    # إذا كان النص عبارة عن مسار ملف ثابت (string) يقرأه مباشرة
-    if isinstance(file, str):
-        raw_df = pd.read_excel(file, header=0)
-    else:
-        raw_df = pd.read_excel(file, header=0)
+    raw_df = pd.read_excel(file, header=0)
     raw_df.columns = raw_df.columns.str.strip()
     return raw_df
   else:
@@ -87,11 +83,10 @@ if df.empty:
     <div class='login-box'>
         <h2 style='color: white;'>🏛️ شركة أطلس للشحن والتجارة العامة</h2>
         <h4 style='color: #4f46e5;'>بوابة العملاء اللوجستية</h4>
-        <p style='color: #94a3b8; margin-top: 15px;'>نظام الإدارة قيد الانتظار. يرجى التأكد من رفع ملف قاعدة البيانات باسم <b>data.xlsx</b> داخل حساب GitHub بجانب ملف الكود.</p>
+        <p style='color: #94a3b8; margin-top: 15px;'>نظام الإدارة قيد الانتظار. يرجى التأكد من رفع ملف قاعدة البيانات وتسميته <b>data.xlsx</b> داخل حساب GitHub بجانب ملف الكود app.py لكي يعمل الرابط مباشرة.</p>
     </div>
   """, unsafe_allow_html=True)
   
-  # نموذج احتياطي لدخول الإدارة لتشغيل النظام لأول مرة
   if st.session_state.logged_in_customer is None:
       col_space1, col_admin_login, col_space2 = st.columns(3)
       with col_admin_login:
@@ -118,7 +113,7 @@ else:
   collected_col = "قيمة الاستحصالات"
   remaining_col = "متبقي حقيقي"
 
-  # تحويل الحقول المادية والعددية إلى قيم رقمية نظيفة لحسابات دقيقة 100% ותطهير نصوص العملات
+  # تحويل الحقول المالية والعددية إلى قيم رقمية نظيفة لحسابات دقيقة 100% وتطهير نصوص العملات
   all_numeric_cols = [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]
   for col in all_numeric_cols:
     if col in df.columns:
@@ -139,7 +134,7 @@ else:
 
   # --- 4. نظام تسجيل الدخول الاحترافي باسم شركة أطلس وبوابة العملاء ---
   valid_codes = list(df[client_name_col].dropna().unique())
-  
+
   if st.session_state.logged_in_customer is None:
       st.markdown("""
         <div style='text-align: center; margin-top: 30px;'>
@@ -230,14 +225,17 @@ else:
       payment_status_text = f"متبقي غير مدفوع ($ {sh_remaining:,.2f}) ⏳"
       status_card_color = "#ef4444" 
 
+  # 🌟 تم إصلاح وإغلاق علامات الاقتباس للـ f-string هنا بدقة 100% لإزالة الـ SyntaxError 🌟
   def render_custom_card(title, value, icon, bg_color):
     card_style = f"""
-        <div style="
-            background-color: {bg_color}; padding: 18px; border-radius: 10px; color: #ffffff;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; font-family: sans-serif;
-        ">
+        <div style="background-color: {bg_color}; padding: 18px; border-radius: 10px; color: #ffffff; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 15px; font-family: sans-serif;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <span style="font-size: 14px; opacity: 0.95; font-weight: 500;">{title}</span>
                 <span style="font-size: 22px;">{icon}</span>
             </div>
             <div style="font-size: 24px; font-weight: bold; letter-spacing: 0.5px;">{value}</div>
+        </div>
+        """
+    st.markdown(card_style, unsafe_allow_html=True)
+
+  # عرض لوحة المقاييس المعزولة بالكامل للعميل المختار بالدولار $
