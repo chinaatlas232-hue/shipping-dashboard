@@ -3,7 +3,7 @@ import pandas as pd
 import io
 import os
 
-# 1. إعدادات الصفحة لتكون عريضة
+# 1. إعدادات الصفحة لتكون عريضة ومتوافقة مع التصميم الموضح بالصورة
 st.set_page_config(
     page_title="Logistics Dashboard", 
     page_icon="📦", 
@@ -84,7 +84,7 @@ for idx, row in df_processed.iterrows():
         header_row_idx = idx
         break
 
-# حصر ترويسة الجدول والبيانات في أول 29 عموداً فقط بدقة لمنع تعطل الفلترة واختفاء الأعمدة
+# استخراج العناوين الأصلية الـ 29 كاملة وتطبيقها كأعمدة أساسية
 df_processed.columns = [str(c).strip() for c in df_processed.iloc[header_row_idx]]
 df_data = df_processed.iloc[header_row_idx + 1:, :29].reset_index(drop=True)
 
@@ -239,7 +239,7 @@ def process_dataframe_safely(dataframe):
                 configs[col] = st.column_config.TextColumn(col, alignment="center")
     return configs
 
-# --- 5. [تصحيح مسافات التبويب بالكامل]: نظام التبويبات لعرض الجدولين معاً بالأسفل دون نقص ---
+# --- 5. [ضبط وتأمين المسافات البادئة بالكامل]: نظام التبويبات لعرض الجدولين معاً بالأسفل دون أخطاء ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل (الجدول الأم)"])
 
 with tab1:
