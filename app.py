@@ -5,66 +5,93 @@ import streamlit as st
 import os
 import re
 
-# --- 1. إعدادات الصفحة ---
+# --- 1. إعدادات واجهة المستخدم والصفحة اللوجستية ---
 st.set_page_config(
     page_title="شركة أطلس للشحن والتجارة العامة", page_icon="📦", layout="wide"
 )
 
-# تعزيز حجم خط ولون الجدول ليكون أكبر وأوضح عند العرض
+# تعزيز الأنماط المرئية وأحجام خطوط الجداول الأم لتكون واضحة جداً على شاشات الهواتف
 st.markdown("""
     <style>
     .dataframe th, .dataframe td {
         font-size: 15px !important;
-        font-weight: 500 !important;
+        font-weight: 600 !important;
+        text-align: center !important;
     }
     div[data-testid="stDataFrame"] div {
         font-family: sans-serif !important;
     }
-    /* تنسيق صندوق تسجيل الدخول */
+    /* تنسيق صندوق بوابة تسجيل الدخول */
     .login-box {
         background-color: #1e293b;
-        padding: 30px;
-        border-radius: 12px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        padding: 35px;
+        border-radius: 14px;
+        box-shadow: 0 6px 15px rgba(0,0,0,0.3);
         max-width: 550px;
-        margin: 50px auto;
+        margin: 60px auto;
         text-align: center;
+    }
+    /* تنسيق البطاقات الإيضاحية المالية العلوية الفاخرة */
+    .metric-card {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border-left: 5px solid #4f46e5;
+        padding: 20px;
+        border-radius: 12px;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        margin-bottom: 15px;
+        font-family: sans-serif;
+        text-align: right;
+    }
+    .metric-title {
+        font-size: 14px;
+        color: #94a3b8;
+        font-weight: 500;
+        margin-bottom: 6px;
+    }
+    .metric-value {
+        font-size: 24px;
+        font-weight: bold;
+        letter-spacing: 0.5px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# إدارة حالة تسجيل الدخول بذاكرة الجلسة
+# إدارة حالة جلسة تسجيل الدخول بذاكرة المتصفح
 if "logged_in_customer" not in st.session_state:
     st.session_state.logged_in_customer = None
 
-# --- 2. الشريط الجانبي الذكي لرفع وتحديث قاعدة البيانات حياً ومباشراً ---
+# --- 2. الشريط الجانبي الذكي لإدارة شركة أطلس ---
 with st.sidebar:
   if os.path.exists("logo.png"):
       st.image("logo.png", width=120)
   elif os.path.exists("logo.jpg"):
       st.image("logo.jpg", width=120)
   else:
-      st.markdown("<h2 style='margin:0;'>📦</h2>", unsafe_allow_html=True)
+      st.markdown("<h2 style='margin:0; text-align:center;'>🏛️</h2>", unsafe_allow_html=True)
       
-  st.title("إدارة النظام - أطلس")
+  st.title("لوحة تحكم أطلس")
   st.markdown("---")
 
-  # 🌟 إعادة خيار الرفع المباشر لضمان كسر جمود الذاكرة القديمة (Cache) على كافة المتصفحات والهواتف 🌟
-  st.subheader("📁 رفع وتحديث البيانات")
-  uploaded_file = st.file_uploader(
-      "رفع ملف الإكسيل الشامل (.xlsx)", type=["xlsx", "xls"], key="main_uploader"
-  )
-  
-  # إذا لم يقم العميل برفع ملف يدوياً، يحاول النظام قراءة الملف الثابت من GitHub كخيار احتياطي
-  if uploaded_file is None and os.path.exists("data.xlsx"):
+  # قراءة قاعدة البيانات الموحدة والثابتة المرفوعة على مستودع GitHub
+  uploaded_file = None
+  if os.path.exists("data.xlsx"):
       uploaded_file = "data.xlsx"
 
+  # ميزة تحديث قاعدة البيانات للإدارة والمدير (رقم الماستر السري: 881988)
+  if st.session_state.logged_in_customer == "الكل":
+      st.subheader("📁 تحديث جدول الشحنات الموحد")
+      new_file = st.file_uploader(
+          "رفع ملف إكسيل جديد لتحديث كافة الحسابات (.xlsx)", type=["xlsx", "xls"], key="admin_uploader"
+      )
+      if new_file is not None:
+          uploaded_file = new_file
 
-# --- 3. دالة ذكية لقراءة الشيت الصحيح وتفادي الجداول الفارغة ---
+
+# --- 3. دالة معالجة الجداول والملفات البرمجية بذكاء ---
 def load_data_smart(file):
   if file is not None:
     try:
-        # قراءة مباشرة دون أي دالة كاش لضمان التحديث الفوري حياً على الهواء
         xl = pd.ExcelFile(file)
         target_sheet = xl.sheet_names[0]
         for sheet in xl.sheet_names:
@@ -83,18 +110,28 @@ def load_data_smart(file):
 
 df = load_data_smart(uploaded_file)
 
-# التحقق من وجود بيانات لبدء العرض
+# التحقق من سلامة البيانات وعرض شاشة البوابة الرئيسية
 if df.empty:
   st.markdown("""
     <div class='login-box'>
         <h2 style='color: white;'>🏛️ شركة أطلس للشحن والتجارة العامة</h2>
-        <h4 style='color: #4f46e5;'>بوابة العملاء اللوجستية</h4>
-        <p style='color: #94a3b8; margin-top: 15px;'>يرجى رفع ملف قاعدة البيانات الشاملة من زر الرفع في الشريط الجانبي ⬅️ لتفعيل الخدمة وعرض لوحة الدخول فوراً.</p>
+        <h4 style='color: #4f46e5; margin-top: 10px;'>بوابة العملاء اللوجستية</h4>
+        <p style='color: #94a3b8; margin-top: 15px;'>النظام قيد المزامنة الآمنة. يرجى من إدارة شركة أطلس التأكد من رفع ملف قاعدة البيانات وتسميته <b>data.xlsx</b> في حساب GitHub لتنشيط الخدمة فوراً.</p>
     </div>
   """, unsafe_allow_html=True)
+  
+  if st.session_state.logged_in_customer is None:
+      col_space1, col_admin_login, col_space2 = st.columns(3)
+      with col_admin_login:
+          with st.form("admin_login_initial"):
+              admin_pwd = st.text_input("🔑 دخول لوحة الإدارة:", type="password")
+              submit_admin = st.form_submit_button("تحميل لوحة التحكم الإدارية 👑")
+              if submit_admin and admin_pwd.strip() == "881988":
+                  st.session_state.logged_in_customer = "الكل"
+                  st.rerun()
   st.stop()
 else:
-  # حل مرن للتعرف على الأعمدة وتفادي أخطاء المسميات
+  # مطابقة مسميات الأعمدة بمرونة كاملة وتلافي أي أخطاء في الإكسيل
   def find_col(possible_names, fallback):
       for name in possible_names:
           if name in df.columns:
@@ -116,29 +153,27 @@ else:
   collected_col = find_col(["قيمة الاستحصالات", "الاستحصالات", "Collected"], "قيمة الاستحصالات")
   remaining_col = find_col(["متبقي حقيقي", "المتبقي", "Remaining"], "متبقي حقيقي")
 
-  # تحويل الحقول المالية والعددية إلى قيم رقمية نظيفة لحسابات دقيقة 100% وتطهير نصوص العملات
+  # تطهير وتنظيف كافة الحقول والعمليات من الرموز اللاتينية
   all_numeric_cols = [amt_col, client_col, office_col, ctns_col, cbm_col, customs_col, collected_col, remaining_col]
   for col in all_numeric_cols:
     if col in df.columns:
       df[col] = pd.to_numeric(df[col].astype(str).str.replace(r"[^\d.]", "", regex=True), errors="coerce").fillna(0)
 
-  # استبعاد أسطر الإجماليات يدوية الصنع لحماية الحسابات الديناميكية
+  # تصفية أسطر الإجماليات اليدوية
   if shipping_mark_col in df.columns:
     df = df[~df[shipping_mark_col].astype(str).str.lower().str.contains("total|grand|إجمالي", na=False)]
   if container_col in df.columns:
     df = df[df[container_col].notna()]
 
-  # حساب حالة الدفع بناءً على المتبقي الحقيقي
+  # حساب عمود حالة الدفع التلقائي في الجدول الأم
   if remaining_col in df.columns and amt_col in df.columns:
     def check_payment_status(row):
-        if row[remaining_col] <= 0:
-            return "مدفوع بالكامل ✅"
-        else:
-            return "يوجد متبقي غير مدفوع ⏳"
+        return "مدفوع بالكامل ✅" if row[remaining_col] <= 0 else "يوجد متبقي غير مدفوع ⏳"
     df["حالة دفع الشحنة"] = df.apply(check_payment_status, axis=1)
 
-  # --- 4. نظام تسجيل الدخول الفائق والمطور (المطابقة الاحتوائية المزدوجة المرنة) ---
+  # --- 4. نظام التحقق وتطهير الأرقام الصافي لكلمات مرور العملاء ---
   valid_codes = list(df[client_name_col].dropna().unique()) if client_name_col in df.columns else []
+  valid_codes_clean = [str(re.sub(r'\D', '', str(c))).strip() for c in valid_codes]
 
   if st.session_state.logged_in_customer is None:
       st.markdown("""
@@ -152,27 +187,16 @@ else:
       col_space1, col_login, col_space2 = st.columns(3)
       with col_login:
           with st.form("login_form"):
-              password_input = st.text_input("🔑 أدخل كلمة المرور الخاصة بك (كود العميل):", type="password", help="كلمة المرور هي كود العميل الخاص بك")
+              password_input = st.text_input("🔑 أدخل كلمة المرور الخاصة بك (كود العميل):", type="password", help="كلمة المرور هي كود العميل الخاص بك مثل kb130")
               submit_login = st.form_submit_button("تسجيل الدخول الآمن 🔓")
               
               if submit_login:
-                  # تنظيف وتحضير المدخلات والمقارنة الاحتوائية الشاملة لضمان القبول الفوري
-                  user_text = str(password_input).strip().lower()
-                  user_digits = str(re.sub(r'\D', '', user_text)).strip()
+                  clean_input = str(re.sub(r'\D', '', str(password_input))).strip()
                   
-                  matched_code = None
-                  for original_code in valid_codes:
-                      code_str = str(original_code).strip().lower()
-                      code_digits = str(re.sub(r'\D', '', code_str)).strip()
-                      
-                      # مطابقة لو كان النص متطابق، أو الرقم متطابق، أو أحدهما يحتوي الآخر
-                      if (user_text == code_str) or (user_digits and user_digits == code_digits) or (user_text in code_str) or (code_str in user_text):
-                          matched_code = original_code
-                          break
-                  
-                  if matched_code is not None:
-                      st.session_state.logged_in_customer = matched_code
-                      st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم...")
+                  if clean_input and clean_input in valid_codes_clean:
+                      actual_code = valid_codes[valid_codes_clean.index(clean_input)]
+                      st.session_state.logged_in_customer = actual_code
+                      st.success("تم التحقق بنجاح! جاري تحميل لوحة التحكم الخاصة بك...")
                       st.rerun()
                   elif password_input.strip() == "881988": 
                       st.session_state.logged_in_customer = "الكل"
@@ -182,7 +206,7 @@ else:
                       st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة في النظام!")
       st.stop() 
 
-  # --- 5. فلترة وعزل البيانات بناءً على تسجيل الدخول الناجح للعميل ---
+  # --- 5. عزل الحسابات الفردية لكل زبون تأميناً للسرية ---
   selected_client = st.session_state.logged_in_customer
   
   if selected_client != "الكل" and client_name_col in df.columns:
@@ -194,34 +218,20 @@ else:
   else:
       df_client = df
       st.sidebar.markdown("👑 صلاحية: **مدير النظام**")
-      
       st.sidebar.markdown("### 🔍 كاشف الأكواد المتاحة بالملف:")
       st.sidebar.dataframe(pd.DataFrame({"الأكواد المسجلة": valid_codes}), height=200)
-      
       if st.sidebar.button("🚪 خروج الإدارة"):
           st.session_state.logged_in_customer = None
           st.rerun()
 
-  # --- 6. عنوان الواجهة الرئيسي للزبون بعد تسجيل الدخول ---
+  # --- 6. عنوان الواجهة اللوجستية الرئيسي ---
   st.title("📦 Logistics Dashboard — أطلس")
   st.markdown(f"جلسة عرض آمنة ومحمية للعميل: **{selected_client if selected_client != 'الكل' else 'كافة العملاء'}**")
   st.markdown("---")
 
-  # --- 7. أشرطة تصفية الحاويات والماركات المعزولة للعميل ---
+  # --- 7. أشرطة التصفية المزدوجة والمترابطة للحاويات والماركات ---
   st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
   
   container_options = ["الكل"] + list(df_client[container_col].dropna().unique()) if container_col in df_client.columns else ["الكل"]
   selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", key="container_pill")
 
-  if selected_container != "الكل" and container_col in df_client.columns:
-      temp_df = df_client[df_client[container_col] == selected_container]
-  else:
-      temp_df = df_client
-
-  shipping_mark_options = ["الكل"] + list(temp_df[shipping_mark_col].dropna().unique()) if shipping_mark_col in temp_df.columns else ["الكل"]
-  selected_mark = st.pills("اختر ماركة الشحن (Shipping Mark)", options=shipping_mark_options, default="الكل", key="mark_pill")
-
-  filtered_df = temp_df if selected_mark == "الكل" or shipping_mark_col not in temp_df.columns else temp_df[temp_df[shipping_mark_col] == selected_mark]
-
-  # --- 8. العمليات الحسابية والمؤشرات الديناميكية للعميل المختار ---
-  total_orders = len(filtered_df)
