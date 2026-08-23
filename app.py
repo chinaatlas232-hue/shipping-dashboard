@@ -215,27 +215,27 @@ else:
                       st.error("❌ كلمة المرور غير صحيحة أو غير مسجلة في النظام!")
       st.stop() 
 
-  # --- 5. عزل الحسابات الفردية لكل زبون تأميناً للسرية والخصوصية ---
+  # --- 5. عزل وتحديد الحسابات الفردية أو عرض الكل للإدارة الشاملة ---
   selected_client = st.session_state.logged_in_customer
   
-  if selected_client != "الكل" and client_name_col in df.columns:
-      selected_client_digits = str(re.sub(r'\D', '', str(selected_client))).strip()
-      df_client = df[
-          (df[client_name_col].astype(str).str.lower() == str(selected_client).lower().strip()) |
-          (df[client_name_col].astype(str).str.replace(r'\D', '', regex=True) == selected_client_digits)
-      ]
+  if selected_client != "الكل":
+      # 🌟 تصفية مرنة ومحصنة لحساب العميل الفردي دون تأثر حساب المدير 🌟
+      if client_name_col in df.columns:
+          selected_client_digits = str(re.sub(r'\D', '', str(selected_client))).strip()
+          df_client = df[
+              (df[client_name_col].astype(str).str.lower() == str(selected_client).lower().strip()) |
+              (df[client_name_col].astype(str).str.replace(r'\D', '', regex=True) == selected_client_digits)
+          ]
+      else:
+          df_client = df
       st.sidebar.markdown(f"👤 العميل الحالي: **{selected_client}**")
       if st.sidebar.button("🚪 تسجيل الخروج الآمن"):
           st.session_state.logged_in_customer = None
           st.rerun()
   else:
+      # 🌟 مخصص لمدير النظام (كود 881988): يرى كامل قاعدة البيانات الموحدة 100% وبدون أي حجب 🌟
       df_client = df
       st.sidebar.markdown("👑 صلاحية: **مدير النظام**")
       st.sidebar.markdown("### 🔍 كاشف الأكواد المتاحة بالملف:")
       st.sidebar.dataframe(pd.DataFrame({"الأكواد المسجلة": valid_codes}), height=200)
       if st.sidebar.button("🚪 خروج الإدارة"):
-          st.session_state.logged_in_customer = None
-          st.rerun()
-
-  # --- 6. عنوان الواجهة اللوجستية الرئيسي ---
-  st.title("📦 Logistics Dashboard — أطلس")
