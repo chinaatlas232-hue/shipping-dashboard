@@ -3,7 +3,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# --- 1. إعدادات الصفحة الواجهة ---
+# --- 1. إعدادات الصفحة ---
 st.set_page_config(
     page_title="Logistics Dashboard — B12", page_icon="📦", layout="wide"
 )
@@ -14,7 +14,7 @@ with st.sidebar:
     st.title("لوحة التحكم اللوجستية")
     st.markdown("---")
     
-    # أ. رفع ملف إكسل الجديد
+    # أ. رفع ملف إكسل جديد
     st.subheader("📁 إدارة ملفات البيانات")
     uploaded_file = st.file_uploader("رفع ملف بيانات الشحنات الجديد (.xlsx)", type=["xlsx", "xls"])
     
@@ -35,7 +35,7 @@ with st.sidebar:
                 st.error("الرقم السري غير صحيح!")
 
 
-# --- 3. دالة قراءة وتجهيز البيانات (معالجة دمج الخلايا الحاسم) ---
+# --- 3. دالة قراءة وتجهيز البيانات ---
 @st.cache_data
 def load_data(file):
     if file is not None:
@@ -43,18 +43,18 @@ def load_data(file):
         # تنظيف مسافات العناوين
         raw_df.columns = raw_df.columns.str.strip()
         
-        # 🌟 حل مشكلة الجدول الأم: تعبئة الخلايا المدمجة لعمود الحاوية تلقائياً
-        if "Container NO." in raw_df.columns:
-            raw_df["Container NO."] = raw_df["Container NO."].ffill()
-        elif "container" in raw_df.columns:
-            raw_df["container"] = raw_df["container"].ffill()
+        # تعيين العمود الأساسي
+        c_col = "Container NO." if "Container NO." in raw_df.columns else "container"
+        
+        # إزالة أسطر الإجماليات العامة (Grand Total) إن وجدت أسفل الملف لحماية الحسابات
+        if c_col in raw_df.columns:
+            raw_df = raw_df[~raw_df[c_col].astype(str).str.contains('Total|إجمالي|Grand', case=False, na=False)]
             
         return raw_df
     else:
         # بيانات افتراضية سليمة لتشغيل التطبيق المبدئي
         rows = [
             {"Container NO.": "RQ6025", "Shipping mark": "B12-102", "Amount": 12500, "Client paid": 100, "Office paid": 12400, "Sum of Ctns": 3, "Sum of Cbm": 0.513},
-            {"Container NO.": "RQ6025", "Shipping mark": "B12-50",  "Amount": 116357, "Client paid": 0, "Office paid": 116357, "Sum of Ctns": 37, "Sum of Cbm": 3.946},
             {"Container NO.": "RQ6035", "Shipping mark": "B12-114", "Amount": 70800, "Client paid": 0, "Office paid": 70800, "Sum of Ctns": 13, "Sum of Cbm": 3.211},
             {"Container NO.": "RQ6036", "Shipping mark": "B12-116", "Amount": 282519, "Client paid": 282519, "Office paid": 0, "Sum of Ctns": 54, "Sum of Cbm": 8.798}
         ]
@@ -62,7 +62,7 @@ def load_data(file):
 
 df = load_data(uploaded_file)
 
-# تعيين المسميات الحقيقية المتطابقة مع إكسيل
+# تعيين المسميات الحقيقية المتطابقة مع ملف الإكسيل
 container_col = "Container NO." if "Container NO." in df.columns else "container"
 ctns_col = "Sum of Ctns" if "Sum of Ctns" in df.columns else "Cartons"
 cbm_col = "Sum of Cbm" if "Sum of Cbm" in df.columns else "Volume_CBM"
@@ -70,9 +70,14 @@ amt_col = "Amount" if "Amount" in df.columns else "Total_Amount"
 client_col = "Client paid" if "Client paid" in df.columns else "Client_Paid"
 office_col = "Office paid" if "Office paid" in df.columns else "Office_Paid"
 
-# إزالة السطور التجميعية النهائية (مثل Grand Total) إن وجدت بالملف لضمان دقة الرسوم والمجاميع
-if container_col in df.columns:
-    df = df[~df[container_col].astype(str).str.contains('Total|إجمالي|Grand', case=False, na=False)]
+# تحويل الأعمدة المالية والعددية بشكل آمن لتطهير أي رموز نصية (مثل ¥ أو $)
+for col in [amt_col, client_col, office_col, ctns_col, cbm_col]:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col].astype(str).str.replace(r'[^\d.]', '', regex=True), errors='coerce').fillna(0)
+
+# إنشاء نسخة معالجة بفك الدمج فقط لأغراض التصفية والفلترة
+df_filled = df.copy()
+df_filled[container_col] = df_filled[container_col].ffill()
 
 # --- 4. عنوان الواجهة الرئيسي ---
 st.title("📦 Logistics Dashboard — B12")
@@ -80,29 +85,29 @@ st.markdown("Interactive view of shipments by container, shipping mark, payments
 st.markdown("---")
 
 # --- 5. الشريط الأفقي السريع (Pills Filter) للكونتينرات ---
-container_options = ["الكل"] + list(df[container_col].dropna().unique())
-st.markdown("##### 🗂️ شريط Tصفية الحاويات السريع:")
+container_options = ["الكل"] + list(df_filled[container_col].dropna().unique())
+st.markdown("##### 🗂️ شريط تصفية الحاويات السريع:")
 selected_container = st.pills("اختر الحاوية", options=container_options, default="الكل", label_visibility="collapsed")
 
+# تصفية البيانات بناءً على الفلتر النشط
 if selected_container != "الكل":
-    filtered_df = df[df[container_col] == selected_container]
+    filtered_df = df_filled[df_filled[container_col] == selected_container]
+    # 🌟 الحل الذكي: عند اختيار حاوية معينة، نأخذ القيم الفريدة للكراتين والحجم لمنع مضاعفتها بالجمع العشوائي
+    total_cartons = int(df[df[container_col] == selected_container][ctns_col].sum()) if ctns_col in df.columns else 0
+    total_volume = round(df[df[container_col] == selected_container][cbm_col].sum(), 3) if cbm_col in df.columns else 0.0
 else:
-    filtered_df = df
+    filtered_df = df_filled
+    # عند اختيار الكل، نجمع القيم الأصلية مباشرة من الملف بدون تكرار الدمج
+    total_cartons = int(df[ctns_col].sum()) if ctns_col in df.columns else 0
+    total_volume = round(df[cbm_col].sum(), 3) if cbm_col in df.columns else 0.0
 
-# --- 6. حساب المؤشرات الذكية من الأسطر الفعلية المعالجة ---
+# حساب بقية المؤشرات المالية والطلبات من البيانات المصفاة
 total_orders = len(filtered_df)
 total_containers = filtered_df[container_col].nunique()
-
-# تحويل الأعمدة إلى قيم رقمية بشكل آمن لتفادي نصوص العملات
-for col in [amt_col, client_col, office_col, ctns_col, cbm_col]:
-    if col in filtered_df.columns:
-        filtered_df[col] = pd.to_numeric(filtered_df[col].astype(str).str.replace(r'[^\d.]', '', regex=True), errors='coerce').fillna(0)
-
 total_amount_val = filtered_df[amt_col].sum() if amt_col in filtered_df.columns else 0
 total_client_paid = filtered_df[client_col].sum() if client_col in filtered_df.columns else 0
 total_office_paid = filtered_df[office_col].sum() if office_col in filtered_df.columns else 0
-total_cartons = int(filtered_df[ctns_col].sum()) if ctns_col in filtered_df.columns else 0
-total_volume = round(filtered_df[cbm_col].sum(), 3) if cbm_col in filtered_df.columns else 0.0
+
 
 # دالة مخصصة لعرض بطاقات المؤشرات الاحترافية بالألوان والأيقونات
 def render_custom_card(title, value, icon, bg_color):
@@ -143,17 +148,17 @@ with row1_col4:
 with row1_col5:
     render_custom_card("Office Paid", f"¥ {total_office_paid:,.2f}", "🏢", "#6366f1")
 
-# توزيع شبكة المؤشرات (الصف الثاني المتطابق مع لقطة الشاشة)
+# توزيع شبكة المؤشرات (الصف الثاني المتطابق مع التصميم الجغرافي المطلوب)
 row2_col1, row2_col2, row2_col3, row2_col4, row2_col5 = st.columns(5)
 
 with row2_col1:
-    render_custom_card("Cartons (الكراتين)", f"{total_cartons}", "📦", "#ec4899")
+    render_custom_card("Cartons (الكراتين)", f"{total_cartons:,}", "📦", "#ec4899")
 
 with row2_col2:
-    st.write("") # الفراغ التصميمي المطلوب
+    st.write("") # الفراغ التصميمي المعتمد بالصورة
 
 with row2_col3:
-    render_custom_card("Volume (CBM الحجم)", f"{total_volume}", "📐", "#14b8a6")
+    render_custom_card("Volume (CBM الحجم)", f"{total_volume:,}", "📐", "#14b8a6")
 
 st.markdown("---")
 
@@ -189,7 +194,7 @@ with chart_col2:
     )
     st.plotly_chart(fig_pie, use_container_width=True)
 
-# --- 8. عرض جدول البيانات الكامل والمعالج للتأكد من الصحة 100% ---
+# --- 8. عرض جدول البيانات الكامل والمعالج ---
 with st.expander("📋 عرض جدول البيانات الكاملة والمعالجة (الجدول الأم)"):
     st.dataframe(filtered_df, use_container_width=True)
 
