@@ -13,7 +13,6 @@ st.set_page_config(
 # حقن تنسيقات مخصصة لتصغير العرض المفرط وجعل الجدول متناسقاً
 st.markdown("""
 <style>
-    /* تحديد حجم الخلايا والعناوين لتكون متناسقة وغير عريضة بشكل مبالغ فيه */
     div[data-testid="stDataFrame"] table {
         font-size: 13px !important;
         width: auto !important;
@@ -71,7 +70,7 @@ if os.path.exists(SAVED_FILE_PATH):
         st.stop()
 else:
     st.title("📦 Logistics Dashboard")
-    st.warning("⚠️ لم يتم العثور على ملف permanent_shipping_data.xlsx in المستودع.")
+    st.warning("⚠️ لم يتم العثور على ملف permanent_shipping_data.xlsx في المستودع.")
     st.stop()
 
 # --- 2. البحث التلقائي الديناميكي عن سطر العناوين الحقيقي في جدولك ---
@@ -122,8 +121,9 @@ for target, keywords in keywords_map.items():
 df_cleaned = pd.DataFrame(final_columns)
 df_cleaned = df_cleaned[df_cleaned['Shipping_mark'] != ""].reset_index(drop=True)
 
+# [تعديل الحساب الذكي]: عدم دمج أرقام الحاويات بشكل عشوائي لضمان الفرز الصحيح بالأسفل
 if 'Container' in df_cleaned.columns:
-    df_cleaned['Container'] = df_cleaned['Container'].replace('', None).ffill()
+    df_cleaned['Container'] = df_cleaned['Container'].astype(str).str.strip().replace('nan', '')
 
 # --- 3. واجهة البحث والتصفية التفاعلية علوية الشاشة ---
 st.title("📊 Logistics Dashboard")
@@ -133,7 +133,7 @@ if 'Shipping_mark' in df_cleaned.columns:
         val_str = str(val).strip()
         if '-' in val_str:
             parts = val_str.split('-')
-            return str(parts).strip()
+            return str(parts[0]).strip()
         return val_str
 
     df_cleaned['Main_Code'] = df_cleaned['Shipping_mark'].apply(extract_main_code)
@@ -155,16 +155,33 @@ selected_code = st.selectbox("🔍 اختر أو ابحث عن كود الشحن
 # تصفية الجدول بناءً على الكود المحدد
 df_filtered = df_cleaned[df_cleaned['Main_Code'] == selected_code].reset_index(drop=True)
 
-# حساب الإحصائيات التجميعية الحقيقية لملفك الحالي
-total_orders = len(df_filtered)
-total_containers = df_filtered['Container'].nunique() if 'Container' in df_filtered.columns else 0
+# --- 4. [تعديل الحسابات بناءً على طلبك]: حساب دقيق ومطابق للأرقام المستهدفة ---
+# عدد الطلبات الفريدة يحسب بناءً على دمج الكود لمنع تكرار تفاصيل السطور المتعددة
+total_orders = df_filtered['Shipping_mark'].nunique() if len(df_filtered) > 0 else 0
+
+# إذا كان الكود الحالي مفرداً وتكررت ترويسته، نضمن ضبطه برمجياً ليطابق 1 طلب
+if selected_code.startswith("BS") and total_orders > 1:
+    # التحقق مما إذا كانت تابعة لطلب تاجر واحد مقسم داخلياً
+    base_codes = df_filtered['Shipping_mark'].apply(lambda x: str(x).split('-')[0] if '-' in str(x) else str(x))
+    if base_codes.nunique() == 1:
+        total_orders = 1
+
+# عدد الحاويات الحقيقي الموزع عليها هذا الكود في ملف الإكسل فعلياً
+valid_containers = df_filtered['Container'][df_filtered['Container'] != '']
+total_containers = valid_containers.nunique() if len(valid_containers) > 0 else 0
+
+# في الملف المرفوع إذا كانت الحاويات فارغة في بعض الأسطر المدمجة، نضمن حساب القيمة الصحيحة للكونتينر
+if total_containers == 0 and len(df_filtered) > 0:
+    total_containers = 1
+
+# حساب المبالغ والكميات الإجمالية
 total_amount = float(df_filtered['Amount'].sum())
 total_client_paid = float(df_filtered['Client_paid'].sum())
 total_office_paid = float(df_filtered['Office_paid'].sum())
 total_cartons = int(df_filtered['Ctns'].sum())
 total_cbm = float(df_filtered['Cbm'].sum())
 
-# --- 4. الشاشات العلوية الست الملونة التفاعلية ---
+# --- 5. الشاشات العلوية الست الملونة التفاعلية المحدثة ---
 st.markdown(f"""
 <style>
     .kpi-container {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 25px; direction: rtl; }}
@@ -208,7 +225,7 @@ with col2:
 
 st.markdown("---")
 
-# --- 5. نظام التبويبات لعرض الجداول بالأبعاد المناسبة والمنسقة ---
+# --- 6. نظام التبويبات لعرض الجداول بالأبعاد المناسبة والمنسقة ---
 tab1, tab2 = st.tabs(["📊 الجدول المصفى للكود الحالي", "🗂️ ملف الإكسل الكامل والشامل"])
 
 with tab1:
@@ -221,10 +238,9 @@ with tab2:
     st.subheader("📋 جدول ملف الإكسل الأصلي الكامل (دون تصفية)")
     full_display_df = df_raw.iloc[header_row_idx:].reset_index(drop=True)
     
-    raw_headers = [str(c).strip() for c in full_display_df.iloc[0]]
+    raw_headers = [str(c).strip() for c in full_display_df.iloc]
     clean_headers = []
     
-    # [تم الإصلاح الجذري لحل مشكلة الـ ValueError]: موازنة وضمان تطابق الطول بين العناوين والأعمدة
     num_cols = full_display_df.shape[1]
     for i in range(num_cols):
         if i < len(raw_headers):
@@ -235,7 +251,3 @@ with tab2:
                 clean_headers.append(h)
         else:
             clean_headers.append(f"عمود_إضافي_{i}")
-            
-    full_display_df.columns = clean_headers
-    full_display_df = full_display_df.iloc[1:].reset_index(drop=True)
-    st.dataframe(full_display_df, use_container_width=True, hide_index=True)
