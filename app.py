@@ -34,7 +34,7 @@ with st.sidebar:
   st.title("إدارة النظام - B12")
   st.markdown("---")
 
-  # رفع ملف إكسل الأم الموحد الذي يحتوي على كل العملاء والشحنات الـ 55 الجديدة
+  # رفع ملف إكسل الأم الموحد الذي يحتوي على كل العملاء والشحنات
   st.subheader("📁 رفع قاعدة البيانات")
   uploaded_file = st.file_uploader(
       "رفع ملف الإكسيل الشامل لكافة العملاء (.xlsx)", type=["xlsx", "xls"]
@@ -97,18 +97,29 @@ else:
   st.markdown("Interactive view of shipments, payments and dynamic balances")
   st.markdown("---")
 
-  # --- 5. أشرطة التصفية السريعة المترابطة لعزل معلومات العميل بدقة ---
+  # --- 5. أشرطة التصفية السريعة المترابطة مع ميزة قفل الرابط لحماية الخصوصية 🌟 ---
   st.markdown("##### 🗂️ أشرطة التصفية السريعة الذكية:")
   
-  # الفلتر الأول: اختيار كود العميل لحسم الخصوصية فوراً
+  # 🌟 جلب كود العميل من الرابط تلقائياً إن وجد لحماية الخصوصية 🌟
+  url_params = st.query_params
+  url_client = url_params.get("user_code", None)
+  
   if client_name_col in df.columns:
-      client_options = ["الكل"] + list(df[client_name_col].dropna().unique())
-      selected_client = st.pills("اختر الكود الخاص بك (Customer Code):", options=client_options, default="الكل", key="client_pill")
+      client_options = list(df[client_name_col].dropna().unique())
       
-      if selected_client != "الكل":
+      # إذا دخل الزبون برابط مشفر خاص بكوده
+      if url_client and url_client in client_options:
+          selected_client = url_client
           df_client = df[df[client_name_col] == selected_client]
+          st.success(f"🔓 تم تحميل البيانات الآمنة المخصصة للكود: **{selected_client}**")
       else:
-          df_client = df
+          # إذا دخلت أنت كمدير للنظام، يظهر شريط الأزرار لرؤية الجميع
+          client_options_with_all = ["الكل"] + client_options
+          selected_client = st.pills("اختر الكود الخاص بك (Customer Code):", options=client_options_with_all, default="الكل", key="client_pill")
+          if selected_client != "الكل":
+              df_client = df[df[client_name_col] == selected_client]
+          else:
+              df_client = df
   else:
       df_client = df
       st.warning(f"⚠️ لم نجد عمود باسم '{client_name_col}' في ملفك الحقيقي.")
@@ -215,5 +226,3 @@ else:
       label="📥 تحميل التقرير الحالي (CSV)", 
       data=csv_data, 
       file_name="logistics_report.csv", 
-      mime="text/csv"
-  )
