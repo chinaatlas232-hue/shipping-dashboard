@@ -1,12 +1,12 @@
 import pandas as pd
 import streamlit as st
 
-# 1. إعداد الصفحة (يجب أن يكون في البداية)
+# 1. إعداد الصفحة
 st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
 )
 
-# 2. تنسيقات CSS مخصصة
+# 2. تنسيقات CSS مخصصة لتوسيع المساحة وتكبير الخطوط قليلاً
 st.markdown(
     """
     <style>
@@ -18,6 +18,13 @@ st.markdown(
     }
     .metric-title { font-size: 13px; margin-bottom: 6px; opacity: 0.9; font-weight: 600; }
     .metric-value { font-size: 20px; font-weight: bold; }
+    
+    /* توسيع حاوية Streamlit الاستجابة لملء الشاشة */
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        max-width: 98% !important;
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -32,7 +39,7 @@ uploaded_file = st.sidebar.file_uploader(
 )
 
 
-# 4. دالة تحميل البيانات وتنظيفها وتجهيز أنواع الحقول
+# 4. دالة تحميل البيانات
 @st.cache_data
 def load_data(file):
   df = None
@@ -73,10 +80,8 @@ def load_data(file):
           "رقم الحاويات": ["RQ6044", "RQ6044", "RQ6045", "RQ6045", "RQ6046"],
       })
 
-  # تنظيف أسماء الأعمدة من المسافات الزائدة
   df.columns = df.columns.astype(str).str.strip()
 
-  # تحويل الأعمدة الحسابية إلى أرقام لتفادي TypeError أثناء الحسابات
   numeric_cols = [
       "المكتب دفع",
       "Client Paid",
@@ -123,7 +128,6 @@ if page == "📊 لوحة التحكم (Dashboard)":
     filtered_df = df.copy()
     selected_code = "غير محدد"
 
-  # حساب الأرقام بحماية عالية
   container_col = (
       "رقم الحاويات"
       if "رقم الحاويات" in filtered_df.columns
@@ -140,10 +144,7 @@ if page == "📊 لوحة التحكم (Dashboard)":
   office_paid = (
       filtered_df["المكتب دفع"].sum() if "المكتب دفع" in filtered_df else 0.0
   )
-
-  # الآن الضمان 100% أن office_paid رقم float/int
   total_amount = float(office_paid) * 1.01
-
   total_cbm = filtered_df["حجم"].sum() if "حجم" in filtered_df else 0.0
   total_ctns = (
       filtered_df["عدد الكارتون"].sum()
@@ -151,89 +152,48 @@ if page == "📊 لوحة التحكم (Dashboard)":
       else 0
   )
 
-  # الصف الأول
+  # البطاقات
   c1, c2, c3, c4 = st.columns(4)
   with c1:
     st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #10b981;">
-                <div class="metric-title">Client Paid</div>
-                <div class="metric-value">¥ {total_client_paid:,.1f}</div>
-            </div>
-        """,
+        f'<div class="metric-card" style="background-color: #10b981;"><div class="metric-title">Client Paid</div><div class="metric-value">¥ {total_client_paid:,.1f}</div></div>',
         unsafe_allow_html=True,
     )
   with c2:
     st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #ef4444;">
-                <div class="metric-title">عدد الحاويات</div>
-                <div class="metric-value">{total_containers} حاوية</div>
-            </div>
-        """,
+        f'<div class="metric-card" style="background-color: #ef4444;"><div class="metric-title">عدد الحاويات</div><div class="metric-value">{total_containers} حاوية</div></div>',
         unsafe_allow_html=True,
     )
   with c3:
     st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #22c55e;">
-                <div class="metric-title">رقم الكود المختار</div>
-                <div class="metric-value">{selected_code}</div>
-            </div>
-        """,
+        f'<div class="metric-card" style="background-color: #22c55e;"><div class="metric-title">رقم الكود المختار</div><div class="metric-value">{selected_code}</div></div>',
         unsafe_allow_html=True,
     )
   with c4:
     st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #3b82f6;">
-                <div class="metric-title">عدد الطلبات</div>
-                <div class="metric-value">{total_orders} طلب</div>
-            </div>
-        """,
+        f'<div class="metric-card" style="background-color: #3b82f6;"><div class="metric-title">عدد الطلبات</div><div class="metric-value">{total_orders} طلب</div></div>',
         unsafe_allow_html=True,
     )
 
-  # الصف الثاني
   c5, c6, c7, c8 = st.columns(4)
   with c5:
     st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #7c3aed;">
-                <div class="metric-title">إجمالي المبالغ Amount</div>
-                <div class="metric-value">¥ {total_amount:,.1f}</div>
-            </div>
-        """,
+        f'<div class="metric-card" style="background-color: #7c3aed;"><div class="metric-title">إجمالي المبالغ Amount</div><div class="metric-value">¥ {total_amount:,.1f}</div></div>',
         unsafe_allow_html=True,
     )
   with c6:
     st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #f97316;">
-                <div class="metric-title">Office Paid</div>
-                <div class="metric-value">¥ {office_paid:,.1f}</div>
-            </div>
-        """,
+        f'<div class="metric-card" style="background-color: #f97316;"><div class="metric-title">Office Paid</div><div class="metric-value">¥ {office_paid:,.1f}</div></div>',
         unsafe_allow_html=True,
     )
   with c7:
     st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #1e3a8a;">
-                <div class="metric-title">📊 إجمالي الحجم (Cbm)</div>
-                <div class="metric-value">Cbm {total_cbm:.3f}</div>
-            </div>
-        """,
+        f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📊 إجمالي الحجم (Cbm)</div><div class="metric-value">Cbm {total_cbm:.3f}</div></div>',
         unsafe_allow_html=True,
     )
   with c8:
     st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #d97706;">
-                <div class="metric-title">📦 إجمالي الكراتين (Ctns)</div>
-                <div class="metric-value">{int(total_ctns)} كارتون</div>
-            </div>
-        """,
+        f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">📦 إجمالي الكراتين (Ctns)</div><div class="metric-value">{int(total_ctns)} كارتون</div></div>',
         unsafe_allow_html=True,
     )
 
@@ -248,7 +208,8 @@ if page == "📊 لوحة التحكم (Dashboard)":
       mime="text/csv",
   )
 
-  st.dataframe(filtered_df, use_container_width=True)
+  # جدول مكبر بالكامل عرضاً وارتفاعاً
+  st.dataframe(filtered_df, use_container_width=True, height=650)
 
 elif page == "🚢 الشحنات والحاويات":
   st.title("🚢 إدارة الشحنات والحاويات")
@@ -273,14 +234,14 @@ elif page == "🚢 الشحنات والحاويات":
           columns={"code": "عدد الطلبات"}
       )
 
-    st.dataframe(container_summary, use_container_width=True)
+    st.dataframe(container_summary, use_container_width=True, height=650)
   else:
     st.warning("⚠️ لم يتم العثور على عمود رقم الحاويات في البيانات.")
 
 elif page == "📦 الطلبات":
   st.title("📦 جميع الطلبات المسجلة")
   st.markdown("---")
-  st.dataframe(df, use_container_width=True)
+  st.dataframe(df, use_container_width=True, height=700)
 
 elif page == "📈 التقارير":
   st.title("📈 التقارير الشاملة")
