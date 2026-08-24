@@ -1,120 +1,247 @@
-import streamlit as st
 import pandas as pd
-import requests
+import streamlit as st
 
-# 1. إعدادات واجهة المنصة لتكون عريضة واحترافية بالكامل
-st.set_page_config(page_title="لوحة تحكم الشحن والبيانات حياً", layout="wide", initial_sidebar_state="expanded")
+# إعداد الصفحة لتكون عريضة وذات مظهر مظلم (Dark Theme)
+st.set_page_config(
+    page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
+)
 
-# 2. تطبيق ثيم الأدمن الملكي الداكن والمساحات والتباعد المتناسق (StarAdmin Styling)
-st.markdown("""
+# --- تنسيقات CSS مخصصة لتلوين المربعات (KPI Cards) ---
+st.markdown(
+    """
     <style>
-    .block-container { padding-top: 2rem !important; padding-bottom: 3rem !important; padding-left: 3rem !important; padding-right: 3rem !important; }
-    .stApp, div[data-testid="stAppViewContainer"] { background-color: #1a1f3c !important; color: #ffffff !important; }
-    h1, h2, h3, h4, h5, h6, label, p, span { color: #ffffff !important; font-family: 'Segoe UI', sans-serif !important; }
-    
-    /* تصميم الكروت العلوية الأربعة الفخمة ومساحاتها الداخلية */
-    .card-purple { background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); padding: 25px 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 25px; }
-    .card-orange { background: linear-gradient(135deg, #f12711 0%, #f5af19 100%); padding: 25px 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 25px; }
-    .card-blue { background: linear-gradient(135deg, #0575e6 0%, #00f260 100%); padding: 25px 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 25px; }
-    .card-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); padding: 25px 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 25px; }
-    
-    .card-title { font-size: 14px; font-weight: bold; opacity: 0.9; color: #ffffff !important; }
-    .card-value { font-size: 26px; font-weight: bold; margin-top: 10px; color: #ffffff !important; }
-    
-    div[data-testid="stSidebar"] { background-color: #11152c !important; border-left: 1px solid #2c3e50; padding: 20px 10px; }
-    div[data-testid="stDataFrame"] { background-color: #11152c !important; padding: 15px; border-radius: 8px; margin-top: 15px; }
-    .stTextInput>div>div>input, .stSelectbox>div>div>div { background-color: #11152c !important; color: white !important; border: 1px solid #34495e !important; padding: 10px !important; }
-    .section-spacer { margin-top: 40px; margin-bottom: 20px; }
+    .main {
+        background-color: #0e1117;
+    }
+    .metric-card {
+        padding: 16px;
+        border-radius: 12px;
+        color: white;
+        text-align: center;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin-bottom: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+    .metric-title {
+        font-size: 13px;
+        margin-bottom: 6px;
+        opacity: 0.9;
+        font-weight: 600;
+    }
+    .metric-value {
+        font-size: 20px;
+        font-weight: bold;
+    }
     </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
-# 🔗 رابط الـ Web App المفتوح والصحيح المنقذ مئة بالمئة مدمج تلقائياً في السطر 32 ليعمل مباشرة
-SCRIPT_URL = 'https://google.com'
 
-def fetch_shipping_data():
-    try:
-        response = requests.get(SCRIPT_URL)
-        if response.status_code == 200:
-            return pd.DataFrame(response.json())
-    except Exception as e:
-        st.error(f"خطأ في الاتصال بقاعدة البيانات: {e}")
-    return pd.DataFrame()
+# --- تحميل البيانات ---
+@st.cache_data
+def load_data():
+  try:
+    return pd.read_excel("shipping_data.xlsx")
+  except:
+    return pd.DataFrame({
+        "No": [972, 994, 996, 998, 1020],
+        "code": ["SM165", "SM165", "SM165", "SM170", "SM170"],
+        "Shipping mark": [
+            "SM165-B07",
+            "SM165-B03",
+            "SM165-B05",
+            "SM170-B01",
+            "SM170-B02",
+        ],
+        "رقم دخول المخزن": ["RS2601", "RS2602", "RS2603", "RS2604", "RS2605"],
+        "المكتب دفع": [25934.0, 13500.0, 9036.0, 12000.0, 5000.0],
+        "Client Paid": [500.0, 300.0, 200.0, 150.0, 200.0],
+        "نوع البضاعة": ["Lady Trousers", "White shirt", "Skirt", "Top", "Coat"],
+        "عدد الكارتون": [8, 3, 3, 5, 4],
+        "الوزن": [364, 126, 150, 200, 180],
+        "حجم": [1.255, 0.527, 0.492, 0.800, 0.600],
+        "رقم الفاتورة": ["INV-01", "INV-02", "INV-03", "INV-04", "INV-05"],
+        "رقم الحاويات": ["RQ6044", "RQ6044", "RQ6045", "RQ6045", "RQ6046"],
+    })
 
-df = fetch_shipping_data()
 
-if df.empty:
-    st.warning("⚠️ جاري الاتصال الآمن بجوجل واسترجاع البيانات المفهومة الحية من هاتفك...")
-else:
-    # تنظيف وتجهيز أسماء حقول الجدول لمنع حدوث مشاكل في تهجئة اللغة والمسافات
-    df.columns = [str(col).strip().lower() for col in df.columns]
-    
-    # 🏢 شريط القائمة الجانبية (Sidebar) للأدمن
-    st.sidebar.markdown("<h2 style='text-align:center; color:#fff; margin-bottom:5px;'>⭐ StarAdmin</h2>", unsafe_allow_html=True)
-    st.sidebar.markdown("<p style='text-align:center; opacity:0.7; margin-bottom:25px;'>لوحة تحكم الشحن</p>", unsafe_allow_html=True)
-    st.sidebar.markdown("---")
-    
-    # تحديد عمود الكود التجميعي من البيانات النظيفة
-    code_col = next((c for c in df.columns if 'code' in c or 'كود' in c), None)
-    
-    if code_col:
-        unique_codes = sorted([str(x).strip() for x in df[code_col].dropna().unique() if len(str(x).strip()) > 0])
-        if unique_codes:
-            selected_code = st.sidebar.selectbox("📂 اختر أو ابحث عن رقم الكود التجميعي:", unique_codes)
-            df_filtered = df[df[code_col].astype(str).str.strip() == selected_code]
-        else:
-            df_filtered = df
-            selected_code = "العام"
-    else:
-        df_filtered = df
-        selected_code = "العام"
+df = load_data()
 
-    st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
+# --- القائمة الجانبية (Sidebar) للأزرار والتنقل ---
+st.sidebar.title("🚢 إدارة اللوجستيات")
+st.sidebar.markdown("---")
 
-    # 📊 العمليات الحسابية والمالية الذكية والمربوطة بالأعمدة الإنجليزية لجدولك الحقيقي
-    total_rows = len(df_filtered)
-    
-    def get_column_sum_safe(df_target, target_name):
-        col = next((c for c in df_target.columns if target_name in c), None)
-        if col:
-            # تجريد الخلايا من النصوص الحرفية (ين، كجم) والإبقاء على الأرقام الصافية للجمع الرياضي
-            clean_series = df_target[col].astype(str).str.replace(r'[^0-9.]', '', regex=True)
-            return float(pd.to_numeric(clean_series, errors='coerce').fillna(0.0).sum())
-        return 0.0
+page = st.sidebar.radio(
+    "القائمة الرئيسية",
+    [
+        "📊 لوحة التحكم (Dashboard)",
+        "🚢 الشحنات والحاويات",
+        "📦 الطلبات",
+        "📈 التقارير",
+    ],
+)
 
-    total_weight = get_column_sum_safe(df_filtered, 'weight')
-    total_volume = get_column_sum_safe(df_filtered, 'volume')
-    
-    office_paid = get_column_sum_safe(df_filtered, 'office paid')
-    client_paid = get_column_sum_safe(df_filtered, 'client paid')
-    total_amount = get_column_sum_safe(df_filtered, 'total')
+st.sidebar.markdown("---")
+st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
-    container_col = next((c for c in df_filtered.columns if 'container' in c or 'حاوية' in c), None)
-    active_containers = df_filtered[container_col].nunique() if container_col else 0
+# --- محتوى الصفحات في الوسط ---
 
-    # 🎛️ عرض كروت الإحصائيات العلوية الفخمة والمربوطة بالكامل (الصف الأول)
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.markdown(f"<div class='card-purple'><div class='card-title'>📦 عدد الطلبات للكود</div><div class='card-value'>{total_rows} طلب</div></div>", unsafe_allow_html=True)
-    with col2:
-        st.markdown(f"<div class='card-orange'><div class='card-title'>⚖️ الوزن الإجمالي المربوط</div><div class='card-value'>{total_weight:,.1f} كجم</div></div>", unsafe_allow_html=True)
-    with col3:
-        st.markdown(f"<div class='card-blue'><div class='card-title'>📐 الحجم الكلي المجمع</div><div class='card-value'>{total_volume:.3f} CBM</div></div>", unsafe_allow_html=True)
-    with col4:
-        st.markdown(f"<div class='card-green'><div class='card-title'>🚢 عدد الحاويات النشطة</div><div class='card-value'>{active_containers} حاوية</div></div>", unsafe_allow_html=True)
+if page == "📊 لوحة التحكم (Dashboard)":
+  st.title("📊 لوحة التحكم الرئيسية")
+  st.markdown("---")
 
-    # 📈 قسم الإحصائيات المالية الممتدة بالكامل بالتساوي
-    st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
-    st.markdown("<h3 style='margin-bottom:20px;'>💰 الإحصائيات والمبالغ المالية حياً</h3>", unsafe_allow_html=True)
-    
-    m1, m2, m3 = st.columns(3)
-    with m1:
-        st.markdown(f"<div class='card-purple' style='background: #2c3e50; padding:25px;'><div class='card-title'>🏢 مدفوعات المكتب (Office Paid)</div><div class='card-value'>¥ {office_paid:,.2f}</div></div>", unsafe_allow_html=True)
-    with m2:
-        st.markdown(f"<div class='card-orange' style='background: #34495e; padding:25px;'><div class='card-title'>👤 مدفوعات الزبائن (Client Paid)</div><div class='card-value'>¥ {client_paid:,.2f}</div></div>", unsafe_allow_html=True)
-    with m3:
-        st.markdown(f"<div class='card-green' style='background: #16a085; padding:25px;'><div class='card-title'>💵 إجمالي المجموع العام (Total)</div><div class='card-value'>¥ {total_amount:,.2f}</div></div>", unsafe_allow_html=True)
+  # شريط اختيار أو بحث الكود في الوسط
+  codes = df["code"].unique().tolist()
+  selected_code = st.selectbox(
+      "🔍 اختر أو ابحث عن رقم الكود لتجميع البيانات الخاصة به تلقائياً في الأعلى:",
+      codes,
+  )
 
-    # 📅 جدول عرض تفاصيل الشحن المصفى المفهوم والنظيف بنسبة 100% بالأسفل
-    st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
-    st.markdown("<h3>📋 تفاصيل البضائع وشحنات الأكواد المصداقة</h3>", unsafe_allow_html=True)
-    st.dataframe(df_filtered, use_container_width=True)
+  filtered_df = df[df["code"] == selected_code]
+
+  # حساب المؤشرات
+  total_client_paid = (
+      filtered_df["Client Paid"].sum() if "Client Paid" in filtered_df else 0
+  )
+  total_containers = filtered_df["رقم الحاويات"].nunique()
+  total_orders = len(filtered_df)
+  office_paid = filtered_df["المكتب دفع"].sum()
+  total_amount = office_paid * 1.01
+  total_cbm = filtered_df["حجم"].sum()
+  total_ctns = filtered_df["عدد الكارتون"].sum()
+
+  # الصف الأول من المربعات الملونة (في الوسط)
+  c1, c2, c3, c4 = st.columns(4)
+  with c1:
+    st.markdown(
+        f"""
+            <div class="metric-card" style="background-color: #10b981;">
+                <div class="metric-title">Client Paid</div>
+                <div class="metric-value">¥ {total_client_paid:,.1f}</div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+  with c2:
+    st.markdown(
+        f"""
+            <div class="metric-card" style="background-color: #ef4444;">
+                <div class="metric-title">عدد الحاويات</div>
+                <div class="metric-value">{total_containers} حاوية</div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+  with c3:
+    st.markdown(
+        f"""
+            <div class="metric-card" style="background-color: #22c55e;">
+                <div class="metric-title">رقم الكود المختار</div>
+                <div class="metric-value">{selected_code}</div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+  with c4:
+    st.markdown(
+        f"""
+            <div class="metric-card" style="background-color: #3b82f6;">
+                <div class="metric-title">عدد الطلبات</div>
+                <div class="metric-value">{total_orders} طلب</div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+  # الصف الثاني من المربعات الملونة (في الوسط)
+  c5, c6, c7, c8 = st.columns(4)
+  with c5:
+    st.markdown(
+        f"""
+            <div class="metric-card" style="background-color: #7c3aed;">
+                <div class="metric-title">إجمالي المبالغ Amount</div>
+                <div class="metric-value">¥ {total_amount:,.1f}</div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+  with c6:
+    st.markdown(
+        f"""
+            <div class="metric-card" style="background-color: #f97316;">
+                <div class="metric-title">Office Paid</div>
+                <div class="metric-value">¥ {office_paid:,.1f}</div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+  with c7:
+    st.markdown(
+        f"""
+            <div class="metric-card" style="background-color: #1e3a8a;">
+                <div class="metric-title">📊 إجمالي الحجم (Cbm)</div>
+                <div class="metric-value">Cbm {total_cbm:.3f}</div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+  with c8:
+    st.markdown(
+        f"""
+            <div class="metric-card" style="background-color: #d97706;">
+                <div class="metric-title">📦 إجمالي الكراتين (Ctns)</div>
+                <div class="metric-value">{total_ctns} كارتون</div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+  st.markdown("---")
+  st.subheader(f"📊 جدول التفاصيل المصفى للكود الحالي: {selected_code}")
+
+  # زر التصدير
+  csv = filtered_df.to_csv(index=False).encode("utf-8")
+  st.download_button(
+      label="📥 Download as CSV",
+      data=csv,
+      file_name=f"{selected_code}_details.csv",
+      mime="text/csv",
+  )
+
+  # جدول التفاصيل
+  st.dataframe(filtered_df, use_container_width=True)
+
+elif page == "🚢 الشحنات والحاويات":
+  st.title("🚢 إدارة الشحنات والحاويات")
+  st.markdown("---")
+  container_summary = (
+      df.groupby("رقم الحاويات")
+      .agg(
+          {
+              "عدد الكارتون": "sum",
+              "حجم": "sum",
+              "المكتب دفع": "sum",
+              "code": "count",
+          }
+      )
+      .rename(columns={"code": "عدد الطلبات"})
+      .reset_index()
+  )
+  st.dataframe(container_summary, use_container_width=True)
+
+elif page == "📦 الطلبات":
+  st.title("📦 جميع الطلبات المسجلة")
+  st.markdown("---")
+  st.dataframe(df, use_container_width=True)
+
+elif page == "📈 التقارير":
+  st.title("📈 التقارير الشاملة")
+  st.markdown("---")
+  col_r1, col_r2 = st.columns(2)
+  with col_r1:
+    st.metric(
+        label="إجمالي مدفوعات المكتب", value=f"¥ {df['المكتب دفع'].sum():,.1f}"
+    )
+  with col_r2:
+    st.metric(label="إجمالي حجم CBM", value=f"{df['حجم'].sum():,.3f}")
