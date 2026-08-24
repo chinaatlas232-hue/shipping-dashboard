@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import plotly.express as px
+import time
 
 # 🎯 إعدادات الصفحة لتكون عريضة وبثيم احترافي
 st.set_page_config(page_title="StarAdmin Shipping Dashboard", layout="wide", initial_sidebar_state="expanded")
@@ -39,13 +40,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 الرابط السحري المحدث مدمج بالكامل وجاهز للعمل مباشرة
+# 🔗 الرابط السحري المحدث بالكامل وجاهز للعمل مباشرة
 SCRIPT_URL = 'https://google.com'
 
-@st.cache_data(ttl=3)
+# إجبار التحديث الفوري ومنع كاش المتصفحات والمنصة نهائياً عبر الـ TimeStamp
 def fetch_shipping_data():
     try:
-        response = requests.get(SCRIPT_URL)
+        timestamp_url = f"{SCRIPT_URL}?t={int(time.time())}"
+        response = requests.get(timestamp_url)
         if response.status_code == 200:
             return pd.DataFrame(response.json())
     except Exception as e:
@@ -55,7 +57,7 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري جلب البيانات المحدثة...")
+    st.warning("⚠️ جاري كسر الكاش وحقن الرابط الفوري المحدث من هاتفك...")
 else:
     # تنظيف أوتوماتيكي متطور لأسماء الأعمدة وفك التشابك العربي والمسافات المخفية
     df.columns = [col.strip().replace('_', ' ') for col in df.columns]
@@ -91,7 +93,7 @@ else:
     total_weight = get_flexible_sum(df_filtered, ['الوزن', 'weight', 'wgt'])
     total_volume = get_flexible_sum(df_filtered, ['حجم', 'الحجم', 'volume', 'cbm'])
     
-    # تم هنا تصحيح الكود بالكامل برمجياً وقراءة المتغير السليم df_filtered
+    # دقة متناهية لقراءة مدفوعات المكاتب والزبائن والمجاميع العربية الحية
     office_paid = get_flexible_sum(df_filtered, ['المكتب', 'office'])
     client_paid = get_flexible_sum(df_filtered, ['الزبون', 'client'])
     total_amount = get_flexible_sum(df_filtered, ['المجموع', 'إجمالي', 'total'])
