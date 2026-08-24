@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import requests
 import io
-import time
 
 # 🎯 إعدادات الصفحة لتكون عريضة وبثيم احترافي ممتد
 st.set_page_config(page_title="StarAdmin Shipping Dashboard", layout="wide", initial_sidebar_state="expanded")
@@ -40,14 +39,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط قراءة الـ CSV المباشر والآمن لجدولك الحالي (مستخرج بدقة لفتح الحظر)
+# 🔗 رابط الجلب المباشر والآمن والنظيف بصيغة CSV بدون أي إضافات خارجية مكسورة
 CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
     try:
-        # حقن تيمستامب رقمي لمنع الكاش وجلب التعديلات الجديدة من الهاتف فوراً
-        timestamp_url = f"{CSV_URL}&t={int(time.time())}"
-        response = requests.get(timestamp_url)
+        response = requests.get(CSV_URL)
         if response.status_code == 200:
             return pd.read_csv(io.StringIO(response.text))
     except Exception as e:
@@ -57,7 +54,7 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري كسر الحظر وجلب البيانات الفورية من هاتفك...")
+    st.warning("⚠️ جاري جلب البيانات الفورية من هاتفك وتحديث لوحة التحكم...")
 else:
     # تنظيف العناوين وإزالة المسافات تلقائياً
     df.columns = [str(col).strip() for col in df.columns]
