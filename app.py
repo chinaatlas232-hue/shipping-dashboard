@@ -367,11 +367,12 @@ elif page == "💰 كشف الكمارك المستحصلة":
 
     sponsor_col = "الكفيل" if "الكفيل" in pivot_filtered_df.columns else None
 
+    # مراجعة وتجميع البيانات حسب الكفيل والكود معاً
     group_cols = []
-    if "code" in pivot_filtered_df.columns:
-      group_cols.append("code")
     if sponsor_col:
       group_cols.append(sponsor_col)
+    if "code" in pivot_filtered_df.columns:
+      group_cols.append("code")
 
     if group_cols:
       grouped_parents = pivot_filtered_df.groupby(group_cols, dropna=False)
@@ -379,17 +380,17 @@ elif page == "💰 كشف الكمارك المستحصلة":
       for group_keys, parent_group in grouped_parents:
         is_not_arrived = False
         if isinstance(group_keys, tuple):
-          c_val, s_val = group_keys[0], group_keys[1]
-          # صياغة التسمية لإظهار رقم الكود بين قوسين بجانب اسم الكفيل/العميل
-          if pd.notna(s_val):
-            label_text = f"➖ ({c_val}) الكفيل: {s_val}"
-            if "لم تصل بعد" in str(s_val):
-              is_not_arrived = True
-          else:
-            label_text = f"➖ ({c_val})"
+          s_val, c_val = group_keys[0], group_keys[1]
+          sponsor_str = str(s_val).strip() if pd.notna(s_val) else "غير محدد"
+          code_str = str(c_val).strip() if pd.notna(c_val) else ""
+
+          label_text = f"➖ الكفيل: {sponsor_str} ({code_str})"
+          if "لم تصل بعد" in sponsor_str:
+            is_not_arrived = True
         else:
-          label_text = f"➖ ({group_keys})"
-          if "لم تصل بعد" in str(group_keys):
+          val_str = str(group_keys).strip()
+          label_text = f"➖ الكفيل: {val_str}"
+          if "لم تصل بعد" in val_str:
             is_not_arrived = True
 
         sum_customs = (
@@ -458,7 +459,7 @@ elif page == "💰 كشف الكمارك المستحصلة":
     is_not_arrived_list = pivot_display_df["is_not_arrived"].tolist()
     display_df = pivot_display_df.drop(columns=["is_not_arrived"])
 
-    # تنسيق الألوان لضمان وضوح النصوص في كافة الخانات
+    # تنسيق الخانات والصفوف بالألوان المناسبة
     def apply_row_styles(row):
       idx = row.name
       label = str(row["Row Labels"])
