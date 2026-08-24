@@ -39,7 +39,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط الجلب المباشر والآمن والنظيف بصيغة CSV بدون أي إضافات خارجية مكسورة
+# 🔗 رابط جلب الـ CSV المباشر والنظيف بدون أي إضافات خارجية مكسورة
 CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
@@ -80,7 +80,7 @@ else:
     total_rows = len(df_filtered)
     
     def get_flexible_sum(df_target, possible_names):
-        col = next((c for c in df_target.columns if any(p in c.lower() or p in str(c) for p in possible_names)), None)
+        col = next((c for c in df_target.columns if any(p in str(c).lower() or p in str(c) for p in possible_names)), None)
         if col:
             clean_series = df_target[col].astype(str).str.replace(r'[^\d.]', '', regex=True)
             return pd.to_numeric(clean_series, errors='coerce').sum()
@@ -117,7 +117,7 @@ else:
     with m2:
         st.markdown(f"<div class='card-orange' style='background: #34495e; padding:25px;'><div class='card-title'>👤 مدفوعات الزبائن</div><div class='card-value'>¥ {client_paid:,.2f}</div></div>", unsafe_allow_html=True)
     with m3:
-        st.markdown(f"<div class='card-green' style='background: #16a085; padding:25px;'><div class='card-title'>💵 إجمالي المجموع العام</div><div class='card-value'>¥ {total_amount:,.2f}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card-green' style='background: #16a085; padding:25px;'><div class='card-title'>💵 إجمالي Mجموع العام</div><div class='card-value'>¥ {total_amount:,.2f}</div></div>", unsafe_allow_html=True)
 
     # 📅 جدول عرض تفاصيل الشحن المصفى مع مساحات تباعد مريحة
     st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
