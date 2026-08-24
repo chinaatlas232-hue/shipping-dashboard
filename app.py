@@ -39,7 +39,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط الجلب الآمن المباشر بصيغة CSV لجدولك المحدث
+# 🔗 رابط جلب البيانات المباشر والآمن بصيغة CSV لجدولك الفعلي
 CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
@@ -54,47 +54,50 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري جلب البيانات الفورية وتحديث لوحة التحكم...")
+    st.warning("⚠️ جاري جلب البيانات الفورية من هاتفك وتحديث لوحة التحكم...")
 else:
+    # تنظيف وتجهيز أسماء الأعمدة لمنع تداخل الحروف
+    df.columns = [str(col).strip() for col in df.columns]
+    
     # 🏢 شريط القائمة الجانبية (Sidebar) للأدمن
     st.sidebar.markdown("<h2 style='text-align:center; color:#fff; margin-bottom:5px;'>⭐ StarAdmin</h2>", unsafe_allow_html=True)
     st.sidebar.markdown("<p style='text-align:center; opacity:0.7; margin-bottom:25px;'>لوحة تحكم الشحن</p>", unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
-    # فلترة ديناميكية بناءً على العمود الثاني (الذي يحتوي عادة على الكود)
-    if len(df.columns) > 1:
-        code_col = df.columns[1] # قراءة العمود الثاني تلقائياً كعمود الأكواد
-        unique_codes = sorted(df[code_col].dropna().unique())
+    # 🔍 تم إصلاح البحث التلقائي ليفحص الأسماء بدقة ويستبعد النصوص العشوائية والمخفية لكروم
+    code_col = next((c for c in df.columns if 'code' in c.lower() or 'كود' in c), None)
+    
+    if code_col:
+        # تصفية الأكواد واستبعاد النصوص البرمجية الطويلة لحماية القائمة والبحث عن الكود الفعلي فقط
+        unique_codes = [str(x) for x in df[code_col].dropna().unique() if len(str(x)) < 15 and "function" not in str(x)]
+        unique_codes = sorted(unique_codes)
         selected_code = st.sidebar.selectbox("📂 اختر أو ابحث عن رقم الكود التجميعي:", unique_codes)
-        df_filtered = df[df[code_col] == selected_code]
+        df_filtered = df[df[code_col].astype(str) == selected_code]
     else:
         df_filtered = df
         selected_code = "العام"
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 الحسابات الصارمة والربط القسري بناءً على ترتيب موقع العمود العددي
+    # 📊 العمليات الحسابية والمالية الذكية والممتدة والتنظيف التلقائي للحروف والرموز
     total_rows = len(df_filtered)
     
-    def sum_by_position(df_target, pos_index):
-        if len(df_target.columns) > pos_index:
-            col_name = df_target.columns[pos_index]
-            clean_series = df_target[col_name].astype(str).str.replace(r'[^0-9.]', '', regex=True)
-            return pd.to_numeric(clean_series, errors='coerce').fillna(0.0).sum()
+    def get_flexible_sum(df_target, possible_names):
+        col = next((c for c in df_target.columns if any(p in str(c).lower() or p in str(c) for p in possible_names)), None)
+        if col:
+            clean_series = df_target[col].astype(str).str.replace(r'[^0-9.]', '', regex=True)
+            return pd.to_numeric(clean_series, errors='coerce').sum()
         return 0.0
 
-    # ربط الإحصائيات قسرياً بمواقع الأعمدة العددية داخل مستند Google Sheets الخاص بك
-    total_weight = sum_by_position(df_filtered, 2)  # العمود الثالث (الوزن)
-    total_volume = sum_by_position(df_filtered, 3)  # العمود الرابع (الحجم CBM)
+    total_weight = get_flexible_sum(df_filtered, ['الوزن', 'weight', 'wgt'])
+    total_volume = get_flexible_sum(df_filtered, ['حجم', 'الحجم', 'volume', 'cbm'])
     
-    office_paid = sum_by_position(df_filtered, 5)   # العمود السادس (المكتب دفع)
-    client_paid = sum_by_position(df_filtered, 6)   # العمود السابع (الزبون دفع)
-    total_amount = sum_by_position(df_filtered, 7)  # العمود الثامن (المجموع الكلي)
+    office_paid = get_flexible_sum(df_filtered, ['المكتب', 'office'])
+    client_paid = get_flexible_sum(df_filtered, ['الزبون', 'client'])
+    total_amount = get_flexible_sum(df_filtered, ['المجموع', 'إجمالي', 'total'])
 
-    # حساب الحاويات الفريدة من العمود الخامس تلقائياً
-    active_containers = 0
-    if len(df_filtered.columns) > 4:
-        active_containers = df_filtered[df_filtered.columns[4]].nunique()
+    container_col = next((c for c in df_filtered.columns if 'حاوية' in str(c) or 'الحاوية' in str(c) or 'container' in str(c)), None)
+    active_containers = df_filtered[container_col].nunique() if container_col else 0
 
     # 🎛️ عرض كروت الإحصائيات العلوية الفخمة والمربوطة بالكامل (الصف الأول)
     col1, col2, col3, col4 = st.columns(4)
@@ -107,19 +110,19 @@ else:
     with col4:
         st.markdown(f"<div class='card-green'><div class='card-title'>🚢 عدد الحاويات النشطة</div><div class='card-value'>{active_containers} حاوية</div></div>", unsafe_allow_html=True)
 
-    # 📈 قسم الإحصائيات المالية المربوطة والمجردة من نصوص جدولك
+    # 📈 قسم الإحصائيات المالية الممتدة بالكامل بالتساوي
     st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
-    st.markdown("<h3 style='margin-bottom:20px;'>💰 الإحصائيات والمبالغ المالية المربوطة حياً</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='margin-bottom:20px;'>💰 الإحصائيات والمبالغ المالية حياً</h3>", unsafe_allow_html=True)
     
     m1, m2, m3 = st.columns(3)
     with m1:
-        st.markdown(f"<div class='card-purple' style='background: #2c3e50; padding:25px;'><div class='card-title'>🏢 مدفوعات المكتب (Office Paid)</div><div class='card-value'>¥ {office_paid:,.2f}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card-purple' style='background: #2c3e50; padding:25px;'><div class='card-title'>🏢 مدفوعات المكتب</div><div class='card-value'>¥ {office_paid:,.2f}</div></div>", unsafe_allow_html=True)
     with m2:
-        st.markdown(f"<div class='card-orange' style='background: #34495e; padding:25px;'><div class='card-title'>👤 مدفوعات الزبائن (Client Paid)</div><div class='card-value'>¥ {client_paid:,.2f}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card-orange' style='background: #34495e; padding:25px;'><div class='card-title'>👤 مدفوعات الزبائن</div><div class='card-value'>¥ {client_paid:,.2f}</div></div>", unsafe_allow_html=True)
     with m3:
-        st.markdown(f"<div class='card-green' style='background: #16a085; padding:25px;'><div class='card-title'>💵 إجمالي المجموع العام (Total)</div><div class='card-value'>¥ {total_amount:,.2f}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card-green' style='background: #16a085; padding:25px;'><div class='card-title'>💵 إجمالي المجموع العام</div><div class='card-value'>¥ {total_amount:,.2f}</div></div>", unsafe_allow_html=True)
 
-    # 📅 جدول تفاصيل الشحن الفعلي والمحدث كاملاً بمساحات فخمة
+    # 📅 جدول عرض تفاصيل الشحن المصفى مع مساحات تباعد مريحة
     st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
     st.markdown("<h3>📋 تفاصيل البضائع وشحنات الأكواد المصداقة</h3>", unsafe_allow_html=True)
     st.dataframe(df_filtered, use_container_width=True)
