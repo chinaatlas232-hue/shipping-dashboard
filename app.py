@@ -39,7 +39,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط جلب ورقة العمل الأولى (Sheet1) مباشرة لكسر حجب كود الحماية وجلب البيانات الحقيقية
+# 🔗 رابط جلب المباشر والآمن الذي يتخطى كود الحماية ويقرا ملف البيانات الصافي فقط
 CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
@@ -54,9 +54,9 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري جلب البيانات الحقيقية من هاتفك وتحديث لوحة التحكم...")
+    st.warning("⚠️ جاري جلب البيانات الفورية من هاتفك وتحديث لوحة التحكم...")
 else:
-    # تنظيف وتوحيد أسماء الأعمدة وإزالة المسافات تلقائياً لربط الداتا
+    # تنظيف وتجهيز أسماء الأعمدة لمنع تداخل الحروف
     df.columns = [str(col).strip() for col in df.columns]
     
     # 🏢 شريط القائمة الجانبية (Sidebar) للأدمن
@@ -64,12 +64,12 @@ else:
     st.sidebar.markdown("<p style='text-align:center; opacity:0.7; margin-bottom:25px;'>لوحة تحكم الشحن</p>", unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
-    # 🔍 دالة فحص وتحديد عمود الأكواد من جدولك الصافي المحدث
-    code_col = next((c for c in df.columns if 'code' in c.lower() or 'كود' in c or 'الرمز' in c), None)
+    # 🔍 تم تغيير البحث ليفحص العمود المسمى بـ "code" أو "كود" من الجدول الفعلي بدقة
+    code_col = next((c for c in df.columns if 'code' in c.lower() or 'كود' in c), None)
     
     if code_col:
-        # تصفية الأكواد الحقيقية النظيفة فقط واستبعاد السطور الفارغة أو الأكواد الطويلة المكسورة
-        unique_codes = [str(x).strip() for x in df[code_col].dropna().unique() if len(str(x).strip()) > 0 and len(str(x)) < 20]
+        # قراءة الأكواد الحقيقية واستبعاد أي نصوص برمجية مخفية قديمة تماماً
+        unique_codes = [str(x).strip() for x in df[code_col].dropna().unique() if len(str(x).strip()) > 0 and len(str(x)) < 15 and "function" not in str(x) and "{" not in str(x)]
         unique_codes = sorted(list(set(unique_codes)))
         
         if unique_codes:
@@ -79,23 +79,26 @@ else:
             df_filtered = df
             selected_code = "العام"
     else:
-        # إذا لم يجد عمود باسم كود، يبحث في أول عمود متاح بالجدول
-        code_col = df.columns[0]
-        unique_codes = sorted([str(x).strip() for x in df[code_col].dropna().unique() if len(str(x)) < 20])
-        selected_code = st.sidebar.selectbox("📂 اختر أو ابحث عن رقم الكود التجميعي:", unique_codes)
-        df_filtered = df[df[code_col].astype(str).str.strip() == selected_code]
+        # حل بديل ذكي في حال لم يجد اسم العمود، يقرأ العمود الثاني من جدول البيانات مباشرة
+        if len(df.columns) > 1:
+            fallback_col = df.columns[1]
+            unique_codes = sorted([str(x).strip() for x in df[fallback_col].dropna().unique() if len(str(x)) < 15])
+            selected_code = st.sidebar.selectbox("📂 اختر أو ابحث عن رقم الكود التجميعي:", unique_codes)
+            df_filtered = df[df[fallback_col].astype(str).str.strip() == selected_code]
+        else:
+            df_filtered = df
+            selected_code = "العام"
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 دالة الحسابات والعمليات المالية الصارمة والمجردة من النصوص تماماً
+    # 📊 العمليات الحسابية والمالية الذكية والممتدة والتنظيف التلقائي للحروف والرموز
     total_rows = len(df_filtered)
     
     def get_flexible_sum(df_target, possible_names):
         col = next((c for c in df_target.columns if any(p in str(c).lower() or p in str(c) for p in possible_names)), None)
         if col:
-            # تجريد محتويات الخلايا من أي نصوص أو فواصل (مثل كجم، ين، ¥) لربط المجموع الرياضي الحقيقي
             clean_series = df_target[col].astype(str).str.replace(r'[^0-9.]', '', regex=True)
-            return pd.to_numeric(clean_series, errors='coerce').fillna(0.0).sum()
+            return pd.to_numeric(clean_series, errors='coerce').sum()
         return 0.0
 
     total_weight = get_flexible_sum(df_filtered, ['الوزن', 'weight', 'wgt'])
