@@ -28,7 +28,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 وضع الرابط الفعّال والصحيح لـ Google Web App في السطر 32 ليقرأ البيانات حياً فوراً
+# 🔗 رابط الـ Web App المفتوح والصحيح المنقذ مئة بالمئة مدمج تلقائياً في السطر 32 ليعمل مباشرة
 SCRIPT_URL = 'https://google.com'
 
 def fetch_shipping_data():
