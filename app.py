@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import io
+import time
 
 # 🎯 إعدادات الصفحة لتكون عريضة وبثيم احترافي ممتد
 st.set_page_config(page_title="StarAdmin Shipping Dashboard", layout="wide", initial_sidebar_state="expanded")
@@ -39,12 +40,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط جلب الـ CSV المباشر والنظيف بدون أي إضافات خارجية مكسورة
+# 🔗 رابط الجلب المباشر والآمن والنظيف بصيغة CSV لجدولك الفعلي والمحدث
 CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
     try:
-        response = requests.get(CSV_URL)
+        # كسر الكاش لقراءة أي بضاعة جديدة تضيفها من هاتفك فوراً
+        timestamp_url = f"{CSV_URL}&t={int(time.time())}"
+        response = requests.get(timestamp_url)
         if response.status_code == 200:
             return pd.read_csv(io.StringIO(response.text))
     except Exception as e:
@@ -64,7 +67,7 @@ else:
     st.sidebar.markdown("<p style='text-align:center; opacity:0.7; margin-bottom:25px;'>لوحة تحكم الشحن</p>", unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
-    code_col = next((c for c in df.columns if 'code' in c.lower() or 'كود' in c), None)
+    code_col = next((c for c in df.columns if 'code' in str(c).lower() or 'كود' in str(c)), None)
     
     if code_col:
         unique_codes = sorted(df[code_col].dropna().unique())
@@ -76,13 +79,14 @@ else:
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 العمليات الحسابية والمالية الذكية والممتدة
+    # 📊 العمليات الحسابية والمالية الذكية والممتدة والتنظيف التلقائي من الحروف (كجم، ¥)
     total_rows = len(df_filtered)
     
     def get_flexible_sum(df_target, possible_names):
         col = next((c for c in df_target.columns if any(p in str(c).lower() or p in str(c) for p in possible_names)), None)
         if col:
-            clean_series = df_target[col].astype(str).str.replace(r'[^\d.]', '', regex=True)
+            # استخلاص الأرقام الصافية فقط وحذف أي نصوص أو رموز تمنع الحساب الحقيقي
+            clean_series = df_target[col].astype(str).str.replace(r'[^0-9.]', '', regex=True)
             return pd.to_numeric(clean_series, errors='coerce').sum()
         return 0.0
 
@@ -93,7 +97,7 @@ else:
     client_paid = get_flexible_sum(df_filtered, ['الزبون', 'client'])
     total_amount = get_flexible_sum(df_filtered, ['المجموع', 'إجمالي', 'total'])
 
-    container_col = next((c for c in df_filtered.columns if 'حاوية' in c or 'الحاوية' in c or 'container' in c), None)
+    container_col = next((c for c in df_filtered.columns if 'حاوية' in str(c) or 'الحاوية' in str(c) or 'container' in str(c)), None)
     active_containers = df_filtered[container_col].nunique() if container_col else 0
 
     # 🎛️ عرض كروت الإحصائيات العلوية الفخمة (الصف الأول)
@@ -117,7 +121,7 @@ else:
     with m2:
         st.markdown(f"<div class='card-orange' style='background: #34495e; padding:25px;'><div class='card-title'>👤 مدفوعات الزبائن</div><div class='card-value'>¥ {client_paid:,.2f}</div></div>", unsafe_allow_html=True)
     with m3:
-        st.markdown(f"<div class='card-green' style='background: #16a085; padding:25px;'><div class='card-title'>💵 إجمالي Mجموع العام</div><div class='card-value'>¥ {total_amount:,.2f}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card-green' style='background: #16a085; padding:25px;'><div class='card-title'>💵 إجمالي المجموع العام</div><div class='card-value'>¥ {total_amount:,.2f}</div></div>", unsafe_allow_html=True)
 
     # 📅 جدول عرض تفاصيل الشحن المصفى مع مساحات تباعد مريحة
     st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
