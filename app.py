@@ -28,17 +28,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط الـ Web App المفتوح والصحيح المنقذ مئة بالمئة لجلب البيانات المفهومة
+# 🔗 وضع الرابط الفعّال والصحيح لـ Google Web App في السطر 32 ليقرأ البيانات حياً فوراً
 SCRIPT_URL = 'https://google.com'
 
-# تم إلغاء الكاش هنا تماماً لتقرأ المنصة البيانات حية رغماً عن الخادم وبدون التوقف على الـ Reboot
 def fetch_shipping_data():
     try:
         response = requests.get(SCRIPT_URL)
         if response.status_code == 200:
             return pd.DataFrame(response.json())
     except Exception as e:
-        st.error(f"خطأ في جلب البيانات: {e}")
+        st.error(f"خطأ في الاتصال بقاعدة البيانات: {e}")
     return pd.DataFrame()
 
 df = fetch_shipping_data()
@@ -46,7 +45,7 @@ df = fetch_shipping_data()
 if df.empty:
     st.warning("⚠️ جاري الاتصال الآمن بجوجل واسترجاع البيانات المفهومة الحية من هاتفك...")
 else:
-    # تنظيف أسماء حقول الجدول لمنع حدوث مشاكل في تهجئة اللغة والمسافات
+    # تنظيف وتجهيز أسماء حقول الجدول لمنع حدوث مشاكل في تهجئة اللغة والمسافات
     df.columns = [str(col).strip().lower() for col in df.columns]
     
     # 🏢 شريط القائمة الجانبية (Sidebar) للأدمن
@@ -71,7 +70,7 @@ else:
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 العمليات الحسابية والمالية المربوطة بالأعمدة الإنجليزية لجدولك الحقيقي
+    # 📊 العمليات الحسابية والمالية الذكية والمربوطة بالأعمدة الإنجليزية لجدولك الحقيقي
     total_rows = len(df_filtered)
     
     def get_column_sum_safe(df_target, target_name):
