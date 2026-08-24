@@ -40,13 +40,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط الجلب المباشر والنظيف بصيغة CSV لجدولك الفعلي المقروء
+# 🔗 رابط الجلب الآمن المباشر بصيغة CSV لجدولك
 CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
     try:
-        # تم هنا تعديل دمج التيمستامب بعلامة الاستفهام ? الصحيحة لكسر كاش الخوادم بنجاح
-        timestamp_url = f"{CSV_URL}&t={int(time.time())}".replace('&t=', '?t=')
+        timestamp_url = f"{CSV_URL}&t={int(time.time())}"
         response = requests.get(timestamp_url)
         if response.status_code == 200:
             return pd.read_csv(io.StringIO(response.text))
