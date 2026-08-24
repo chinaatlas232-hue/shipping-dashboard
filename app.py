@@ -40,16 +40,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط الجلب المباشر والآمن بصيغة CSV المضادة للحظر الأمني من جوجل نهائياً
+# 🔗 رابط الجلب المباشر والنظيف بصيغة CSV لجدولك الفعلي المقروء
 CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
     try:
-        # حقن تيمستامب زمني لمنع الكاش تماماً وقراءة الداتا المحدثة حياً من الهاتف
-        timestamp_url = f"{CSV_URL}&t={int(time.time())}"
+        # تم هنا تعديل دمج التيمستامب بعلامة الاستفهام ? الصحيحة لكسر كاش الخوادم بنجاح
+        timestamp_url = f"{CSV_URL}&t={int(time.time())}".replace('&t=', '?t=')
         response = requests.get(timestamp_url)
         if response.status_code == 200:
-            # قراءة الداتا كملف نصي حقيقي وتوصيله للبايثون
             return pd.read_csv(io.StringIO(response.text))
     except Exception as e:
         st.error(f"خطأ في الاتصال المباشر بجوجل: {e}")
@@ -58,7 +57,7 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري اختراق حظر خوادم جوجل وجلب البيانات الفورية من هاتفك...")
+    st.warning("⚠️ جاري جلب البيانات الفورية من هاتفك وتحديث لوحة التحكم...")
 else:
     # تنظيف العناوين وإزالة المسافات تلقائياً
     df.columns = [str(col).strip() for col in df.columns]
