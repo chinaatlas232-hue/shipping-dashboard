@@ -40,13 +40,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط الـ CSV النظيف بدون أي تعديلات خارجية
+# 🔗 رابط الجلب الآمن المباشر بصيغة CSV النظيفة
 CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
     try:
-        # تم هنا تصحيح دمج علامة الاستفهام الزمني بدقة لمنع خطأ الـ NameResolutionError
-        timestamp_url = f"{CSV_URL}&t={int(time.time())}"
+        # تم هنا تصحيح الدمج بعلامة الاستفهام المباشرة ? لكسر الكاش بشكل صحيح تماماً
+        timestamp_url = f"{CSV_URL}&t={int(time.time())}".replace("&t=", "?t=")
         response = requests.get(timestamp_url)
         if response.status_code == 200:
             return pd.read_csv(io.StringIO(response.text))
@@ -94,7 +94,7 @@ else:
     
     office_paid = get_flexible_sum(df_filtered, ['المكتب', 'office'])
     client_paid = get_flexible_sum(df_filtered, ['الزبون', 'client'])
-    total_amount = get_flexible_sum(df_filtered, ['المجموع', 'إجمالي', 'total'])
+    total_amount = get_flexible_sum(df_flexible, ['المجموع', 'إجمالي', 'total'])
 
     container_col = next((c for c in df_filtered.columns if 'حاوية' in c or 'الحاوية' in c or 'container' in c), None)
     active_containers = df_filtered[container_col].nunique() if container_col else 0
