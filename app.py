@@ -76,11 +76,10 @@ else:
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 ربط مباشر وصارم مئة بالمئة بناءً على أسماء الأعمدة الإنجليزية لجدولك الفعلي
+    # 📊 ربط مباشر وصارع مئة بالمئة بناءً على أسماء الأعمدة الإنجليزية لجدولك الفعلي
     total_rows = len(df_filtered)
     
     def get_column_sum(df_target, target_name):
-        # البحث عن اسم العمود بدقة بالغة داخل الجدول
         col = next((c for c in df_target.columns if target_name in c), None)
         if col:
             clean_series = df_target[col].astype(str).str.replace(r'[^0-9.]', '', regex=True)
