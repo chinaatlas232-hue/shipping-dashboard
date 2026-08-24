@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
 import requests
+import io
 import time
 
-# 🎯 إعدادات الصفحة لتكون عريضة وبثيم احترافي
+# 🎯 إعدادات الصفحة لتكون عريضة وبثيم احترافي ممتد
 st.set_page_config(page_title="StarAdmin Shipping Dashboard", layout="wide", initial_sidebar_state="expanded")
 
 # 🎨 تطبيق التصميم الداكن الفخم وتوسيع المساحات والتباعد (Spacings & Paddings)
@@ -39,26 +40,28 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابطك السحري المفتوح والنهائي مدمج ومفعل هنا
-SCRIPT_URL = 'https://google.com'
+# 🔗 رابط الجلب المباشر والآمن بصيغة CSV المضادة للحظر الأمني من جوجل نهائياً
+CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
     try:
-        # كسر كاش الخادم إجبارياً عن طريق حقن تيمستامب زمني فريد في كل ثانية
-        timestamp_url = f"{SCRIPT_URL}?t={int(time.time())}"
+        # حقن تيمستامب زمني لمنع الكاش تماماً وقراءة الداتا المحدثة حياً من الهاتف
+        timestamp_url = f"{CSV_URL}&t={int(time.time())}"
         response = requests.get(timestamp_url)
         if response.status_code == 200:
-            return pd.DataFrame(response.json())
+            # قراءة الداتا كملف نصي حقيقي وتوصيله للبايثون
+            return pd.read_csv(io.StringIO(response.text))
     except Exception as e:
-        st.error(f"خطأ في جلب البيانات: {e}")
+        st.error(f"خطأ في الاتصال المباشر بجوجل: {e}")
     return pd.DataFrame()
 
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري تدمير الكاش القديم وجلب البيانات المباشرة...")
+    st.warning("⚠️ جاري اختراق حظر خوادم جوجل وجلب البيانات الفورية من هاتفك...")
 else:
-    df.columns = [col.strip().replace('_', ' ') for col in df.columns]
+    # تنظيف العناوين وإزالة المسافات تلقائياً
+    df.columns = [str(col).strip() for col in df.columns]
     
     # 🏢 شريط القائمة الجانبية (Sidebar) للأدمن
     st.sidebar.markdown("<h2 style='text-align:center; color:#fff; margin-bottom:5px;'>⭐ StarAdmin</h2>", unsafe_allow_html=True)
@@ -77,11 +80,11 @@ else:
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 العمليات الحسابية والمالية
+    # 📊 العمليات الحسابية والمالية الذكية والممتدة
     total_rows = len(df_filtered)
     
     def get_flexible_sum(df_target, possible_names):
-        col = next((c for c in df_target.columns if any(p in c.lower() or p in c for p in possible_names)), None)
+        col = next((c for c in df_target.columns if any(p in c.lower() or p in str(c) for p in possible_names)), None)
         if col:
             clean_series = df_target[col].astype(str).str.replace(r'[^\d.]', '', regex=True)
             return pd.to_numeric(clean_series, errors='coerce').sum()
@@ -97,7 +100,7 @@ else:
     container_col = next((c for c in df_filtered.columns if 'حاوية' in c or 'الحاوية' in c or 'container' in c), None)
     active_containers = df_filtered[container_col].nunique() if container_col else 0
 
-    # 🎛️ عرض كروت الإحصائيات (الصف الأول)
+    # 🎛️ عرض كروت الإحصائيات العلوية الفخمة (الصف الأول)
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f"<div class='card-purple'><div class='card-title'>📦 عدد الطلبات للكود</div><div class='card-value'>{total_rows} طلب</div></div>", unsafe_allow_html=True)
@@ -108,7 +111,7 @@ else:
     with col4:
         st.markdown(f"<div class='card-green'><div class='card-title'>🚢 عدد الحاويات</div><div class='card-value'>{active_containers} حاوية</div></div>", unsafe_allow_html=True)
 
-    # 📈 قسم الإحصائيات المالية الممتدة بالتساوي بعد حذف الرسم البياني
+    # 📈 قسم الإحصائيات المالية الممتدة بالكامل بالتساوي
     st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
     st.markdown("<h3 style='margin-bottom:20px;'>💰 الإحصائيات والمبالغ المالية حياً</h3>", unsafe_allow_html=True)
     
