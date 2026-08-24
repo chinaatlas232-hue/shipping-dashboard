@@ -39,11 +39,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 الرابط السحري الفعّال
+# 🔗 رابطك السحري المفتوح والنهائي مدمج ومفعل هنا
 SCRIPT_URL = 'https://google.com'
 
 def fetch_shipping_data():
     try:
+        # كسر كاش الخادم إجبارياً عن طريق حقن تيمستامب زمني فريد في كل ثانية
         timestamp_url = f"{SCRIPT_URL}?t={int(time.time())}"
         response = requests.get(timestamp_url)
         if response.status_code == 200:
@@ -55,7 +56,7 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري جلب البيانات المحدثة...")
+    st.warning("⚠️ جاري تدمير الكاش القديم وجلب البيانات المباشرة...")
 else:
     df.columns = [col.strip().replace('_', ' ') for col in df.columns]
     
@@ -107,7 +108,7 @@ else:
     with col4:
         st.markdown(f"<div class='card-green'><div class='card-title'>🚢 عدد الحاويات</div><div class='card-value'>{active_containers} حاوية</div></div>", unsafe_allow_html=True)
 
-    # 📈 قسم الإحصائيات المالية بعد أخذ المساحة الكاملة الممتدة بالتساوي
+    # 📈 قسم الإحصائيات المالية الممتدة بالتساوي بعد حذف الرسم البياني
     st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
     st.markdown("<h3 style='margin-bottom:20px;'>💰 الإحصائيات والمبالغ المالية حياً</h3>", unsafe_allow_html=True)
     
