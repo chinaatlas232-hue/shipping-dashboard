@@ -39,7 +39,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط الجلب الآمن المباشر بصيغة CSV لجدولك الفعلي والمحدث
+# 🔗 رابط جلب الـ CSV المباشر والنظيف بدون أي إضافات خارجية مكسورة
 CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
@@ -76,23 +76,26 @@ else:
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 ربط مباشر وصارع مئة بالمئة بناءً على أسماء الأعمدة الإنجليزية لجدولك الفعلي
+    # 📊 العمليات الحسابية والمالية الذكية والممتدة مع حماية قصوى ضد النصوص
     total_rows = len(df_filtered)
     
-    def get_column_sum(df_target, target_name):
+    def get_column_sum_safe(df_target, target_name):
         col = next((c for c in df_target.columns if target_name in c), None)
         if col:
+            # دالة تنظيف صارمة تقوم بإبقاء الأرقام والنقاط العشرية فقط، وتتجاهل فواصل الآلاف والنصوص (كجم، ين، ¥)
             clean_series = df_target[col].astype(str).str.replace(r'[^0-9.]', '', regex=True)
-            return pd.to_numeric(clean_series, errors='coerce').sum()
+            # تحويل القيم الفارغة أو المكسورة إلى أرقام صفرية بشكل آمن لمنع تجميد المجموع
+            numeric_series = pd.to_numeric(clean_series, errors='coerce').fillna(0.0)
+            return float(numeric_series.sum())
         return 0.0
 
-    # ربط الإحصائيات مباشرة بالأعمدة الإنجليزية للجدول
-    total_weight = get_column_sum(df_filtered, 'weight')
-    total_volume = get_column_sum(df_filtered, 'volume')
+    # ربط الإحصائيات مباشرة بالأعمدة الإنجليزية لجدولك
+    total_weight = get_column_sum_safe(df_filtered, 'weight')
+    total_volume = get_column_sum_safe(df_filtered, 'volume')
     
-    office_paid = get_column_sum(df_filtered, 'office paid')
-    client_paid = get_column_sum(df_filtered, 'client paid')
-    total_amount = get_column_sum(df_filtered, 'total')
+    office_paid = get_column_sum_safe(df_filtered, 'office paid')
+    client_paid = get_column_sum_safe(df_filtered, 'client paid')
+    total_amount = get_column_sum_safe(df_filtered, 'total')
 
     # حساب الحاويات الفريدة
     container_col = next((c for c in df_filtered.columns if 'container' in c or 'حاوية' in c), None)
@@ -119,7 +122,7 @@ else:
     with m2:
         st.markdown(f"<div class='card-orange' style='background: #34495e; padding:25px;'><div class='card-title'>👤 مدفوعات الزبائن (Client Paid)</div><div class='card-value'>¥ {client_paid:,.2f}</div></div>", unsafe_allow_html=True)
     with m3:
-        st.markdown(f"<div class='card-green' style='background: #16a085; padding:25px;'><div class='card-title'>💵 إجمالي المجموع المربوط (Total)</div><div class='card-value'>¥ {total_amount:,.2f}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='card-green' style='background: #16a085; padding:25px;'><div class='card-title'>💵 إجمالي المجموع العام (Total)</div><div class='card-value'>¥ {total_amount:,.2f}</div></div>", unsafe_allow_html=True)
 
     # 📅 جدول عرض تفاصيل الشحن المصفى مع مساحات تباعد مريحة
     st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
