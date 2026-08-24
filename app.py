@@ -2,24 +2,18 @@ import streamlit as st
 import pandas as pd
 import requests
 import io
-import time
 
-# 🎯 إعدادات الصفحة لتكون عريضة وبثيم احترافي ممتد
-st.set_page_config(page_title="لوحة تحكم الشحن الاحترافية", layout="wide", initial_sidebar_state="expanded")
+# 1. إعدادات الصفحة الاحترافية (StarAdmin Layout)
+st.set_page_config(page_title="لوحة تحكم الشحن والبيانات", layout="wide", initial_sidebar_state="expanded")
 
-# 🎨 تطبيق التصميم الداكن الفخم وتوسيع المساحات والتباعد (Spacings & Paddings)
+# 2. تطبيق الألوان الداكنة الفخمة والمساحات المريحة للعين (Paddings & CSS)
 st.markdown("""
     <style>
-    /* تباعد ومساحة عامة للموقع */
     .block-container { padding-top: 2rem !important; padding-bottom: 3rem !important; padding-left: 3rem !important; padding-right: 3rem !important; }
-    
-    /* تغيير خلفية التطبيق بالكامل للون الداكن */
     .stApp, div[data-testid="stAppViewContainer"] { background-color: #1a1f3c !important; color: #ffffff !important; }
-    
-    /* تعديل ألوان النصوص والعناوين والخطوط */
     h1, h2, h3, h4, h5, h6, label, p, span { color: #ffffff !important; font-family: 'Segoe UI', sans-serif !important; }
     
-    /* كروت الإحصائيات العلوية الملونة مع مساحات داخلية مريحة */
+    /* تنسيق كروت الإحصائيات الفخمة */
     .card-purple { background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); padding: 25px 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 25px; }
     .card-orange { background: linear-gradient(135deg, #f12711 0%, #f5af19 100%); padding: 25px 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 25px; }
     .card-blue { background: linear-gradient(135deg, #0575e6 0%, #00f260 100%); padding: 25px 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 25px; }
@@ -28,26 +22,19 @@ st.markdown("""
     .card-title { font-size: 14px; font-weight: bold; opacity: 0.9; color: #ffffff !important; }
     .card-value { font-size: 26px; font-weight: bold; margin-top: 10px; color: #ffffff !important; }
     
-    /* تلوين ومساحة شريط القائمة الجانبية باللون الداكن */
     div[data-testid="stSidebar"] { background-color: #11152c !important; border-left: 1px solid #2c3e50; padding: 20px 10px; }
-    
-    /* مساحات للجداول وصندوق البحث */
     div[data-testid="stDataFrame"] { background-color: #11152c !important; padding: 15px; border-radius: 8px; margin-top: 15px; }
     .stTextInput>div>div>input, .stSelectbox>div>div>div { background-color: #11152c !important; color: white !important; border: 1px solid #34495e !important; padding: 10px !important; }
-    
-    /* مساحات إضافية بين الأقسام */
     .section-spacer { margin-top: 40px; margin-bottom: 20px; }
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط الجلب الآمن المباشر بصيغة CSV لورقة العمل الأولى (Sheet1) لجدولك
+# 3. رابط جلب ملف الـ CSV المباشر والمستقر تماماً لجدول بياناتك (بدون تيمستامب عشوائي)
 CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
     try:
-        # كسر الكاش لضمان جلب التحديثات الجديدة من هاتفك فوراً
-        timestamp_url = f"{CSV_URL}&timestamp={int(time.time())}"
-        response = requests.get(timestamp_url)
+        response = requests.get(CSV_URL)
         if response.status_code == 200:
             return pd.read_csv(io.StringIO(response.text))
     except Exception as e:
@@ -57,9 +44,9 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري جلب البيانات الفورية من هاتفك وتحديث لوحة التحكم...")
+    st.warning("⚠️ جاري الاتصال المباشر بالجدول وقراءة البيانات الحية من هاتفك...")
 else:
-    # تنظيف وتجهيز أسماء الأعمدة ديناميكياً وتحويلها لنصوص صغيرة لمنع تداخل الحروف
+    # توحيد أسماء الأعمدة وتحويلها لنصوص صغيرة لتسهيل عملية الربط الحسابي
     df.columns = [str(col).strip().lower() for col in df.columns]
     
     # 🏢 شريط القائمة الجانبية (Sidebar) للأدمن
@@ -67,12 +54,12 @@ else:
     st.sidebar.markdown("<p style='text-align:center; opacity:0.7; margin-bottom:25px;'>لوحة تحكم الشحن</p>", unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
-    # 🔍 التعرف التلقائي الذكي على أول عمود يحتوي على أكوادك (مثل code أو كود أو الرمز)
-    code_col = next((c for c in df.columns if 'code' in c or 'كود' in c or 'الرمز' in c), None)
+    # 🔍 جلب عمود الأكواد الفعلي (code) من جدول بضائعك مباشرة
+    code_col = next((c for c in df.columns if 'code' in c or 'كود' in c), None)
     
     if code_col:
-        # فحص وتطهير القائمة تماماً واستخراج الأكواد الحقيقية فقط واستبعاد أي نصوص طويلة أو برمجية لجوجل
-        unique_codes = [str(x).strip() for x in df[code_col].dropna().unique() if len(str(x).strip()) > 0 and len(str(x)) < 15 and "function" not in str(x) and "{" not in str(x)]
+        # استخراج الأكواد النظيفة فقط (مثل 8c1.1) واستبعاد السطور الفارغة أو الأكواد المكسورة
+        unique_codes = [str(x).strip() for x in df[code_col].dropna().unique() if len(str(x).strip()) > 0 and len(str(x)) < 15]
         unique_codes = sorted(list(set(unique_codes)))
         
         if unique_codes:
@@ -82,26 +69,23 @@ else:
             df_filtered = df
             selected_code = "العام"
     else:
-        # حل بديل قاطع في حال اختلاف المسميات: يقرأ العمود الأول من الجدول مباشرة
-        fallback_col = df.columns[0]
-        unique_codes = sorted([str(x).strip() for x in df[fallback_col].dropna().unique() if len(str(x)) < 15])
-        selected_code = st.sidebar.selectbox("📂 اختر أو ابحث عن رقم الكود التجميعي:", unique_codes)
-        df_filtered = df[df[fallback_col].astype(str).str.strip() == selected_code]
+        df_filtered = df
+        selected_code = "العام"
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 العمليات الحسابية والمالية الذكية والممتدة والتنظيف التلقائي للحروف والرموز
+    # 📊 دالة الحساب المالي والأوزان الذكية (تقرأ الحقول الإنجليزية لجدولك مباشرة وتنظفها من الحروف)
     total_rows = len(df_filtered)
     
     def get_column_sum_safe(df_target, target_name):
         col = next((c for c in df_target.columns if target_name in c), None)
         if col:
+            # حذف أي رموز أو نصوص مدمجة (مثل كجم أو ¥) للحساب بشكل رياضي سليم
             clean_series = df_target[col].astype(str).str.replace(r'[^0-9.]', '', regex=True)
-            numeric_series = pd.to_numeric(clean_series, errors='coerce').fillna(0.0)
-            return float(numeric_series.sum())
+            return float(pd.to_numeric(clean_series, errors='coerce').fillna(0.0).sum())
         return 0.0
 
-    # ربط الإحصائيات مباشرة بالأعمدة الإنجليزية لجدول بضائعك الفعلي
+    # ربط الكروت مباشرة بأعمدة جدولك الفعلي
     total_weight = get_column_sum_safe(df_filtered, 'weight')
     total_volume = get_column_sum_safe(df_filtered, 'volume')
     
@@ -109,11 +93,11 @@ else:
     client_paid = get_column_sum_safe(df_filtered, 'client paid')
     total_amount = get_column_sum_safe(df_filtered, 'total')
 
-    # حساب الحاويات الفريدة
+    # حساب عدد الحاويات الفريدة
     container_col = next((c for c in df_filtered.columns if 'container' in c or 'حاوية' in c), None)
     active_containers = df_filtered[container_col].nunique() if container_col else 0
 
-    # 🎛️ عرض كروت الإحصائيات العلوية الفخمة والمربوطة بالكامل (الصف الأول)
+    # 🎛️ عرض كروت الإحصائيات العلوية المربوطة بالكامل (الصف الأول)
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f"<div class='card-purple'><div class='card-title'>📦 عدد الطلبات للكود</div><div class='card-value'>{total_rows} طلب</div></div>", unsafe_allow_html=True)
@@ -124,9 +108,9 @@ else:
     with col4:
         st.markdown(f"<div class='card-green'><div class='card-title'>🚢 عدد الحاويات النشطة</div><div class='card-value'>{active_containers} حاوية</div></div>", unsafe_allow_html=True)
 
-    # 📈 قسم الإحصائيات المالية المربوطة بالداتا الحقيقية لجدولك
+    # 📈 قسم الإحصائيات المالية المربوطة والممتدة بالتساوي
     st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
-    st.markdown("<h3 style='margin-bottom:20px;'>💰 الإحصائيات والمبالغ المالية المربوطة حياً</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='margin-bottom:20px;'>💰 الإحصائيات والمبالغ المالية حياً</h3>", unsafe_allow_html=True)
     
     m1, m2, m3 = st.columns(3)
     with m1:
@@ -136,7 +120,7 @@ else:
     with m3:
         st.markdown(f"<div class='card-green' style='background: #16a085; padding:25px;'><div class='card-title'>💵 إجمالي المجموع العام (Total)</div><div class='card-value'>¥ {total_amount:,.2f}</div></div>", unsafe_allow_html=True)
 
-    # 📅 جدول عرض تفاصيل الشحن المصفى مع مساحات تباعد مريحة
+    # 📅 جدول عرض تفاصيل الشحن المصفى بالكامل
     st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
     st.markdown("<h3>📋 تفاصيل البضائع وشحنات الأكواد المصداقة</h3>", unsafe_allow_html=True)
     st.dataframe(df_filtered, use_container_width=True)
