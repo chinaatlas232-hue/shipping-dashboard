@@ -306,35 +306,23 @@ elif page == "💰 كشف الكمارك المستحصلة":
       else 0.0
   )
 
-  # --- استخراج الكفيل الرئيسي وحساب المتبقي + المسدد من الزبون ---
-  sponsor_name = "الكفيل"
-  sponsor_remaining = 0.0
-  sponsor_collected = 0.0
-
+  osama_customs = 0.0
   if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
-    valid_sponsors = [
-        s
-        for s in pivot_filtered_df["الكفيل"].dropna().unique()
-        if "لم تصل بعد" not in str(s)
-    ]
-    if valid_sponsors:
-      sponsor_name = str(valid_sponsors[0]).strip()
-      sponsor_df = pivot_filtered_df[
-          pivot_filtered_df["الكفيل"] == valid_sponsors[0]
-      ]
-      sponsor_remaining = sponsor_df["متبقي حقيقي"].sum()
-      sponsor_collected = sponsor_df["قيمة الاستحصالات"].sum()
+    osama_customs = pivot_filtered_df[
+        pivot_filtered_df["الكفيل"]
+        .astype(str)
+        .str.contains("اسامة|أسامة", na=False)
+    ]["مبلغ الجمرك"].sum()
 
-  not_arrived_remaining = 0.0
+  not_arrived_customs = 0.0
   if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
-    not_arrived_remaining = pivot_filtered_df[
+    not_arrived_customs = pivot_filtered_df[
         pivot_filtered_df["الكفيل"]
         .astype(str)
         .str.contains("لم تصل بعد", na=False)
-    ]["متبقي حقيقي"].sum()
+    ]["مبلغ الجمرك"].sum()
 
-  # 4 مربعات إحصائية بدلاً من 3
-  m1, m2, m3, m4 = st.columns(4)
+  m1, m2, m3 = st.columns(3)
   with m1:
     st.markdown(
         f'<div class="metric-card" style="background-color: #1e3a8a;"><div'
@@ -345,22 +333,15 @@ elif page == "💰 كشف الكمارك المستحصلة":
   with m2:
     st.markdown(
         f'<div class="metric-card" style="background-color: #0f766e;"><div'
-        f' class="metric-title">متبقي ({sponsor_name})</div><div'
-        f' class="metric-value">${sponsor_remaining:,.2f}</div></div>',
+        ' class="metric-title">أسامة</div><div'
+        f' class="metric-value">${osama_customs:,.2f}</div></div>',
         unsafe_allow_html=True,
     )
   with m3:
     st.markdown(
-        f'<div class="metric-card" style="background-color: #16a34a;"><div'
-        f' class="metric-title">مسدد ({sponsor_name})</div><div'
-        f' class="metric-value">${sponsor_collected:,.2f}</div></div>',
-        unsafe_allow_html=True,
-    )
-  with m4:
-    st.markdown(
         f'<div class="metric-card" style="background-color: #dc2626;"><div'
-        ' class="metric-title">متبقي (لم تصل بعد)</div><div'
-        f' class="metric-value">${not_arrived_remaining:,.2f}</div></div>',
+        ' class="metric-title">لم تصل بعد</div><div'
+        f' class="metric-value">${not_arrived_customs:,.2f}</div></div>',
         unsafe_allow_html=True,
     )
 
@@ -386,6 +367,7 @@ elif page == "💰 كشف الكمارك المستحصلة":
 
     sponsor_col = "الكفيل" if "الكفيل" in pivot_filtered_df.columns else None
 
+    # مراجعة كل قيد وتجميع البيانات حسب (الكفيل والكود معاً) بدقة
     group_cols = []
     if sponsor_col:
       group_cols.append(sponsor_col)
