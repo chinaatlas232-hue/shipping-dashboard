@@ -39,7 +39,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 الرابط السحري الفعّال والجديد
+# 🔗 الرابط السحري الفعّال والجديد مدمج بالكامل بالأسفل
 SCRIPT_URL = 'https://google.com'
 
 @st.cache_data(ttl=3)
@@ -82,10 +82,8 @@ else:
     total_rows = len(df_filtered)
     
     def get_flexible_sum(df_target, possible_names):
-        # البحث بمرونة شديدة عن الكلمة داخل اسم الحقل لتجنب مشاكل التهجئة والرموز
         col = next((c for c in df_target.columns if any(p in c.lower() or p in c for p in possible_names)), None)
         if col:
-            # تنظيف خلايا المبالغ من رمز الين ¥ والمسافات والرموز قبل الجمع الحسابي
             clean_series = df_target[col].astype(str).str.replace(r'[^\d.]', '', regex=True)
             return pd.to_numeric(clean_series, errors='coerce').sum()
         return 0.0
@@ -93,9 +91,9 @@ else:
     total_weight = get_flexible_sum(df_filtered, ['الوزن', 'weight', 'wgt'])
     total_volume = get_flexible_sum(df_filtered, ['حجم', 'الحجم', 'volume', 'cbm'])
     
-    # دقة متناهية لقراءة مدفوعات المكاتب والزبائن والمجاميع العربية
-    office_paid = get_flexible_sum(df_filtered, ['المكتب', 'المكتب دفع', 'office'])
-    client_paid = get_flexible_sum(df_filtered, ['الزبون', 'الزبون دفع', 'client'])
+    # دقة متناهية لقراءة مدفوعات المكاتب والزبائن والمجاميع العربية الحية
+    office_paid = get_flexible_sum(df_filtered, ['المكتب', 'office'])
+    client_paid = get_flexible_sum(df_flexible, ['الزبون', 'client'])
     total_amount = get_flexible_sum(df_filtered, ['المجموع', 'إجمالي', 'total'])
 
     container_col = next((c for c in df_filtered.columns if 'حاوية' in c or 'الحاوية' in c or 'container' in c), None)
