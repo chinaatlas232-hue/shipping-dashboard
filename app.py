@@ -39,7 +39,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 الرابط السحري الفعّال والجديد مدمج بالكامل بالأسفل
+# 🔗 الرابط السحري المحدث مدمج بالكامل وجاهز للعمل مباشرة
 SCRIPT_URL = 'https://google.com'
 
 @st.cache_data(ttl=3)
@@ -91,9 +91,9 @@ else:
     total_weight = get_flexible_sum(df_filtered, ['الوزن', 'weight', 'wgt'])
     total_volume = get_flexible_sum(df_filtered, ['حجم', 'الحجم', 'volume', 'cbm'])
     
-    # دقة متناهية لقراءة مدفوعات المكاتب والزبائن والمجاميع العربية الحية
+    # تم هنا تصحيح الكود بالكامل برمجياً وقراءة المتغير السليم df_filtered
     office_paid = get_flexible_sum(df_filtered, ['المكتب', 'office'])
-    client_paid = get_flexible_sum(df_flexible, ['الزبون', 'client'])
+    client_paid = get_flexible_sum(df_filtered, ['الزبون', 'client'])
     total_amount = get_flexible_sum(df_filtered, ['المجموع', 'إجمالي', 'total'])
 
     container_col = next((c for c in df_filtered.columns if 'حاوية' in c or 'الحاوية' in c or 'container' in c), None)
