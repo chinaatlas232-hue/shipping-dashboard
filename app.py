@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import requests
-import plotly.express as px
 import time
 
 # 🎯 إعدادات الصفحة لتكون عريضة وبثيم احترافي
@@ -40,12 +39,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابطك السحري النهائي والمفتوح مدمج هنا تلقائياً ليعمل مباشرة
-SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw-0hnBEHtdna2_PaK6_R_xEpXtQFkJkAnOw4z7KiqeQtqo82mK3JP_U2AA6w39rimNew/exec'
+# 🔗 الرابط السحري الفعّال
+SCRIPT_URL = 'https://google.com'
 
 def fetch_shipping_data():
     try:
-        # كسر الكاش لضمان القراءة الحية الفورية بمجرد النشر الجديد
         timestamp_url = f"{SCRIPT_URL}?t={int(time.time())}"
         response = requests.get(timestamp_url)
         if response.status_code == 200:
@@ -57,9 +55,8 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري الاتصال بقاعدة البيانات وحقن الرابط النهائي المفتوح...")
+    st.warning("⚠️ جاري جلب البيانات المحدثة...")
 else:
-    # تنظيف أوتوماتيكي متطور لأسماء الأعمدة وفك التشابك العربي والمسافات المخفية
     df.columns = [col.strip().replace('_', ' ') for col in df.columns]
     
     # 🏢 شريط القائمة الجانبية (Sidebar) للأدمن
@@ -68,7 +65,6 @@ else:
     st.sidebar.markdown("---")
     
     code_col = next((c for c in df.columns if 'code' in c.lower() or 'كود' in c), None)
-    volume_col = next((c for c in df.columns if 'حجم' in c or 'الحجم' in c or 'volume' in c or 'cbm' in c.lower()), None)
     
     if code_col:
         unique_codes = sorted(df[code_col].dropna().unique())
@@ -80,7 +76,7 @@ else:
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 العمليات الحسابية والمالية الفائقة والمرنة
+    # 📊 العمليات الحسابية والمالية
     total_rows = len(df_filtered)
     
     def get_flexible_sum(df_target, possible_names):
@@ -93,7 +89,6 @@ else:
     total_weight = get_flexible_sum(df_filtered, ['الوزن', 'weight', 'wgt'])
     total_volume = get_flexible_sum(df_filtered, ['حجم', 'الحجم', 'volume', 'cbm'])
     
-    # قراءة فائقة الدقة لمدفوعات المكاتب والزبائن والمجاميع العربية بدون أخطاء صفرية
     office_paid = get_flexible_sum(df_filtered, ['المكتب', 'office'])
     client_paid = get_flexible_sum(df_filtered, ['الزبون', 'client'])
     total_amount = get_flexible_sum(df_filtered, ['المجموع', 'إجمالي', 'total'])
@@ -112,41 +107,17 @@ else:
     with col4:
         st.markdown(f"<div class='card-green'><div class='card-title'>🚢 عدد الحاويات</div><div class='card-value'>{active_containers} حاوية</div></div>", unsafe_allow_html=True)
 
-    # 📈 قسم الرسوم البيانية للـ CBM والمبالغ المالية المحدثة
+    # 📈 قسم الإحصائيات المالية بعد أخذ المساحة الكاملة الممتدة بالتساوي
     st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
+    st.markdown("<h3 style='margin-bottom:20px;'>💰 الإحصائيات والمبالغ المالية حياً</h3>", unsafe_allow_html=True)
     
-    chart_col1, chart_col2 = st.columns([1.2, 1])
-    
-    with chart_col1:
-        st.markdown("<h3 style='margin-bottom:15px;'>💰 الإحصائيات والمبالغ المالية</h3>", unsafe_allow_html=True)
-        m1, m2, m3 = st.columns(3)
-        with m1:
-            st.markdown(f"<div class='card-purple' style='background: #2c3e50; padding:20px;'><div class='card-title'>🏢 مدفوعات المكتب</div><div class='card-value' style='font-size:20px;'>¥ {office_paid:,.2f}</div></div>", unsafe_allow_html=True)
-        with m2:
-            st.markdown(f"<div class='card-orange' style='background: #34495e; padding:20px;'><div class='card-title'>👤 مدفوعات الزبائن</div><div class='card-value' style='font-size:20px;'>¥ {client_paid:,.2f}</div></div>", unsafe_allow_html=True)
-        with m3:
-            st.markdown(f"<div class='card-green' style='background: #16a085; padding:20px;'><div class='card-title'>💵 إجمالي المجموع العام</div><div class='card-value' style='font-size:20px;'>¥ {total_amount:,.2f}</div></div>", unsafe_allow_html=True)
-
-    with chart_col2:
-        st.markdown("<h3 style='margin-bottom:15px; text-align:center;'>📊 نسبة استهلاك مساحات الحجم (CBM)</h3>", unsafe_allow_html=True)
-        if code_col and volume_col:
-            df_chart = df.copy()
-            df_chart[volume_col] = pd.to_numeric(df_chart[volume_col].astype(str).str.replace(r'[^\d.]', '', regex=True), errors='coerce').fillna(0)
-            df_grouped = df_chart.groupby(code_col)[volume_col].sum().reset_index()
-            
-            fig = px.pie(df_grouped, values=volume_col, names=code_col, hole=0.4,
-                         color_discrete_sequence=px.colors.sequential.RdBu)
-            fig.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font_color='white',
-                margin=dict(t=10, b=10, l=10, r=10),
-                height=220,
-                showlegend=False
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("لم يتم العثور على حقول الأحجام لرسم المخطط الدائري.")
+    m1, m2, m3 = st.columns(3)
+    with m1:
+        st.markdown(f"<div class='card-purple' style='background: #2c3e50; padding:25px;'><div class='card-title'>🏢 مدفوعات المكتب</div><div class='card-value'>¥ {office_paid:,.2f}</div></div>", unsafe_allow_html=True)
+    with m2:
+        st.markdown(f"<div class='card-orange' style='background: #34495e; padding:25px;'><div class='card-title'>👤 مدفوعات الزبائن</div><div class='card-value'>¥ {client_paid:,.2f}</div></div>", unsafe_allow_html=True)
+    with m3:
+        st.markdown(f"<div class='card-green' style='background: #16a085; padding:25px;'><div class='card-title'>💵 إجمالي المجموع العام</div><div class='card-value'>¥ {total_amount:,.2f}</div></div>", unsafe_allow_html=True)
 
     # 📅 جدول عرض تفاصيل الشحن المصفى مع مساحات تباعد مريحة
     st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
