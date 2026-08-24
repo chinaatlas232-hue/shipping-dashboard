@@ -1,219 +1,149 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
+import requests
+import plotly.express as px
 
-# إعداد الصفحة لتكون عريضة وذات مظهر مظلم (Dark Theme)
-st.set_page_config(
-    page_title="بوابة تتبع الشحنات للزبائن", page_icon="📦", layout="wide"
-)
+# 🎯 إعدادات الصفحة لتكون عريضة وبثيم احترافي
+st.set_page_config(page_title="StarAdmin Shipping Dashboard", layout="wide", initial_sidebar_state="expanded")
 
-# --- تنسيقات CSS مخصصة لتلوين المربعات (KPI Cards) ---
-st.markdown(
-    """
+# 🎨 تطبيق التصميم الداكن الفخم وتوسيع المساحات والتباعد (Spacings & Paddings)
+st.markdown("""
     <style>
-    .main {
-        background-color: #0e1117;
-    }
-    .metric-card {
-        padding: 18px;
-        border-radius: 12px;
-        color: white;
-        text-align: center;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        margin-bottom: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    }
-    .metric-title {
-        font-size: 14px;
-        margin-bottom: 8px;
-        opacity: 0.9;
-        font-weight: 600;
-    }
-    .metric-value {
-        font-size: 22px;
-        font-weight: bold;
-    }
-    .welcome-box {
-        background: linear-gradient(135deg, #1e3a8a, #3b82f6);
-        padding: 20px;
-        border-radius: 12px;
-        color: white;
-        text-align: center;
-        margin-bottom: 25px;
-    }
+    /* تباعد ومساحة عامة للموقع */
+    .block-container { padding-top: 2rem !important; padding-bottom: 3rem !important; padding-left: 3rem !important; padding-right: 3rem !important; }
+    
+    /* تغيير خلفية التطبيق بالكامل للون الداكن */
+    .stApp, div[data-testid="stAppViewContainer"] { background-color: #1a1f3c !important; color: #ffffff !important; }
+    
+    /* تعديل ألوان النصوص والعناوين والخطوط */
+    h1, h2, h3, h4, h5, h6, label, p, span { color: #ffffff !important; font-family: 'Segoe UI', sans-serif !important; }
+    
+    /* كروت الإحصائيات العلوية الملونة مع مساحات داخلية مريحة */
+    .card-purple { background: linear-gradient(135deg, #764ba2 0%, #667eea 100%); padding: 25px 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 25px; }
+    .card-orange { background: linear-gradient(135deg, #f12711 0%, #f5af19 100%); padding: 25px 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 25px; }
+    .card-blue { background: linear-gradient(135deg, #0575e6 0%, #00f260 100%); padding: 25px 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 25px; }
+    .card-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); padding: 25px 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 25px; }
+    
+    .card-title { font-size: 14px; font-weight: bold; opacity: 0.9; color: #ffffff !important; }
+    .card-value { font-size: 26px; font-weight: bold; margin-top: 10px; color: #ffffff !important; }
+    
+    /* تلوين ومساحة شريط القائمة الجانبية باللون الداكن */
+    div[data-testid="stSidebar"] { background-color: #11152c !important; border-left: 1px solid #2c3e50; padding: 20px 10px; }
+    
+    /* مساحات للجداول وصندوق البحث */
+    div[data-testid="stDataFrame"] { background-color: #11152c !important; padding: 15px; border-radius: 8px; margin-top: 15px; }
+    .stTextInput>div>div>input, .stSelectbox>div>div>div { background-color: #11152c !important; color: white !important; border: 1px solid #34495e !important; padding: 10px !important; }
+    
+    /* مساحات إضافية بين الأقسام */
+    .section-spacer { margin-top: 40px; margin-bottom: 20px; }
     </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
+# 🔗 رابط جوجل السحري النظيف والمحدث لقاعدة بياناتك
+SCRIPT_URL = 'https://google.com'
 
-# --- تحميل البيانات ---
-@st.cache_data
-def load_data():
-  try:
-    return pd.read_excel("shipping_data.xlsx")
-  except:
-    # بيانات تجريبية في حال لم يوجد الملف
-    return pd.DataFrame({
-        "No": [972, 994, 996, 998, 1020],
-        "code": ["SM165", "SM165", "SM165", "SM170", "SM170"],
-        "Shipping mark": [
-            "SM165-B07",
-            "SM165-B03",
-            "SM165-B05",
-            "SM170-B01",
-            "SM170-B02",
-        ],
-        "رقم دخول المخزن": ["RS2601", "RS2602", "RS2603", "RS2604", "RS2605"],
-        "المكتب دفع": [25934.0, 13500.0, 9036.0, 12000.0, 5000.0],
-        "Client Paid": [500.0, 300.0, 200.0, 150.0, 200.0],
-        "نوع البضاعة": ["Lady Trousers", "White shirt", "Skirt", "Top", "Coat"],
-        "عدد الكارتون": [8, 3, 3, 5, 4],
-        "الوزن": [364, 126, 150, 200, 180],
-        "حجم": [1.255, 0.527, 0.492, 0.800, 0.600],
-        "رقم الفاتورة": ["INV-01", "INV-02", "INV-03", "INV-04", "INV-05"],
-        "رقم الحاويات": ["RQ6044", "RQ6044", "RQ6045", "RQ6045", "RQ6046"],
-    })
+@st.cache_data(ttl=5)
+def fetch_shipping_data():
+    try:
+        response = requests.get(SCRIPT_URL)
+        if response.status_code == 200:
+            return pd.DataFrame(response.json())
+    except Exception as e:
+        st.error(f"خطأ في جلب البيانات: {e}")
+    return pd.DataFrame()
 
+df = fetch_shipping_data()
 
-df = load_data()
-
-# --- عنوان الواجهة الرئيسية للزبون ---
-st.markdown(
-    """
-    <div class="welcome-box">
-        <h2>📦 بوابة تتبع الشحنات والطلبات للزبائن</h2>
-        <p>أدخل الكود الخاص بك لعرض تفاصيل شحناتك وكراتينك والحاويات بكل دقة</p>
-    </div>
-""",
-    unsafe_allow_html=True,
-)
-
-# --- شريط إدخال أو اختيار كود الزبون ---
-codes = df["code"].unique().tolist()
-col_sel1, col_sel2, col_sel3 = st.columns([1, 2, 1])
-with col_sel2:
-  selected_code = st.selectbox("🔹 يرجى اختيار أو كتابة الكود الخاص بك:", codes)
-
-# تصفية البيانات حصرياً للزبون المختار
-filtered_df = df[df["code"] == selected_code]
-
-if not filtered_df.empty:
-  # حساب المؤشرات الخاصة بهذا الزبون فقط
-  total_client_paid = (
-      filtered_df["Client Paid"].sum() if "Client Paid" in filtered_df else 0
-  )
-  total_containers = filtered_df["رقم الحاويات"].nunique()
-  total_orders = len(filtered_df)
-  office_paid = filtered_df["المكتب دفع"].sum()
-  total_amount = office_paid * 1.01  # مثال للمبلغ الإجمالي
-  total_cbm = filtered_df["حجم"].sum()
-  total_ctns = filtered_df["عدد الكارتون"].sum()
-
-  st.markdown("---")
-  st.markdown(
-      f"### 📊 ملخص شحنات الكود: :green[{selected_code}]"
-  )
-
-  # الصف الأول للمربعات الملونة
-  c1, c2, c3, c4 = st.columns(4)
-  with c1:
-    st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #10b981;">
-                <div class="metric-title">Client Paid</div>
-                <div class="metric-value">¥ {total_client_paid:,.1f}</div>
-            </div>
-        """,
-        unsafe_allow_html=True,
-    )
-  with c2:
-    st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #ef4444;">
-                <div class="metric-title">عدد الحاويات الخاصة بك</div>
-                <div class="metric-value">{total_containers} حاوية</div>
-            </div>
-        """,
-        unsafe_allow_html=True,
-    )
-  with c3:
-    st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #22c55e;">
-                <div class="metric-title">كود الزبون</div>
-                <div class="metric-value">{selected_code}</div>
-            </div>
-        """,
-        unsafe_allow_html=True,
-    )
-  with c4:
-    st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #3b82f6;">
-                <div class="metric-title">عدد الطلبات</div>
-                <div class="metric-value">{total_orders} طلب</div>
-            </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-  # الصف الثاني للمربعات الملونة
-  c5, c6, c7, c8 = st.columns(4)
-  with c5:
-    st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #7c3aed;">
-                <div class="metric-title">إجمالي المبالغ Amount</div>
-                <div class="metric-value">¥ {total_amount:,.1f}</div>
-            </div>
-        """,
-        unsafe_allow_html=True,
-    )
-  with c6:
-    st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #f97316;">
-                <div class="metric-title">Office Paid</div>
-                <div class="metric-value">¥ {office_paid:,.1f}</div>
-            </div>
-        """,
-        unsafe_allow_html=True,
-    )
-  with c7:
-    st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #1e3a8a;">
-                <div class="metric-title">📊 إجمالي الحجم (Cbm)</div>
-                <div class="metric-value">Cbm {total_cbm:.3f}</div>
-            </div>
-        """,
-        unsafe_allow_html=True,
-    )
-  with c8:
-    st.markdown(
-        f"""
-            <div class="metric-card" style="background-color: #d97706;">
-                <div class="metric-title">📦 إجمالي الكراتين (Ctns)</div>
-                <div class="metric-value">{total_ctns} كارتون</div>
-            </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-  st.markdown("---")
-  st.subheader(f"📋 تفاصيل بضائع وشحنات الكود: {selected_code}")
-
-  # زر تحميل البيانات الخاصة بهذا الزبون فقط
-  csv = filtered_df.to_csv(index=False).encode("utf-8")
-  st.download_button(
-      label="📥 تحميل تفاصيل شحناتك (CSV)",
-      data=csv,
-      file_name=f"My_Shipments_{selected_code}.csv",
-      mime="text/csv",
-  )
-
-  # عرض جدول الزبون فقط
-  st.dataframe(filtered_df, use_container_width=True)
-
+if df.empty:
+    st.warning("⚠️ جاري جلب البيانات وتحديث الواجهة الفخمة والمساحات...")
 else:
-  st.warning("عذراً، لا توجد بيانات مسجلة لهذا الكود.")
+    df.columns = [col.strip() for col in df.columns]
+    
+    # 🏢 شريط القائمة الجانبية (Sidebar) للأدمن
+    st.sidebar.markdown("<h2 style='text-align:center; color:#fff; margin-bottom:5px;'>⭐ StarAdmin</h2>", unsafe_allow_html=True)
+    st.sidebar.markdown("<p style='text-align:center; opacity:0.7; margin-bottom:25px;'>لوحة تحكم الشحن</p>", unsafe_allow_html=True)
+    st.sidebar.markdown("---")
+    
+    code_col = next((c for c in df.columns if 'code' in c.lower() or 'كود' in c), None)
+    volume_col = next((c for c in df.columns if 'حجم' in c or 'الحجم' in c or 'volume' in c or 'cbm' in c.lower()), None)
+    
+    if code_col:
+        unique_codes = sorted(df[code_col].dropna().unique())
+        selected_code = st.sidebar.selectbox("📂 اختر أو ابحث عن رقم الكود التجميعي:", unique_codes)
+        df_filtered = df[df[code_col] == selected_code]
+    else:
+        df_filtered = df
+        selected_code = "العام"
+
+    st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
+
+    # 📊 العمليات الحسابية الذكية للداش بورد
+    total_rows = len(df_filtered)
+    
+    def get_sum(df_target, possible_names):
+        for name in possible_names:
+            col = next((c for c in df_target.columns if name in c.lower() or name in c), None)
+            if col:
+                return pd.to_numeric(df_target[col].astype(str).str.replace(/[^\d.]/g, '', regex=True), errors='coerce').sum()
+        return 0.0
+
+    total_weight = get_sum(df_filtered, ['الوزن', 'weight', 'wgt'])
+    total_volume = get_sum(df_filtered, ['حجم', 'الحجم', 'volume', 'cbm'])
+    office_paid = get_sum(df_filtered, ['المكتب دفع', 'office paid', 'المكتب'])
+    client_paid = get_sum(df_filtered, ['الزبون دفع', 'client paid', 'الزبون'])
+    total_amount = get_sum(df_filtered, ['المجموع', 'total', 'إجمالي المبلغ'])
+
+    container_col = next((c for c in df_filtered.columns if 'حاوية' in c or 'الحاوية' in c or 'container' in c), None)
+    active_containers = df_filtered[container_col].nunique() if container_col else 0
+
+    # 🎛️ عرض كروت الإحصائيات (الصف الأول مع تباعد ومساحات داخلية مريحة للعين)
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.markdown(f"<div class='card-purple'><div class='card-title'>📦 عدد الطلبات للكود</div><div class='card-value'>{total_rows} طلب</div></div>", unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"<div class='card-orange'><div class='card-title'>⚖️ الوزن الإجمالي</div><div class='card-value'>{total_weight:,.1f} كجم</div></div>", unsafe_allow_html=True)
+    with col3:
+        st.markdown(f"<div class='card-blue'><div class='card-title'>📐 الحجم الكلي المجمع</div><div class='card-value'>{total_volume:.3f} CBM</div></div>", unsafe_allow_html=True)
+    with col4:
+        st.markdown(f"<div class='card-green'><div class='card-title'>🚢 عدد الحاويات</div><div class='card-value'>{active_containers} حاوية</div></div>", unsafe_allow_html=True)
+
+    # 📈 قسم الرسوم البيانية للـ CBM والمساحات (مثل StarAdmin تماماً)
+    st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
+    
+    chart_col1, chart_col2 = st.columns([1.2, 1])
+    
+    with chart_col1:
+        st.markdown("<h3 style='margin-bottom:15px;'>💰 الإحصائيات والمبالغ المالية</h3>", unsafe_allow_html=True)
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.markdown(f"<div class='card-purple' style='background: #2c3e50; padding:20px;'><div class='card-title'>🏢 مدفوعات المكتب</div><div class='card-value' style='font-size:20px;'>¥ {office_paid:,.2f}</div></div>", unsafe_allow_html=True)
+        with m2:
+            st.markdown(f"<div class='card-orange' style='background: #34495e; padding:20px;'><div class='card-title'>👤 مدفوعات الزبائن</div><div class='card-value' style='font-size:20px;'>¥ {client_paid:,.2f}</div></div>", unsafe_allow_html=True)
+        with m3:
+            st.markdown(f"<div class='card-green' style='background: #16a085; padding:20px;'><div class='card-title'>💵 إجمالي المجموع العام</div><div class='card-value' style='font-size:20px;'>¥ {total_amount:,.2f}</div></div>", unsafe_allow_html=True)
+
+    with chart_col2:
+        st.markdown("<h3 style='margin-bottom:15px; text-align:center;'>📊 نسبة استهلاك مساحات الحجم (CBM)</h3>", unsafe_allow_html=True)
+        if code_col and volume_col:
+            # تجهيز بيانات الرسم البياني الدائري للمساحات
+            df_chart = df.groupby(code_col)[volume_col].sum().reset_index()
+            df_chart[volume_col] = pd.to_numeric(df_chart[volume_col], errors='coerce').fillna(0)
+            
+            fig = px.pie(df_chart, values=volume_col, names=code_col, hole=0.4,
+                         color_discrete_sequence=px.colors.sequential.RdBu)
+            fig.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font_color='white',
+                margin=dict(t=10, b=10, l=10, r=10),
+                height=220,
+                showlegend=False
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("لم يتم العثور على حقول الأحجام لرسم المخطط الدائري.")
+
+    # 📅 جدول عرض تفاصيل الشحن المصفى مع مساحات تباعد مريحة
+    st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
+    st.markdown("<h3>📋 تفاصيل البضائع وشحنات الأكواد المصداقة</h3>", unsafe_allow_html=True)
+    st.dataframe(df_filtered, use_container_width=True)
