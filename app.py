@@ -26,14 +26,6 @@ st.markdown(
         font-weight: bold !important;
         color: #1f2937 !important;
     }
-
-    [data-testid="stDataFrame"] div[role="grid"] { 
-        font-size: 16px !important; 
-        font-weight: bold !important;
-    }
-    [data-testid="stDataFrame"] div[role="row"] { 
-        min-height: 48px !important; 
-    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -196,7 +188,6 @@ def render_download_buttons(data_to_download):
     )
 
 
-# دالة عرض المربعات الإحصائية القديمة (لوحة التحكم)
 def render_dashboard_metrics(data_df):
   total_orders = len(data_df)
   total_cartons = (
@@ -216,7 +207,6 @@ def render_dashboard_metrics(data_df):
   client_paid = data_df[client_paid_col].sum() if client_paid_col else 0.0
 
   c1, c2, c3, c4, c5, c6 = st.columns(6)
-
   with c1:
     st.markdown(
         f'<div class="metric-card" style="background-color: #1e3a8a;"><div'
@@ -265,12 +255,8 @@ def render_dashboard_metrics(data_df):
 if page == "📊 لوحة التحكم (Dashboard)":
   st.title("📊 لوحة التحكم الرئيسية")
   st.markdown("---")
-
   filtered_df = apply_text_search(filtered_df)
-
-  # إرجاع البطاقات الإحصائية الست
   render_dashboard_metrics(filtered_df)
-
   render_download_buttons(filtered_df)
   st.dataframe(filtered_df, use_container_width=True, height=700)
 
@@ -468,34 +454,22 @@ elif page == "💰 متبقي على كل زبون":
     is_not_arrived_list = pivot_display_df["is_not_arrived"].tolist()
     display_df = pivot_display_df.drop(columns=["is_not_arrived"])
 
+    # تصحيح دالة التنسيق الشرطي لضمان وضوح الخانات
     def apply_row_styles(row):
       idx = row.name
       label = str(row["Row Labels"])
       is_not_arr = is_not_arrived_list[idx]
 
       if is_not_arr:
-        if label.startswith("➖"):
-          return [
-              "background-color: #fee2e2 !important; color: #991b1b"
-              " !important; font-weight: bold !important; font-size: 16px"
-              " !important;"
-          ] * len(row)
         return [
-            "background-color: #fff1f2 !important; color: #b91c1c !important;"
-            " font-size: 16px !important; font-weight: bold !important;"
+            "background-color: #fee2e2; color: #991b1b; font-weight: bold;"
+        ] * len(row)
+      elif label.startswith("➖") or label == "Grand Total":
+        return [
+            "background-color: #f1f5f9; color: #000000; font-weight: bold;"
         ] * len(row)
 
-      if label.startswith("➖") or label == "Grand Total":
-        return [
-            "background-color: #f1f5f9 !important; font-weight: bold"
-            " !important; font-size: 16px !important; color: #000000"
-            " !important;"
-        ] * len(row)
-
-      return [
-          "font-size: 16px !important; font-weight: bold !important; color:"
-          " #1f2937 !important;"
-      ] * len(row)
+      return ["color: #111827;"] * len(row)
 
     styled_pivot = display_df.style.apply(apply_row_styles, axis=1)
     render_download_buttons(display_df)
