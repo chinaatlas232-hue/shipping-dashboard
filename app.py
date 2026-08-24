@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import requests
-import time
 
 # 1. إعدادات الصفحة الاحترافية (StarAdmin Layout)
 st.set_page_config(page_title="لوحة تحكم الشحن والبيانات", layout="wide", initial_sidebar_state="expanded")
@@ -29,14 +28,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. رابط الـ Web App المفتوح الموثق والمنقذ لتخطي صلاحيات الحظر الأمني لجوجل
+# 🔗 رابط الـ Web App المفتوح والجديد المنقذ مئة بالمئة تم دمجه هنا ليعمل مباشرة
 SCRIPT_URL = 'https://google.com'
 
 def fetch_shipping_data():
     try:
-        # كسر كاش المتصفحات والمنصة نهائياً عبر حقن الوقت اللحظي تلقائياً بالخلفية
-        timestamp_url = f"{SCRIPT_URL}?nocache={int(time.time())}"
-        response = requests.get(timestamp_url)
+        response = requests.get(SCRIPT_URL)
         if response.status_code == 200:
             return pd.DataFrame(response.json())
     except Exception as e:
@@ -46,7 +43,7 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري كسر الكاش وتحديث لوحة التحكم بالبيانات المفهومة...")
+    st.warning("⚠️ جاري جلب البيانات الفورية الصافية والمفهومة وتحديث لوحة التحكم...")
 else:
     # تنظيف أسماء الأعمدة ديناميكياً وتحويلها لنصوص صغيرة لتسهيل الربط
     df.columns = [str(col).strip().lower() for col in df.columns]
@@ -56,7 +53,7 @@ else:
     st.sidebar.markdown("<p style='text-align:center; opacity:0.7; margin-bottom:25px;'>لوحة تحكم الشحن</p>", unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
-    # تحديد عمود الكود من البيانات المفهومة الصافية
+    # تحديد عمود الكود التجميعي من البيانات النظيفة
     code_col = next((c for c in df.columns if 'code' in c or 'كود' in c), None)
     
     if code_col:
@@ -73,7 +70,7 @@ else:
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 العمليات الحسابية والمالية الذكية والمربوطة بالأعمدة الإنجليزية الصريحة لجدولك
+    # 📊 العمليات الحسابية والمالية المربوطة بالأعمدة الإنجليزية لجدولك الحقيقي
     total_rows = len(df_filtered)
     
     def get_column_sum_safe(df_target, target_name):
@@ -93,7 +90,7 @@ else:
     container_col = next((c for c in df_filtered.columns if 'container' in c or 'حاوية' in c), None)
     active_containers = df_filtered[container_col].nunique() if container_col else 0
 
-    # 🎛️ عرض كروت الإحصائيات العلوية (الصف الأول)
+    # 🎛️ عرض كروت الإحصائيات العلوية الفخمة والمربوطة بالكامل (الصف الأول)
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f"<div class='card-purple'><div class='card-title'>📦 عدد الطلبات للكود</div><div class='card-value'>{total_rows} طلب</div></div>", unsafe_allow_html=True)
@@ -116,7 +113,7 @@ else:
     with m3:
         st.markdown(f"<div class='card-green' style='background: #16a085; padding:25px;'><div class='card-title'>💵 إجمالي المجموع العام (Total)</div><div class='card-value'>¥ {total_amount:,.2f}</div></div>", unsafe_allow_html=True)
 
-    # 📅 جدول عرض تفاصيل الشحن المصفى المفهوم بنسبة 100%
+    # 📅 جدول تفاصيل الشحن المصفى المفهوم والنظيف بالكامل بالأسفل
     st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
     st.markdown("<h3>📋 تفاصيل البضائع وشحنات الأكواد المصداقة</h3>", unsafe_allow_html=True)
     st.dataframe(df_filtered, use_container_width=True)
