@@ -146,7 +146,7 @@ page = st.sidebar.radio(
         "📊 لوحة التحكم (Dashboard)",
         "🚢 الشحنات والحاويات",
         "📦 الطلبات",
-        "💰 متبقي على كل زبون",
+        "💰 كشف الكمارك المستحصلة",
         "📈 واجهة التقارير",
     ],
 )
@@ -276,8 +276,8 @@ elif page == "📦 الطلبات":
   render_download_buttons(filtered_df)
   st.dataframe(filtered_df, use_container_width=True, height=700)
 
-elif page == "💰 متبقي على كل زبون":
-  st.title("💰 كشف متبقي المبالغ والحساب التجميعي (Pivot Report)")
+elif page == "💰 كشف الكمارك المستحصلة":
+  st.title("💰 كشف الكمارك المستحصلة من العميل (Pivot Report)")
   st.markdown("---")
 
   search_query = st.text_input(
@@ -368,10 +368,10 @@ elif page == "💰 متبقي على كل زبون":
     sponsor_col = "الكفيل" if "الكفيل" in pivot_filtered_df.columns else None
 
     group_cols = []
-    if sponsor_col:
-      group_cols.append(sponsor_col)
     if "code" in pivot_filtered_df.columns:
       group_cols.append("code")
+    if sponsor_col:
+      group_cols.append(sponsor_col)
 
     if group_cols:
       grouped_parents = pivot_filtered_df.groupby(group_cols, dropna=False)
@@ -379,12 +379,16 @@ elif page == "💰 متبقي على كل زبون":
       for group_keys, parent_group in grouped_parents:
         is_not_arrived = False
         if isinstance(group_keys, tuple):
-          s_val, c_val = group_keys[0], group_keys[1]
-          label_text = f"➖ {c_val} (الكفيل: {s_val})" if pd.notna(s_val) else f"➖ {c_val}"
-          if pd.notna(s_val) and "لم تصل بعد" in str(s_val):
-            is_not_arrived = True
+          c_val, s_val = group_keys[0], group_keys[1]
+          # صياغة التسمية لإظهار رقم الكود بين قوسين بجانب اسم الكفيل/العميل
+          if pd.notna(s_val):
+            label_text = f"➖ ({c_val}) الكفيل: {s_val}"
+            if "لم تصل بعد" in str(s_val):
+              is_not_arrived = True
+          else:
+            label_text = f"➖ ({c_val})"
         else:
-          label_text = f"➖ {group_keys}"
+          label_text = f"➖ ({group_keys})"
           if "لم تصل بعد" in str(group_keys):
             is_not_arrived = True
 
@@ -454,7 +458,7 @@ elif page == "💰 متبقي على كل زبون":
     is_not_arrived_list = pivot_display_df["is_not_arrived"].tolist()
     display_df = pivot_display_df.drop(columns=["is_not_arrived"])
 
-    # تصحيح دالة التنسيق الشرطي لضمان وضوح الخانات
+    # تنسيق الألوان لضمان وضوح النصوص في كافة الخانات
     def apply_row_styles(row):
       idx = row.name
       label = str(row["Row Labels"])
@@ -466,10 +470,10 @@ elif page == "💰 متبقي على كل زبون":
         ] * len(row)
       elif label.startswith("➖") or label == "Grand Total":
         return [
-            "background-color: #f1f5f9; color: #000000; font-weight: bold;"
+            "background-color: #f1f5f9; color: #0f172a; font-weight: bold;"
         ] * len(row)
 
-      return ["color: #111827;"] * len(row)
+      return ["color: #1e293b; background-color: #ffffff;"] * len(row)
 
     styled_pivot = display_df.style.apply(apply_row_styles, axis=1)
     render_download_buttons(display_df)
