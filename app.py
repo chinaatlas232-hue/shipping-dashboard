@@ -4,7 +4,7 @@ import requests
 import io
 
 # 🎯 إعدادات الصفحة لتكون عريضة وبثيم احترافي ممتد
-st.set_page_config(page_title="StarAdmin Shipping Dashboard", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="لوحة تحكم الشحن الاحترافية", layout="wide", initial_sidebar_state="expanded")
 
 # 🎨 تطبيق التصميم الداكن الفخم وتوسيع المساحات والتباعد (Spacings & Paddings)
 st.markdown("""
@@ -39,7 +39,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط جلب البيانات المباشر والآمن بصيغة CSV لجدولك الفعلي
+# 🔗 رابط جلب ورقة العمل الأولى (Sheet1) مباشرة لكسر حجب كود الحماية وجلب البيانات الحقيقية
 CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
@@ -54,9 +54,9 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري جلب البيانات الفورية من هاتفك وتحديث لوحة التحكم...")
+    st.warning("⚠️ جاري جلب البيانات الحقيقية من هاتفك وتحديث لوحة التحكم...")
 else:
-    # تنظيف وتجهيز أسماء الأعمدة لمنع تداخل الحروف
+    # تنظيف وتوحيد أسماء الأعمدة وإزالة المسافات تلقائياً لربط الداتا
     df.columns = [str(col).strip() for col in df.columns]
     
     # 🏢 شريط القائمة الجانبية (Sidebar) للأدمن
@@ -64,29 +64,38 @@ else:
     st.sidebar.markdown("<p style='text-align:center; opacity:0.7; margin-bottom:25px;'>لوحة تحكم الشحن</p>", unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
-    # 🔍 تم إصلاح البحث التلقائي ليفحص الأسماء بدقة ويستبعد النصوص العشوائية والمخفية لكروم
-    code_col = next((c for c in df.columns if 'code' in c.lower() or 'كود' in c), None)
+    # 🔍 دالة فحص وتحديد عمود الأكواد من جدولك الصافي المحدث
+    code_col = next((c for c in df.columns if 'code' in c.lower() or 'كود' in c or 'الرمز' in c), None)
     
     if code_col:
-        # تصفية الأكواد واستبعاد النصوص البرمجية الطويلة لحماية القائمة والبحث عن الكود الفعلي فقط
-        unique_codes = [str(x) for x in df[code_col].dropna().unique() if len(str(x)) < 15 and "function" not in str(x)]
-        unique_codes = sorted(unique_codes)
-        selected_code = st.sidebar.selectbox("📂 اختر أو ابحث عن رقم الكود التجميعي:", unique_codes)
-        df_filtered = df[df[code_col].astype(str) == selected_code]
+        # تصفية الأكواد الحقيقية النظيفة فقط واستبعاد السطور الفارغة أو الأكواد الطويلة المكسورة
+        unique_codes = [str(x).strip() for x in df[code_col].dropna().unique() if len(str(x).strip()) > 0 and len(str(x)) < 20]
+        unique_codes = sorted(list(set(unique_codes)))
+        
+        if unique_codes:
+            selected_code = st.sidebar.selectbox("📂 اختر أو ابحث عن رقم الكود التجميعي:", unique_codes)
+            df_filtered = df[df[code_col].astype(str).str.strip() == selected_code]
+        else:
+            df_filtered = df
+            selected_code = "العام"
     else:
-        df_filtered = df
-        selected_code = "العام"
+        # إذا لم يجد عمود باسم كود، يبحث في أول عمود متاح بالجدول
+        code_col = df.columns[0]
+        unique_codes = sorted([str(x).strip() for x in df[code_col].dropna().unique() if len(str(x)) < 20])
+        selected_code = st.sidebar.selectbox("📂 اختر أو ابحث عن رقم الكود التجميعي:", unique_codes)
+        df_filtered = df[df[code_col].astype(str).str.strip() == selected_code]
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 العمليات الحسابية والمالية الذكية والممتدة والتنظيف التلقائي للحروف والرموز
+    # 📊 دالة الحسابات والعمليات المالية الصارمة والمجردة من النصوص تماماً
     total_rows = len(df_filtered)
     
     def get_flexible_sum(df_target, possible_names):
         col = next((c for c in df_target.columns if any(p in str(c).lower() or p in str(c) for p in possible_names)), None)
         if col:
+            # تجريد محتويات الخلايا من أي نصوص أو فواصل (مثل كجم، ين، ¥) لربط المجموع الرياضي الحقيقي
             clean_series = df_target[col].astype(str).str.replace(r'[^0-9.]', '', regex=True)
-            return pd.to_numeric(clean_series, errors='coerce').sum()
+            return pd.to_numeric(clean_series, errors='coerce').fillna(0.0).sum()
         return 0.0
 
     total_weight = get_flexible_sum(df_filtered, ['الوزن', 'weight', 'wgt'])
