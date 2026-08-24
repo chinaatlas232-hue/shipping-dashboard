@@ -12,6 +12,8 @@ st.markdown(
     """
     <style>
     .main { background-color: #0e1117; }
+    
+    /* بطاقات الإحصائيات */
     .metric-card {
         padding: 16px; border-radius: 12px; color: white;
         text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -25,6 +27,14 @@ st.markdown(
         font-size: 18px !important;
         font-weight: bold !important;
         color: #1f2937 !important;
+    }
+
+    /* 🔹 تم جعل مربع رفع الملفات باللون الأزرق الفاتح هنا 🔹 */
+    [data-testid="stFileUploader"] {
+        background-color: #e0f2fe !important;
+        border: 2px dashed #38bdf8 !important;
+        border-radius: 12px !important;
+        padding: 10px !important;
     }
     </style>
 """,
@@ -306,7 +316,6 @@ elif page == "💰 كشف الكمارك المستحصلة":
       else 0.0
   )
 
-  # --- استخراج الكفيل الرئيسي وحساب المتبقي + المسدد من الزبون ---
   sponsor_name = "الكفيل"
   sponsor_remaining = 0.0
   sponsor_collected = 0.0
@@ -333,7 +342,6 @@ elif page == "💰 كشف الكمارك المستحصلة":
         .str.contains("لم تصل بعد", na=False)
     ]["متبقي حقيقي"].sum()
 
-  # المربعات الإحصائية (تم تغيير خلفية المربع الثاني إلى اللون البرتقالي #d97706)
   m1, m2, m3, m4 = st.columns(4)
   with m1:
     st.markdown(
@@ -343,7 +351,6 @@ elif page == "💰 كشف الكمارك المستحصلة":
         unsafe_allow_html=True,
     )
   with m2:
-    # --- هنا تم وضع اللون البرتقالي ---
     st.markdown(
         f'<div class="metric-card" style="background-color: #d97706;"><div'
         f' class="metric-title">متبقي ({sponsor_name})</div><div'
