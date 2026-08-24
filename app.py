@@ -84,7 +84,9 @@ else:
         for name in possible_names:
             col = next((c for c in df_target.columns if name in c.lower() or name in c), None)
             if col:
-                return pd.to_numeric(df_target[col].astype(str).str.replace(/[^\d.]/g, '', regex=True), errors='coerce').sum()
+                # تم تصحيح هذا السطر برمجياً ليعمل بلغة البايثون بشكل سليم 100%
+                clean_series = df_target[col].astype(str).str.replace(r'[^\d.]', '', regex=True)
+                return pd.to_numeric(clean_series, errors='coerce').sum()
         return 0.0
 
     total_weight = get_sum(df_filtered, ['الوزن', 'weight', 'wgt'])
@@ -126,10 +128,11 @@ else:
         st.markdown("<h3 style='margin-bottom:15px; text-align:center;'>📊 نسبة استهلاك مساحات الحجم (CBM)</h3>", unsafe_allow_html=True)
         if code_col and volume_col:
             # تجهيز بيانات الرسم البياني الدائري للمساحات
-            df_chart = df.groupby(code_col)[volume_col].sum().reset_index()
-            df_chart[volume_col] = pd.to_numeric(df_chart[volume_col], errors='coerce').fillna(0)
+            df_chart = df.copy()
+            df_chart[volume_col] = pd.to_numeric(df_chart[volume_col].astype(str).str.replace(r'[^\d.]', '', regex=True), errors='coerce').fillna(0)
+            df_grouped = df_chart.groupby(code_col)[volume_col].sum().reset_index()
             
-            fig = px.pie(df_chart, values=volume_col, names=code_col, hole=0.4,
+            fig = px.pie(df_grouped, values=volume_col, names=code_col, hole=0.4,
                          color_discrete_sequence=px.colors.sequential.RdBu)
             fig.update_layout(
                 paper_bgcolor='rgba(0,0,0,0)',
