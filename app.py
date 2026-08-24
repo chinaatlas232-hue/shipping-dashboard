@@ -39,8 +39,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 الرابط السحري الفعّال والأخير تم وضعه هنا ليعمل مباشرة دون أخطاء
-SCRIPT_URL = 'https://google.com'
+# 🔗 رابطك السحري المحدث والمنقذ مدمج هنا تلقائياً ليعمل مباشرة
+SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxfK0ePVJHsmbznMFe8OjseOibFQHmvKdPCBgNB_S7rNbBhYmGdeCseRa9mWnXBTfnYug/exec'
 
 @st.cache_data(ttl=5)
 def fetch_shipping_data():
@@ -55,7 +55,7 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري الاتصال بقاعدة البيانات وتحديث الواجهة الفخمة والمساحات...")
+    st.warning("⚠️ جاري جلب البيانات وتحديث الواجهة الفخمة والمساحات من رابطك الجديد...")
 else:
     df.columns = [col.strip() for col in df.columns]
     
@@ -126,7 +126,6 @@ else:
     with chart_col2:
         st.markdown("<h3 style='margin-bottom:15px; text-align:center;'>📊 نسبة استهلاك مساحات الحجم (CBM)</h3>", unsafe_allow_html=True)
         if code_col and volume_col:
-            # تجهيز بيانات الرسم البياني الدائري للمساحات
             df_chart = df.copy()
             df_chart[volume_col] = pd.to_numeric(df_chart[volume_col].astype(str).str.replace(r'[^\d.]', '', regex=True), errors='coerce').fillna(0)
             df_grouped = df_chart.groupby(code_col)[volume_col].sum().reset_index()
