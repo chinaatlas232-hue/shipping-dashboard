@@ -32,7 +32,6 @@ st.markdown(
 DATA_FILE = "shipping_data.xlsx"
 
 
-# دالة لتنظيف وتحويل النصوص المالية إلى أرقام صحيحة
 def clean_numeric(series):
   return (
       pd.to_numeric(
@@ -79,17 +78,14 @@ def load_data(uploaded_file):
         "رقم الحاوية": ["RQ6052", "RQ6052"],
     })
 
-  # تنظيف أسماء الأوردة
   df.columns = df.columns.astype(str).str.strip()
 
-  # دمج المسميات الممكنة للأعمدة (عربي / إنجليزي)
   if "الزبون دفع" in df.columns and "Client Paid" not in df.columns:
     df["Client Paid"] = df["الزبون دفع"]
 
   if "المكتب دفع" in df.columns:
     df["Office Paid"] = df["المكتب دفع"]
 
-  # تنظيف وتحويل الأعمدة الرقمية
   numeric_cols = [
       "المكتب دفع",
       "Office Paid",
@@ -149,11 +145,12 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 
+# ⚠️ تم تغيير لون التمييز هنا إلى الأصفر المميز (#fef08a)
 def style_container_col(val):
-  return "background-color: #fee2e2; color: #dc2626; font-weight: bold;"
+  return "background-color: #fef08a; color: #854d0e; font-weight: bold;"
 
 
-# 5. الصفحة الرئيسية
+# 5. التنقل بين الصفحات
 if page == "📊 لوحة التحكم (Dashboard)":
   st.title("📊 لوحة التحكم الرئيسية")
   st.markdown("---")
@@ -172,12 +169,10 @@ if page == "📊 لوحة التحكم (Dashboard)":
   else:
     selected_code = "غير محدد"
 
-  # حساب المبالغ مع فحص المسميات (الزبون دفع / المجموع / المكتب دفع)
   total_containers = (
       filtered_df[container_col].nunique() if container_col else 0
   )
 
-  # فحص عمود Client Paid أو الزبون دفع
   if "Client Paid" in filtered_df:
     total_client_paid = filtered_df["Client Paid"].sum()
   elif "الزبون دفع" in filtered_df:
@@ -185,7 +180,6 @@ if page == "📊 لوحة التحكم (Dashboard)":
   else:
     total_client_paid = 0.0
 
-  # فحص عمود Office Paid أو المكتب دفع
   if "Office Paid" in filtered_df:
     office_paid = filtered_df["Office Paid"].sum()
   elif "المكتب دفع" in filtered_df:
@@ -193,7 +187,6 @@ if page == "📊 لوحة التحكم (Dashboard)":
   else:
     office_paid = 0.0
 
-  # إجمالي المبالغ من عمود (المجموع) إن وجد
   if "المجموع" in filtered_df and filtered_df["المجموع"].sum() > 0:
     total_amount = filtered_df["المجموع"].sum()
   else:
@@ -207,7 +200,6 @@ if page == "📊 لوحة التحكم (Dashboard)":
       else 0
   )
 
-  # البطاقات العلويّة
   c1, c2, c3, c4 = st.columns(4)
   with c1:
     st.markdown(
@@ -286,7 +278,13 @@ if page == "📊 لوحة التحكم (Dashboard)":
 elif page == "🚢 الشحنات والحاويات":
   st.title("🚢 إدارة الشحنات والحاويات")
   st.markdown("---")
-  st.dataframe(filtered_df, use_container_width=True, height=800)
+  if container_col:
+    styled_df = filtered_df.style.map(
+        style_container_col, subset=[container_col]
+    )
+    st.dataframe(styled_df, use_container_width=True, height=800)
+  else:
+    st.dataframe(filtered_df, use_container_width=True, height=800)
 
 elif page == "📦 الطلبات":
   st.title("📦 جميع الطلبات المسجلة")
