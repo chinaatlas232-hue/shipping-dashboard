@@ -2,12 +2,12 @@ import os
 import pandas as pd
 import streamlit as st
 
-# 1. إعداد الصفحة
+# 1. إعداد الصفحة وتوسيع المساحة
 st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
 )
 
-# 2. تنسيقات CSS
+# 2. تنسيقات CSS لزيادة المساحة وتصميم بطاقات المؤشرات
 st.markdown(
     """
     <style>
@@ -36,7 +36,7 @@ uploaded_file = st.sidebar.file_uploader(
 DATA_FILE = "shipping_data.xlsx"
 
 
-# 4. دالة تحميل وحفظ البيانات المحدثة
+# 4. دالة تحميل وحفظ البيانات المحدثة دائمًا
 def load_data(uploaded_file):
   df = None
 
@@ -102,7 +102,6 @@ df = load_data(uploaded_file)
 # 5. الفلاتر الجانبية (الشحنات / الحاويات)
 st.sidebar.markdown("### 🔍 الفلاتر الجانبية")
 
-# تحديد عمود الحاوية
 container_col = (
     "رقم الحاوية"
     if "رقم الحاوية" in df.columns
@@ -116,7 +115,6 @@ if container_col:
   )
   selected_container = st.sidebar.selectbox("🚢 اختر رقم الحاوية:", containers)
 
-# تطبيق التصفية
 filtered_df = df.copy()
 if selected_container != "الكل" and container_col:
   filtered_df = filtered_df[
@@ -140,23 +138,29 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 
-# 7. دالة تنسيق العمود بالأحمر
+# 7. دالة تمييز عمود رقم الحاوية باللون الأحمر
 def style_container_col(val):
   return "background-color: #fee2e2; color: #dc2626; font-weight: bold;"
 
 
-# 8. عرض المحتوى
+# 8. محتوى الصفحات
 if page == "📊 لوحة التحكم (Dashboard)":
   st.title("📊 لوحة التحكم الرئيسية")
   st.markdown("---")
 
-  if "code" in filtered_df.columns:
-    codes = filtered_df["code"].dropna().unique().tolist()
-    if codes:
-      selected_code = st.selectbox("🔍 تصفية إضافية برقم الكود:", codes)
-      filtered_df = filtered_df[filtered_df["code"] == selected_code]
-    else:
-      selected_code = "غير متوفر"
+  # جلب كافة الأكواد من الجدول الرئيسي الكامل (df) وليس المصفى
+  if "code" in df.columns:
+    all_codes = ["الكل"] + sorted(
+        df["code"].dropna().astype(str).unique().tolist()
+    )
+    selected_code = st.selectbox(
+        "🔍 تصفية إضافية برقم الكود (عرض جميع الأكواد):", all_codes
+    )
+
+    if selected_code != "الكل":
+      filtered_df = filtered_df[
+          filtered_df["code"].astype(str) == selected_code
+      ]
   else:
     selected_code = "غير محدد"
 
@@ -192,7 +196,7 @@ if page == "📊 لوحة التحكم (Dashboard)":
     )
   with c3:
     st.markdown(
-        f'<div class="metric-card" style="background-color: #22c55e;"><div class="metric-title">الحاوية / الكود</div><div class="metric-value">{selected_container}</div></div>',
+        f'<div class="metric-card" style="background-color: #22c55e;"><div class="metric-title">الحاوية / الكود</div><div class="metric-value">{selected_container} / {selected_code}</div></div>',
         unsafe_allow_html=True,
     )
   with c4:
@@ -234,6 +238,7 @@ if page == "📊 لوحة التحكم (Dashboard)":
       mime="text/csv",
   )
 
+  # تكبير الجدول وتطبيق التلوين الأحـمر لعمود الحاوية
   if container_col:
     styled_df = filtered_df.style.map(
         style_container_col, subset=[container_col]
