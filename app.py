@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import io
 import time
 
 # 🎯 إعدادات الصفحة لتكون عريضة وبثيم احترافي ممتد
@@ -39,27 +40,27 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 الرابط السحري الصحيح والمنقذ الذي أثبت نجاحه في قراءة جدولك بالكامل
-SCRIPT_URL = 'https://google.com'
+# 🔗 رابط قراءة الـ CSV المباشر والآمن لجدولك الحالي (مستخرج بدقة لفتح الحظر)
+CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
     try:
-        # إضافة تيمستامب رقمي بسيط بدون رموز مكسورة لمنع الكاش نهائياً
-        timestamp_url = f"{SCRIPT_URL}?time={int(time.time())}"
+        # حقن تيمستامب رقمي لمنع الكاش وجلب التعديلات الجديدة من الهاتف فوراً
+        timestamp_url = f"{CSV_URL}&t={int(time.time())}"
         response = requests.get(timestamp_url)
         if response.status_code == 200:
-            return pd.DataFrame(response.json())
+            return pd.read_csv(io.StringIO(response.text))
     except Exception as e:
-        st.error(f"خطأ في جلب البيانات: {e}")
+        st.error(f"خطأ في الاتصال المباشر بجوجل: {e}")
     return pd.DataFrame()
 
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري استعادة الاتصال الآمن وقراءة تفاصيل الجدول من هاتفك...")
+    st.warning("⚠️ جاري كسر الحظر وجلب البيانات الفورية من هاتفك...")
 else:
-    # تنظيف أوتوماتيكي متطور لأسماء الأعمدة لضمان القراءة السليمة
-    df.columns = [str(col).strip().replace('_', ' ') for col in df.columns]
+    # تنظيف العناوين وإزالة المسافات تلقائياً
+    df.columns = [str(col).strip() for col in df.columns]
     
     # 🏢 شريط القائمة الجانبية (Sidebar) للأدمن
     st.sidebar.markdown("<h2 style='text-align:center; color:#fff; margin-bottom:5px;'>⭐ StarAdmin</h2>", unsafe_allow_html=True)
@@ -78,7 +79,7 @@ else:
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 العمليات الحسابية والمالية الذكية والممتدة على المتغير df_filtered
+    # 📊 العمليات الحسابية والمالية الذكية والممتدة
     total_rows = len(df_filtered)
     
     def get_flexible_sum(df_target, possible_names):
@@ -91,7 +92,6 @@ else:
     total_weight = get_flexible_sum(df_filtered, ['الوزن', 'weight', 'wgt'])
     total_volume = get_flexible_sum(df_filtered, ['حجم', 'الحجم', 'volume', 'cbm'])
     
-    # حساب مرن للقيم المالية لضمان ظهور المبالغ وتخطي الـ 0.00
     office_paid = get_flexible_sum(df_filtered, ['المكتب', 'office'])
     client_paid = get_flexible_sum(df_filtered, ['الزبون', 'client'])
     total_amount = get_flexible_sum(df_filtered, ['المجموع', 'إجمالي', 'total'])
