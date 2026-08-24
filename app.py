@@ -17,8 +17,8 @@ st.markdown(
         text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
-    .metric-title { font-size: 15px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
-    .metric-value { font-size: 22px; font-weight: bold; }
+    .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
+    .metric-value { font-size: 20px; font-weight: bold; }
     .block-container { padding-top: 1.5rem !important; padding-bottom: 2rem; max-width: 99% !important; }
 
     [data-testid="stTextInput"] label {
@@ -162,10 +162,6 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 
-def style_container_col(val):
-  return "background-color: #fef08a; color: #111827; font-weight: bold;"
-
-
 def apply_text_search(data_frame):
   search_q = st.text_input(
       "🔍 بحث سريع في كافة الأعمدة (اخفاء باقي البيانات غير المطبقة):", ""
@@ -200,29 +196,100 @@ def render_download_buttons(data_to_download):
     )
 
 
+# دالة عرض المربعات الإحصائية القديمة (لوحة التحكم)
+def render_dashboard_metrics(data_df):
+  total_orders = len(data_df)
+  total_cartons = (
+      data_df["عدد الكارتون"].sum() if "عدد الكارتون" in data_df.columns else 0
+  )
+  total_weight = data_df["الوزن"].sum() if "الوزن" in data_df.columns else 0
+  total_volume = data_df["حجم"].sum() if "حجم" in data_df.columns else 0
+
+  office_paid_col = next(
+      (c for c in ["المكتب دفع", "Office Paid"] if c in data_df.columns), None
+  )
+  client_paid_col = next(
+      (c for c in ["الزبون دفع", "Client Paid"] if c in data_df.columns), None
+  )
+
+  office_paid = data_df[office_paid_col].sum() if office_paid_col else 0.0
+  client_paid = data_df[client_paid_col].sum() if client_paid_col else 0.0
+
+  c1, c2, c3, c4, c5, c6 = st.columns(6)
+
+  with c1:
+    st.markdown(
+        f'<div class="metric-card" style="background-color: #1e3a8a;"><div'
+        ' class="metric-title">إجمالي الطلبات</div><div'
+        f' class="metric-value">{total_orders:,}</div></div>',
+        unsafe_allow_html=True,
+    )
+  with c2:
+    st.markdown(
+        f'<div class="metric-card" style="background-color: #0284c7;"><div'
+        ' class="metric-title">إجمالي الكارتون</div><div'
+        f' class="metric-value">{total_cartons:,.0f}</div></div>',
+        unsafe_allow_html=True,
+    )
+  with c3:
+    st.markdown(
+        f'<div class="metric-card" style="background-color: #0d9488;"><div'
+        ' class="metric-title">إجمالي الوزن</div><div'
+        f' class="metric-value">{total_weight:,.2f} kg</div></div>',
+        unsafe_allow_html=True,
+    )
+  with c4:
+    st.markdown(
+        f'<div class="metric-card" style="background-color: #d97706;"><div'
+        ' class="metric-title">إجمالي الحجم</div><div'
+        f' class="metric-value">{total_volume:,.3f} m³</div></div>',
+        unsafe_allow_html=True,
+    )
+  with c5:
+    st.markdown(
+        f'<div class="metric-card" style="background-color: #16a34a;"><div'
+        ' class="metric-title">دفع الشركة</div><div'
+        f' class="metric-value">${office_paid:,.2f}</div></div>',
+        unsafe_allow_html=True,
+    )
+  with c6:
+    st.markdown(
+        f'<div class="metric-card" style="background-color: #9333ea;"><div'
+        ' class="metric-title">دفع الزبون</div><div'
+        f' class="metric-value">${client_paid:,.2f}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
 # 4. التنقل بين الصفحات
 if page == "📊 لوحة التحكم (Dashboard)":
   st.title("📊 لوحة التحكم الرئيسية")
   st.markdown("---")
+
   filtered_df = apply_text_search(filtered_df)
+
+  # إرجاع البطاقات الإحصائية الست
+  render_dashboard_metrics(filtered_df)
+
   render_download_buttons(filtered_df)
-  st.dataframe(filtered_df, use_container_width=True, height=800)
+  st.dataframe(filtered_df, use_container_width=True, height=700)
 
 elif page == "🚢 الشحنات والحاويات":
   st.title("🚢 إدارة الشحنات والحاويات")
   st.markdown("---")
   filtered_df = apply_text_search(filtered_df)
+  render_dashboard_metrics(filtered_df)
   render_download_buttons(filtered_df)
-  st.dataframe(filtered_df, use_container_width=True, height=800)
+  st.dataframe(filtered_df, use_container_width=True, height=700)
 
 elif page == "📦 الطلبات":
   st.title("📦 جميع الطلبات المسجلة")
   st.markdown("---")
   filtered_df = apply_text_search(filtered_df)
+  render_dashboard_metrics(filtered_df)
   render_download_buttons(filtered_df)
-  st.dataframe(filtered_df, use_container_width=True, height=800)
+  st.dataframe(filtered_df, use_container_width=True, height=700)
 
-# 💡 شيت متبقي على كل زبون (الجدول والتنسيق المطلوب)
 elif page == "💰 متبقي على كل زبون":
   st.title("💰 كشف متبقي المبالغ والحساب التجميعي (Pivot Report)")
   st.markdown("---")
@@ -247,7 +314,6 @@ elif page == "💰 متبقي على كل زبون":
       )
       pivot_filtered_df = pivot_filtered_df[mask.any(axis=1)]
 
-  # المربعات التوضيحية الثلاثة
   total_customs = (
       pivot_filtered_df["مبلغ الجمرك"].sum()
       if "مبلغ الجمرك" in pivot_filtered_df
@@ -295,7 +361,6 @@ elif page == "💰 متبقي على كل زبون":
 
   st.markdown("---")
 
-  # بناء الجدول الشجري
   tree_rows = []
   if not pivot_filtered_df.empty:
     grand_customs = (
@@ -441,5 +506,6 @@ elif page == "💰 متبقي على كل زبون":
 elif page == "📈 واجهة التقارير":
   st.title("📈 واجهة التقارير الشاملة")
   st.markdown("---")
+  render_dashboard_metrics(filtered_df)
   render_download_buttons(filtered_df)
   st.dataframe(filtered_df, use_container_width=True, height=500)
