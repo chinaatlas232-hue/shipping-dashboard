@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import requests
-import io
 
 # 1. إعدادات واجهة المنصة لتكون عريضة واحترافية بالكامل
 st.set_page_config(page_title="لوحة تحكم الشحن والبيانات حياً", layout="wide", initial_sidebar_state="expanded")
@@ -29,33 +28,34 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط جلب الـ CSV المباشر والآمن والمضاد لحجب خوادم جوجل نهائياً لجدولك
-CSV_URL = "https://google.com"
+# 🔗 رابط الـ Web App المفتوح والصحيح المنقذ مئة بالمئة لجلب البيانات المفهومة
+SCRIPT_URL = 'https://google.com'
 
+# تم إلغاء الكاش هنا تماماً لتقرأ المنصة البيانات حية رغماً عن الخادم وبدون التوقف على الـ Reboot
 def fetch_shipping_data():
     try:
-        response = requests.get(CSV_URL)
+        response = requests.get(SCRIPT_URL)
         if response.status_code == 200:
-            return pd.read_csv(io.StringIO(response.text))
+            return pd.DataFrame(response.json())
     except Exception as e:
-        st.error(f"خطأ في الاتصال المباشر بجوجل: {e}")
+        st.error(f"خطأ في جلب البيانات: {e}")
     return pd.DataFrame()
 
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري الاتصال الآمن بالجدول واسترجاع البيانات المفهومة الحية من هاتفك...")
+    st.warning("⚠️ جاري الاتصال الآمن بجوجل واسترجاع البيانات المفهومة الحية من هاتفك...")
 else:
-    # تنظيف المسافات المحيطة بأسماء الأعمدة لضمان الربط
-    df.columns = [str(col).strip() for col in df.columns]
+    # تنظيف أسماء حقول الجدول لمنع حدوث مشاكل في تهجئة اللغة والمسافات
+    df.columns = [str(col).strip().lower() for col in df.columns]
     
     # 🏢 شريط القائمة الجانبية (Sidebar) للأدمن
     st.sidebar.markdown("<h2 style='text-align:center; color:#fff; margin-bottom:5px;'>⭐ StarAdmin</h2>", unsafe_allow_html=True)
     st.sidebar.markdown("<p style='text-align:center; opacity:0.7; margin-bottom:25px;'>لوحة تحكم الشحن</p>", unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
-    # التعرف المرن الذكي على عمود الأكواد (عربي أو إنجليزي)
-    code_col = next((c for c in df.columns if 'code' in c.lower() or 'كود' in c), None)
+    # تحديد عمود الكود التجميعي من البيانات النظيفة
+    code_col = next((c for c in df.columns if 'code' in c or 'كود' in c), None)
     
     if code_col:
         unique_codes = sorted([str(x).strip() for x in df[code_col].dropna().unique() if len(str(x).strip()) > 0])
@@ -71,28 +71,28 @@ else:
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 دالة حسابية فائقة الذكاء لجمع خلايا الأوزان والمبالغ وتجريدها من الحروف (كجم، ¥)
+    # 📊 العمليات الحسابية والمالية المربوطة بالأعمدة الإنجليزية لجدولك الحقيقي
     total_rows = len(df_filtered)
     
-    def get_flexible_sum(df_target, matches):
-        col = next((c for c in df_target.columns if any(m in c.lower() or m in c for m in matches)), None)
+    def get_column_sum_safe(df_target, target_name):
+        col = next((c for c in df_target.columns if target_name in c), None)
         if col:
+            # تجريد الخلايا من النصوص الحرفية (ين، كجم) والإبقاء على الأرقام الصافية للجمع الرياضي
             clean_series = df_target[col].astype(str).str.replace(r'[^0-9.]', '', regex=True)
             return float(pd.to_numeric(clean_series, errors='coerce').fillna(0.0).sum())
         return 0.0
 
-    # ربط كروت الإحصائيات بمرونة فائقة باللغتين العربية والإنجليزية لجدولك
-    total_weight = get_flexible_sum(df_filtered, ['الوزن', 'weight', 'wgt', 'وزن'])
-    total_volume = get_flexible_sum(df_filtered, ['حجم', 'volume', 'cbm', 'الحجم'])
+    total_weight = get_column_sum_safe(df_filtered, 'weight')
+    total_volume = get_column_sum_safe(df_filtered, 'volume')
     
-    office_paid = get_flexible_sum(df_filtered, ['المكتب', 'office paid', 'office', 'مكتب'])
-    client_paid = get_flexible_sum(df_filtered, ['الزبون', 'client paid', 'client', 'زبون'])
-    total_amount = get_flexible_sum(df_filtered, ['المجموع', 'total', 'إجمالي', 'اجمالي'])
+    office_paid = get_column_sum_safe(df_filtered, 'office paid')
+    client_paid = get_column_sum_safe(df_filtered, 'client paid')
+    total_amount = get_column_sum_safe(df_filtered, 'total')
 
-    container_col = next((c for c in df_filtered.columns if 'container' in c.lower() or 'حاوية' in c), None)
+    container_col = next((c for c in df_filtered.columns if 'container' in c or 'حاوية' in c), None)
     active_containers = df_filtered[container_col].nunique() if container_col else 0
 
-    # 🎛️ عرض كروت الإحصائيات العلوية المربوطة بالكامل (الصف الأول)
+    # 🎛️ عرض كروت الإحصائيات العلوية الفخمة والمربوطة بالكامل (الصف الأول)
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f"<div class='card-purple'><div class='card-title'>📦 عدد الطلبات للكود</div><div class='card-value'>{total_rows} طلب</div></div>", unsafe_allow_html=True)
