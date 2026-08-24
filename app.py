@@ -40,12 +40,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 الرابط السحري المحدث بالكامل وجاهز للعمل مباشرة
-SCRIPT_URL = 'https://google.com'
+# 🔗 رابطك السحري النهائي والمفتوح مدمج هنا تلقائياً ليعمل مباشرة
+SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw-0hnBEHtdna2_PaK6_R_xEpXtQFkJkAnOw4z7KiqeQtqo82mK3JP_U2AA6w39rimNew/exec'
 
-# إجبار التحديث الفوري ومنع كاش المتصفحات والمنصة نهائياً عبر الـ TimeStamp
 def fetch_shipping_data():
     try:
+        # كسر الكاش لضمان القراءة الحية الفورية بمجرد النشر الجديد
         timestamp_url = f"{SCRIPT_URL}?t={int(time.time())}"
         response = requests.get(timestamp_url)
         if response.status_code == 200:
@@ -57,7 +57,7 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري كسر الكاش وحقن الرابط الفوري المحدث من هاتفك...")
+    st.warning("⚠️ جاري الاتصال بقاعدة البيانات وحقن الرابط النهائي المفتوح...")
 else:
     # تنظيف أوتوماتيكي متطور لأسماء الأعمدة وفك التشابك العربي والمسافات المخفية
     df.columns = [col.strip().replace('_', ' ') for col in df.columns]
@@ -93,7 +93,7 @@ else:
     total_weight = get_flexible_sum(df_filtered, ['الوزن', 'weight', 'wgt'])
     total_volume = get_flexible_sum(df_filtered, ['حجم', 'الحجم', 'volume', 'cbm'])
     
-    # دقة متناهية لقراءة مدفوعات المكاتب والزبائن والمجاميع العربية الحية
+    # قراءة فائقة الدقة لمدفوعات المكاتب والزبائن والمجاميع العربية بدون أخطاء صفرية
     office_paid = get_flexible_sum(df_filtered, ['المكتب', 'office'])
     client_paid = get_flexible_sum(df_filtered, ['الزبون', 'client'])
     total_amount = get_flexible_sum(df_filtered, ['المجموع', 'إجمالي', 'total'])
