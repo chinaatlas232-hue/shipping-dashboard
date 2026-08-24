@@ -138,6 +138,7 @@ page = st.sidebar.radio(
         "📊 لوحة التحكم (Dashboard)",
         "🚢 الشحنات والحاويات",
         "📦 الطلبات",
+        "💰 متبقي على كل زبون",
         "📈 واجهة التقارير",
     ],
 )
@@ -161,7 +162,6 @@ def apply_text_search(data_frame):
   return data_frame
 
 
-# دالة عرض أزرار التحميل مجددًا لكل الصُفحات
 def render_download_buttons(data_to_download):
   btn_col1, btn_col2 = st.columns([1, 1])
   with btn_col1:
@@ -311,11 +311,79 @@ elif page == "📦 الطلبات":
   st.title("📦 جميع الطلبات المسجلة")
   st.markdown("---")
   filtered_df = apply_text_search(filtered_df)
-
-  # إضافة أزرار التحميل لصفحة الطلبات أيضاً
   render_download_buttons(filtered_df)
-
   st.dataframe(filtered_df, use_container_width=True, height=800)
+
+# 💡 الصفحة الجديدة: متبقي على كل زبون
+elif page == "💰 متبقي على كل زبون":
+  st.title("💰 كشف متبقي المبالغ على كل زبون")
+  st.markdown("---")
+
+  client_col = "code" if "code" in filtered_df.columns else None
+
+  if client_col:
+    # تجهيز كشوف الحسابات للزبائن
+    paid_col = (
+        "Client Paid"
+        if "Client Paid" in filtered_df.columns
+        else ("الزبون دفع" if "الزبون دفع" in filtered_df.columns else None)
+    )
+    amount_col = "المجموع" if "المجموع" in filtered_df.columns else None
+
+    if paid_col and amount_col:
+      customer_summary = (
+          filtered_df.groupby(client_col)
+          .agg(
+              عدد_الطلبات=(client_col, "count"),
+              إجمالي_المبلغ=(amount_col, "sum"),
+              المبلغ_المدفوع=(paid_col, "sum"),
+          )
+          .reset_index()
+      )
+
+      customer_summary["المبلغ_المتبقي"] = (
+          customer_summary["إجمالي_المبلغ"]
+          - customer_summary["المبلغ_المدفوع"]
+      )
+
+      customer_summary = customer_summary.rename(
+          columns={
+              client_col: "كود الزبون (Code)",
+              "عدد_الطلبات": "عدد الشحنات",
+              "إجمالي_المبلغ": "إجمالي المطلوب (¥)",
+              "المبلغ_المدفوع": "المدفوع (¥)",
+              "المبلغ_المتبقي": "المتبقي (¥)",
+          }
+      )
+
+      # تطبيق البحث المباشر في الصفحة
+      customer_summary = apply_text_search(customer_summary)
+
+      total_remaining = customer_summary["المتبقي (¥)"].sum()
+      st.metric(
+          label="إجمالي الديون المتبقية على الزبائن المفلترين",
+          value=f"¥ {total_remaining:,.1f}",
+      )
+
+      st.markdown("---")
+      render_download_buttons(customer_summary)
+
+      st.dataframe(
+          customer_summary.style.highlight_between(
+              left=0.01,
+              right=float("inf"),
+              subset=["المتبقي (¥)"],
+              color="#fee2e2",
+          ),
+          use_container_width=True,
+          height=700,
+      )
+    else:
+      st.warning(
+          "تأكد من وجود أعمدة المبالغ (المجموع و الزبون دفع) في ملف البيانات."
+      )
+  else:
+    st.warning("عمود 'code' غير متوفر لحساب متبقي الزبائن.")
 
 elif page == "📈 واجهة التقارير":
   st.title("📈 واجهة التقارير الشاملة")
