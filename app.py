@@ -39,10 +39,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابطك السحري المحدث والمنقذ مدمج هنا تلقائياً ليعمل مباشرة
-SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxfK0ePVJHsmbznMFe8OjseOibFQHmvKdPCBgNB_S7rNbBhYmGdeCseRa9mWnXBTfnYug/exec'
+# 🔗 الرابط السحري الفعّال والجديد
+SCRIPT_URL = 'https://google.com'
 
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=3)
 def fetch_shipping_data():
     try:
         response = requests.get(SCRIPT_URL)
@@ -55,9 +55,10 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري جلب البيانات وتحديث الواجهة الفخمة والمساحات من رابطك الجديد...")
+    st.warning("⚠️ جاري جلب البيانات المحدثة...")
 else:
-    df.columns = [col.strip() for col in df.columns]
+    # تنظيف أوتوماتيكي متطور لأسماء الأعمدة وفك التشابك العربي والمسافات المخفية
+    df.columns = [col.strip().replace('_', ' ') for col in df.columns]
     
     # 🏢 شريط القائمة الجانبية (Sidebar) للأدمن
     st.sidebar.markdown("<h2 style='text-align:center; color:#fff; margin-bottom:5px;'>⭐ StarAdmin</h2>", unsafe_allow_html=True)
@@ -77,27 +78,30 @@ else:
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 العمليات الحسابية الذكية للداش بورد
+    # 📊 العمليات الحسابية والمالية الفائقة والمرنة
     total_rows = len(df_filtered)
     
-    def get_sum(df_target, possible_names):
-        for name in possible_names:
-            col = next((c for c in df_target.columns if name in c.lower() or name in c), None)
-            if col:
-                clean_series = df_target[col].astype(str).str.replace(r'[^\d.]', '', regex=True)
-                return pd.to_numeric(clean_series, errors='coerce').sum()
+    def get_flexible_sum(df_target, possible_names):
+        # البحث بمرونة شديدة عن الكلمة داخل اسم الحقل لتجنب مشاكل التهجئة والرموز
+        col = next((c for c in df_target.columns if any(p in c.lower() or p in c for p in possible_names)), None)
+        if col:
+            # تنظيف خلايا المبالغ من رمز الين ¥ والمسافات والرموز قبل الجمع الحسابي
+            clean_series = df_target[col].astype(str).str.replace(r'[^\d.]', '', regex=True)
+            return pd.to_numeric(clean_series, errors='coerce').sum()
         return 0.0
 
-    total_weight = get_sum(df_filtered, ['الوزن', 'weight', 'wgt'])
-    total_volume = get_sum(df_filtered, ['حجم', 'الحجم', 'volume', 'cbm'])
-    office_paid = get_sum(df_filtered, ['المكتب دفع', 'office paid', 'المكتب'])
-    client_paid = get_sum(df_filtered, ['الزبون دفع', 'client paid', 'الزبون'])
-    total_amount = get_sum(df_filtered, ['المجموع', 'total', 'إجمالي المبلغ'])
+    total_weight = get_flexible_sum(df_filtered, ['الوزن', 'weight', 'wgt'])
+    total_volume = get_flexible_sum(df_filtered, ['حجم', 'الحجم', 'volume', 'cbm'])
+    
+    # دقة متناهية لقراءة مدفوعات المكاتب والزبائن والمجاميع العربية
+    office_paid = get_flexible_sum(df_filtered, ['المكتب', 'المكتب دفع', 'office'])
+    client_paid = get_flexible_sum(df_filtered, ['الزبون', 'الزبون دفع', 'client'])
+    total_amount = get_flexible_sum(df_filtered, ['المجموع', 'إجمالي', 'total'])
 
     container_col = next((c for c in df_filtered.columns if 'حاوية' in c or 'الحاوية' in c or 'container' in c), None)
     active_containers = df_filtered[container_col].nunique() if container_col else 0
 
-    # 🎛️ عرض كروت الإحصائيات (الصف الأول مع تباعد ومساحات داخلية مريحة للعين)
+    # 🎛️ عرض كروت الإحصائيات (الصف الأول)
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f"<div class='card-purple'><div class='card-title'>📦 عدد الطلبات للكود</div><div class='card-value'>{total_rows} طلب</div></div>", unsafe_allow_html=True)
@@ -108,7 +112,7 @@ else:
     with col4:
         st.markdown(f"<div class='card-green'><div class='card-title'>🚢 عدد الحاويات</div><div class='card-value'>{active_containers} حاوية</div></div>", unsafe_allow_html=True)
 
-    # 📈 قسم الرسوم البيانية للـ CBM والمساحات (مثل StarAdmin تماماً)
+    # 📈 قسم الرسوم البيانية للـ CBM والمبالغ المالية المحدثة
     st.markdown("<div class='section-spacer'></div>", unsafe_allow_html=True)
     
     chart_col1, chart_col2 = st.columns([1.2, 1])
