@@ -3,18 +3,17 @@ import os
 import pandas as pd
 import streamlit as st
 
-# 1. إعداد الصفحة وتكبير الخط وتنسيقات CSS
 st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
 )
 
+# تنسيق الخط وحجمه (16px + Bold)
 st.markdown(
     """
     <style>
     .main { background-color: #0e1117; }
     .block-container { padding-top: 1.5rem !important; padding-bottom: 2rem; max-width: 99% !important; }
     
-    /* تكبير خط الجدول إلى 16 وجعله بولد (Bold) */
     [data-testid="stDataFrame"] div[role="grid"] { 
         font-size: 16px !important; 
         font-weight: bold !important;
@@ -44,19 +43,11 @@ def clean_numeric(series):
   )
 
 
-# 2. تحميل البيانات
 def load_data():
   if os.path.exists(DATA_FILE):
     df = pd.read_excel(DATA_FILE)
   else:
-    # بيانات افتراضية تجريبية تحوي الكفيل
-    df = pd.DataFrame({
-        "code": ["B4344", "B4344", "B4344"],
-        "الكفيل": ["أبو فهد", "أبو فهد", "أبو فهد"],
-        "رقم الحاوية": ["RQ6027", "RQ6028", "RQ6030"],
-        "مبلغ الجمرك": [60.90, 163.50, 1481.40],
-        "قيمة الاستحصالات": [61.00, 163.50, 1480.90],
-    })
+    df = pd.DataFrame()
 
   df.columns = df.columns.astype(str).str.strip()
 
@@ -75,7 +66,6 @@ df = load_data()
 st.title("💰 كشف الحساب التجميعي (Pivot Report)")
 st.markdown("---")
 
-# 3. صندوق بحث للرمز/كود الزبون حصراً
 search_code = st.text_input(
     "🔍 حصراً لتصفية الجدول (Code) ابحث عن كود الزبون:", ""
 )
@@ -90,55 +80,67 @@ if search_query := search_code.strip():
         .str.contains(search_query, case=False, na=False)
     ]
 
-# 4. بناء الجدول الشجري المحدث بإضافة الكفيل
 tree_rows = []
 
-if not filtered_df.empty and "code" in filtered_df.columns:
+if not filtered_df.empty:
   grand_customs = filtered_df["مبلغ الجمرك"].sum()
   grand_collections = filtered_df["قيمة الاستحصالات"].sum()
   grand_remaining = filtered_df["متبقي حقيقي"].sum()
 
-  # التجميع حسب الكود
-  for code, code_group in filtered_df.groupby("code"):
-    # استخراج اسم الكفيل إذا كان موجوداً
-    sponsor_name = ""
-    if "الكفيل" in code_group.columns and not code_group["الكفيل"].dropna().empty:
-      sponsor_name = f" (الكفيل: {code_group['الكفيل'].iloc[0]})"
+  # التحقق من اسم عمود الحاويات
+  container_col = next(
+      (c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns),
+      None,
+  )
+  sponsor_col = "الكفيل" if "الكفيل" in filtered_df.columns else None
 
-    sum_customs = code_group["مبلغ الجمرك"].sum()
-    sum_collections = code_group["قيمة الاستحصالات"].sum()
-    sum_remaining = code_group["متبقي حقيقي"].sum()
+  # التجميع حسب الكفيل والكود معاً لمنع التداخل بين الحاويات المختلفة
+  group_cols = []
+  if sponsor_col:
+    group_cols.append(sponsor_col)
+  if "code" in filtered_df.columns:
+    group_cols.append("code")
 
-    # صف الزبون الرئيسي مع إظهار الكفيل
-    tree_rows.append({
-        "Row Labels": f"➖ {code}{sponsor_name}",
-        "Sum of مبلغ الجمرك": f"${sum_customs:,.2f}",
-        "Sum of قيمة الاستحصالات": f"${sum_collections:,.2f}",
-        "Sum of متبقي حقيقي": f"${sum_remaining:,.0f}",
-    })
+  if group_cols:
+    grouped_parents = filtered_df.groupby(group_cols, dropna=False)
 
-    # صفوف الحاويات التفصيلية
-    container_col = (
-        "رقم الحاوية"
-        if "رقم الحاوية" in code_group.columns
-        else (
-            "رقم الحاويات" if "رقم الحاويات" in code_group.columns else None
-        )
-    )
-    if container_col:
-      for container, container_group in code_group.groupby(container_col):
-        c_customs = container_group["مبلغ الجمرك"].sum()
-        c_collections = container_group["قيمة الاستحصالات"].sum()
-        c_remaining = container_group["متبقي حقيقي"].sum()
+    for group_keys, parent_group in grouped_parents:
+      # تحديد المسمى رئيسي
+      if isinstance(group_keys, tuple):
+        s_val, c_val = group_keys[0], group_keys[1]
+        label_text = f"➖ {c_val} (الكفيل: {s_val})" if pd.notna(s_val) else f"➖ {c_val}"
+      else:
+        label_text = f"➖ {group_keys}"
 
-        tree_rows.append({
-            "Row Labels": f"    ↳ {container}",
-            "Sum of مبلغ الجمرك": f"${c_customs:,.2f}",
-            "Sum of قيمة الاستحصالات": f"${c_collections:,.2f}",
-            "Sum of متبقي حقيقي": f"${c_remaining:,.0f}",
-        })
+      sum_customs = parent_group["مبلغ الجمرك"].sum()
+      sum_collections = parent_group["قيمة الاستحصالات"].sum()
+      sum_remaining = parent_group["متبقي حقيقي"].sum()
 
-  # الإجمالي العام
+      # إضافة الصف الرئيسي للزبون/الكفيل
+      tree_rows.append({
+          "Row Labels": label_text,
+          "Sum of مبلغ الجمرك": f"${sum_customs:,.2f}",
+          "Sum of قيمة الاستحصالات": f"${sum_collections:,.2f}",
+          "Sum of متبقي حقيقي": f"${sum_remaining:,.0f}",
+      })
+
+      # إضافة صفوف الحاويات التابعة لهذا الكفيل فقط
+      if container_col:
+        for container, c_group in parent_group.groupby(
+            container_col, dropna=False
+        ):
+          c_customs = c_group["مبلغ الجمرك"].sum()
+          c_collections = c_group["قيمة الاستحصالات"].sum()
+          c_remaining = c_group["متبقي حقيقي"].sum()
+
+          tree_rows.append({
+              "Row Labels": f"    ↳ {container}",
+              "Sum of مبلغ الجمرك": f"${c_customs:,.2f}",
+              "Sum of قيمة الاستحصالات": f"${c_collections:,.2f}",
+              "Sum of متبقي حقيقي": f"${c_remaining:,.0f}",
+          })
+
+  # إضافة الإجمالي العام
   tree_rows.append({
       "Row Labels": "Grand Total",
       "Sum of مبلغ الجمرك": f"${grand_customs:,.2f}",
@@ -146,7 +148,6 @@ if not filtered_df.empty and "code" in filtered_df.columns:
       "Sum of متبقي حقيقي": f"${grand_remaining:,.0f}",
   })
 
-# 5. عرض الجدول بالتنسيق الجديد
 pivot_display_df = pd.DataFrame(tree_rows)
 
 if not pivot_display_df.empty:
