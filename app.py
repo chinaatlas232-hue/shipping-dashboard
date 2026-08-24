@@ -149,7 +149,6 @@ def style_container_col(val):
   return "background-color: #fef08a; color: #111827; font-weight: bold;"
 
 
-# دالة التصفية العامة عند البحث النصي
 def apply_text_search(data_frame):
   search_query = st.text_input(
       "🔍 بحث سريع في كافة الأعمدة (اخفاء باقي البيانات غير المطبقة):", ""
@@ -160,6 +159,29 @@ def apply_text_search(data_frame):
     )
     return data_frame[mask.any(axis=1)]
   return data_frame
+
+
+# دالة عرض أزرار التحميل مجددًا لكل الصُفحات
+def render_download_buttons(data_to_download):
+  btn_col1, btn_col2 = st.columns([1, 1])
+  with btn_col1:
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+      data_to_download.to_excel(writer, index=False, sheet_name="Filtered_Data")
+    st.download_button(
+        label="📊 Download as Excel",
+        data=buffer.getvalue(),
+        file_name="filtered_details.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+  with btn_col2:
+    st.download_button(
+        label="📥 Download as CSV",
+        data=data_to_download.to_csv(index=False).encode("utf-8"),
+        file_name="filtered_details.csv",
+        mime="text/csv",
+    )
 
 
 # 5. التنقل بين الصفحات
@@ -181,7 +203,6 @@ if page == "📊 لوحة التحكم (Dashboard)":
   else:
     selected_code = "غير محدد"
 
-  # تطبيق البحث الشامل لإخفاء باقي الصفوف
   filtered_df = apply_text_search(filtered_df)
 
   total_containers = (
@@ -262,25 +283,7 @@ if page == "📊 لوحة التحكم (Dashboard)":
   st.markdown("---")
   st.subheader("📊 جدول التفاصيل المصفى")
 
-  btn_col1, btn_col2 = st.columns([1, 1])
-  with btn_col1:
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-      filtered_df.to_excel(writer, index=False, sheet_name="Filtered_Data")
-    st.download_button(
-        label="📊 Download as Excel",
-        data=buffer.getvalue(),
-        file_name="filtered_details.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
-
-  with btn_col2:
-    st.download_button(
-        label="📥 Download as CSV",
-        data=filtered_df.to_csv(index=False).encode("utf-8"),
-        file_name="filtered_details.csv",
-        mime="text/csv",
-    )
+  render_download_buttons(filtered_df)
 
   if container_col:
     styled_df = filtered_df.style.map(
@@ -294,6 +297,8 @@ elif page == "🚢 الشحنات والحاويات":
   st.title("🚢 إدارة الشحنات والحاويات")
   st.markdown("---")
   filtered_df = apply_text_search(filtered_df)
+  render_download_buttons(filtered_df)
+
   if container_col:
     styled_df = filtered_df.style.map(
         style_container_col, subset=[container_col]
@@ -306,6 +311,10 @@ elif page == "📦 الطلبات":
   st.title("📦 جميع الطلبات المسجلة")
   st.markdown("---")
   filtered_df = apply_text_search(filtered_df)
+
+  # إضافة أزرار التحميل لصفحة الطلبات أيضاً
+  render_download_buttons(filtered_df)
+
   st.dataframe(filtered_df, use_container_width=True, height=800)
 
 elif page == "📈 واجهة التقارير":
@@ -343,4 +352,5 @@ elif page == "📈 واجهة التقارير":
         .reset_index()
         .rename(columns={"code": "عدد الأكواد المسجلة"})
     )
+    render_download_buttons(summary_df)
     st.dataframe(summary_df, use_container_width=True, height=500)
