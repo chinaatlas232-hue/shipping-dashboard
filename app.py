@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import time
 
 # 1. إعدادات الصفحة الاحترافية (StarAdmin Layout)
 st.set_page_config(page_title="لوحة تحكم الشحن والبيانات", layout="wide", initial_sidebar_state="expanded")
@@ -28,12 +29,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. استخدام رابط الـ Web App المفتوح الموثق والمنقذ لتخطي صلاحيات الحظر الأمني لجوجل
+# 3. رابط الـ Web App المفتوح الموثق والمنقذ لتخطي صلاحيات الحظر الأمني لجوجل
 SCRIPT_URL = 'https://google.com'
 
 def fetch_shipping_data():
     try:
-        response = requests.get(SCRIPT_URL)
+        # كسر كاش المتصفحات والمنصة نهائياً عبر حقن الوقت اللحظي تلقائياً بالخلفية
+        timestamp_url = f"{SCRIPT_URL}?nocache={int(time.time())}"
+        response = requests.get(timestamp_url)
         if response.status_code == 200:
             return pd.DataFrame(response.json())
     except Exception as e:
@@ -43,7 +46,7 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري الاتصال الآمن بالجدول واسترجاع البيانات المفهومة من هاتفك...")
+    st.warning("⚠️ جاري كسر الكاش وتحديث لوحة التحكم بالبيانات المفهومة...")
 else:
     # تنظيف أسماء الأعمدة ديناميكياً وتحويلها لنصوص صغيرة لتسهيل الربط
     df.columns = [str(col).strip().lower() for col in df.columns]
