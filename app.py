@@ -37,13 +37,29 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# --- القائمة الجانبية (Sidebar) ---
+st.sidebar.title("🚢 إدارة اللوجستيات")
+st.sidebar.markdown("---")
 
-# --- تحميل البيانات ---
+# زر رفع ملف Excel في الشريط الجانبي
+uploaded_file = st.sidebar.file_uploader(
+    "📁 رفع ملف Excel جديد", type=["xlsx", "xls"]
+)
+
+
+# --- دالة تحميل البيانات ---
 @st.cache_data
-def load_data():
+def load_data(file):
+  if file is not None:
+    try:
+      return pd.read_excel(file)
+    except Exception as e:
+      st.error(f"حدث خطأ أثناء قراءة الملف المرفوع: {e}")
+
   try:
     return pd.read_excel("shipping_data.xlsx")
-  except:
+  except FileNotFoundError:
+    # البيانات الافتراضية في حال عدم وجود ملف
     return pd.DataFrame({
         "No": [972, 994, 996, 998, 1020],
         "code": ["SM165", "SM165", "SM165", "SM170", "SM170"],
@@ -66,11 +82,7 @@ def load_data():
     })
 
 
-df = load_data()
-
-# --- القائمة الجانبية (Sidebar) للأزرار والتنقل ---
-st.sidebar.title("🚢 إدارة اللوجستيات")
-st.sidebar.markdown("---")
+df = load_data(uploaded_file)
 
 page = st.sidebar.radio(
     "القائمة الرئيسية",
@@ -85,13 +97,12 @@ page = st.sidebar.radio(
 st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
-# --- محتوى الصفحات في الوسط ---
+# --- محتوى الصفحات ---
 
 if page == "📊 لوحة التحكم (Dashboard)":
   st.title("📊 لوحة التحكم الرئيسية")
   st.markdown("---")
 
-  # شريط اختيار أو بحث الكود في الوسط
   codes = df["code"].unique().tolist()
   selected_code = st.selectbox(
       "🔍 اختر أو ابحث عن رقم الكود لتجميع البيانات الخاصة به تلقائياً في الأعلى:",
@@ -100,7 +111,6 @@ if page == "📊 لوحة التحكم (Dashboard)":
 
   filtered_df = df[df["code"] == selected_code]
 
-  # حساب المؤشرات
   total_client_paid = (
       filtered_df["Client Paid"].sum() if "Client Paid" in filtered_df else 0
   )
@@ -111,7 +121,6 @@ if page == "📊 لوحة التحكم (Dashboard)":
   total_cbm = filtered_df["حجم"].sum()
   total_ctns = filtered_df["عدد الكارتون"].sum()
 
-  # الصف الأول من المربعات الملونة (في الوسط)
   c1, c2, c3, c4 = st.columns(4)
   with c1:
     st.markdown(
@@ -154,7 +163,6 @@ if page == "📊 لوحة التحكم (Dashboard)":
         unsafe_allow_html=True,
     )
 
-  # الصف الثاني من المربعات الملونة (في الوسط)
   c5, c6, c7, c8 = st.columns(4)
   with c5:
     st.markdown(
@@ -200,7 +208,6 @@ if page == "📊 لوحة التحكم (Dashboard)":
   st.markdown("---")
   st.subheader(f"📊 جدول التفاصيل المصفى للكود الحالي: {selected_code}")
 
-  # زر التصدير
   csv = filtered_df.to_csv(index=False).encode("utf-8")
   st.download_button(
       label="📥 Download as CSV",
@@ -209,7 +216,6 @@ if page == "📊 لوحة التحكم (Dashboard)":
       mime="text/csv",
   )
 
-  # جدول التفاصيل
   st.dataframe(filtered_df, use_container_width=True)
 
 elif page == "🚢 الشحنات والحاويات":
