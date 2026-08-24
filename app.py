@@ -145,9 +145,21 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 
-# ⚠️ تم تحديث لون الخط هنا إلى أسود فحمي غامق (#111827)
 def style_container_col(val):
   return "background-color: #fef08a; color: #111827; font-weight: bold;"
+
+
+# دالة التصفية العامة عند البحث النصي
+def apply_text_search(data_frame):
+  search_query = st.text_input(
+      "🔍 بحث سريع في كافة الأعمدة (اخفاء باقي البيانات غير المطبقة):", ""
+  )
+  if search_query:
+    mask = data_frame.astype(str).apply(
+        lambda x: x.str.contains(search_query, case=False, na=False)
+    )
+    return data_frame[mask.any(axis=1)]
+  return data_frame
 
 
 # 5. التنقل بين الصفحات
@@ -168,6 +180,9 @@ if page == "📊 لوحة التحكم (Dashboard)":
       ]
   else:
     selected_code = "غير محدد"
+
+  # تطبيق البحث الشامل لإخفاء باقي الصفوف
+  filtered_df = apply_text_search(filtered_df)
 
   total_containers = (
       filtered_df[container_col].nunique() if container_col else 0
@@ -278,6 +293,7 @@ if page == "📊 لوحة التحكم (Dashboard)":
 elif page == "🚢 الشحنات والحاويات":
   st.title("🚢 إدارة الشحنات والحاويات")
   st.markdown("---")
+  filtered_df = apply_text_search(filtered_df)
   if container_col:
     styled_df = filtered_df.style.map(
         style_container_col, subset=[container_col]
@@ -289,6 +305,7 @@ elif page == "🚢 الشحنات والحاويات":
 elif page == "📦 الطلبات":
   st.title("📦 جميع الطلبات المسجلة")
   st.markdown("---")
+  filtered_df = apply_text_search(filtered_df)
   st.dataframe(filtered_df, use_container_width=True, height=800)
 
 elif page == "📈 واجهة التقارير":
