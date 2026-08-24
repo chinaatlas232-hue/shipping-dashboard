@@ -3,17 +3,26 @@ import os
 import pandas as pd
 import streamlit as st
 
+# 1. إعداد الصفحة وتنسيقات CSS
 st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
 )
 
-# تنسيق الخط وحجمه (16px + Bold)
 st.markdown(
     """
     <style>
     .main { background-color: #0e1117; }
     .block-container { padding-top: 1.5rem !important; padding-bottom: 2rem; max-width: 99% !important; }
     
+    .metric-card {
+        padding: 16px; border-radius: 12px; color: white;
+        text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+    .metric-title { font-size: 15px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
+    .metric-value { font-size: 22px; font-weight: bold; }
+
+    /* تكبير خط الجدول إلى 16 وجعله بولد */
     [data-testid="stDataFrame"] div[role="grid"] { 
         font-size: 16px !important; 
         font-weight: bold !important;
@@ -66,6 +75,7 @@ df = load_data()
 st.title("💰 كشف الحساب التجميعي (Pivot Report)")
 st.markdown("---")
 
+# صندوق تصفية حسب كود الزبون
 search_code = st.text_input(
     "🔍 حصراً لتصفية الجدول (Code) ابحث عن كود الزبون:", ""
 )
@@ -80,6 +90,55 @@ if search_query := search_code.strip():
         .str.contains(search_query, case=False, na=False)
     ]
 
+# حساب قيم المربعات التوضيحية
+total_customs = (
+    filtered_df["مبلغ الجمرك"].sum() if not filtered_df.empty else 0.0
+)
+
+# حساب مبالغ "أسامة"
+osama_customs = 0.0
+if "الكفيل" in filtered_df.columns and not filtered_df.empty:
+  osama_customs = filtered_df[
+      filtered_df["الكفيل"].astype(str).str.contains("اسامة|أسامة", na=False)
+  ]["مبلغ الجمرك"].sum()
+
+# حساب مبالغ "لم تصل بعد"
+not_arrived_customs = 0.0
+if "الكفيل" in filtered_df.columns and not filtered_df.empty:
+  not_arrived_customs = filtered_df[
+      filtered_df["الكفيل"].astype(str).str.contains("لم تصل بعد", na=False)
+  ]["مبلغ الجمرك"].sum()
+
+# 2. عرض المربعات التوضيحية الـ 3 في الأعلى
+m1, m2, m3 = st.columns(3)
+
+with m1:
+  st.markdown(
+      f'<div class="metric-card" style="background-color: #1e3a8a;"><div'
+      ' class="metric-title">أجور الجمرك الكلي</div><div'
+      f' class="metric-value">${total_customs:,.2f}</div></div>',
+      unsafe_allow_html=True,
+  )
+
+with m2:
+  st.markdown(
+      f'<div class="metric-card" style="background-color: #0f766e;"><div'
+      ' class="metric-title">أسامة</div><div'
+      f' class="metric-value">${osama_customs:,.2f}</div></div>',
+      unsafe_allow_html=True,
+  )
+
+with m3:
+  st.markdown(
+      f'<div class="metric-card" style="background-color: #b45309;"><div'
+      ' class="metric-title">لم تصل بعد</div><div'
+      f' class="metric-value">${not_arrived_customs:,.2f}</div></div>',
+      unsafe_allow_html=True,
+  )
+
+st.markdown("---")
+
+# 3. بناء الجدول الشجري
 tree_rows = []
 
 if not filtered_df.empty:
@@ -87,14 +146,12 @@ if not filtered_df.empty:
   grand_collections = filtered_df["قيمة الاستحصالات"].sum()
   grand_remaining = filtered_df["متبقي حقيقي"].sum()
 
-  # التحقق من اسم عمود الحاويات
   container_col = next(
       (c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns),
       None,
   )
   sponsor_col = "الكفيل" if "الكفيل" in filtered_df.columns else None
 
-  # التجميع حسب الكفيل والكود معاً لمنع التداخل بين الحاويات المختلفة
   group_cols = []
   if sponsor_col:
     group_cols.append(sponsor_col)
@@ -105,7 +162,6 @@ if not filtered_df.empty:
     grouped_parents = filtered_df.groupby(group_cols, dropna=False)
 
     for group_keys, parent_group in grouped_parents:
-      # تحديد المسمى رئيسي
       if isinstance(group_keys, tuple):
         s_val, c_val = group_keys[0], group_keys[1]
         label_text = f"➖ {c_val} (الكفيل: {s_val})" if pd.notna(s_val) else f"➖ {c_val}"
@@ -116,7 +172,6 @@ if not filtered_df.empty:
       sum_collections = parent_group["قيمة الاستحصالات"].sum()
       sum_remaining = parent_group["متبقي حقيقي"].sum()
 
-      # إضافة الصف الرئيسي للزبون/الكفيل
       tree_rows.append({
           "Row Labels": label_text,
           "Sum of مبلغ الجمرك": f"${sum_customs:,.2f}",
@@ -124,7 +179,6 @@ if not filtered_df.empty:
           "Sum of متبقي حقيقي": f"${sum_remaining:,.0f}",
       })
 
-      # إضافة صفوف الحاويات التابعة لهذا الكفيل فقط
       if container_col:
         for container, c_group in parent_group.groupby(
             container_col, dropna=False
@@ -140,7 +194,6 @@ if not filtered_df.empty:
               "Sum of متبقي حقيقي": f"${c_remaining:,.0f}",
           })
 
-  # إضافة الإجمالي العام
   tree_rows.append({
       "Row Labels": "Grand Total",
       "Sum of مبلغ الجمرك": f"${grand_customs:,.2f}",
