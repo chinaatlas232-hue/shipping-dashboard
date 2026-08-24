@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import io
 
 # 1. إعدادات واجهة المنصة لتكون عريضة واحترافية بالكامل
 st.set_page_config(page_title="لوحة تحكم الشحن والبيانات حياً", layout="wide", initial_sidebar_state="expanded")
@@ -8,13 +9,8 @@ st.set_page_config(page_title="لوحة تحكم الشحن والبيانات �
 # 2. تطبيق ثيم الأدمن الملكي الداكن والمساحات والتباعد المتناسق (StarAdmin Styling)
 st.markdown("""
     <style>
-    /* مساحات الأبعاد الجانبية والعلوية للمنصة */
     .block-container { padding-top: 2rem !important; padding-bottom: 3rem !important; padding-left: 3rem !important; padding-right: 3rem !important; }
-    
-    /* خلفية المنصة الداكنة بالكامل */
     .stApp, div[data-testid="stAppViewContainer"] { background-color: #1a1f3c !important; color: #ffffff !important; }
-    
-    /* تلوين جميع العناوين والنصوص باللون الأبيض النقي */
     h1, h2, h3, h4, h5, h6, label, p, span { color: #ffffff !important; font-family: 'Segoe UI', sans-serif !important; }
     
     /* تصميم الكروت العلوية الأربعة الفخمة ومساحاتها الداخلية */
@@ -26,7 +22,6 @@ st.markdown("""
     .card-title { font-size: 14px; font-weight: bold; opacity: 0.9; color: #ffffff !important; }
     .card-value { font-size: 26px; font-weight: bold; margin-top: 10px; color: #ffffff !important; }
     
-    /* تنسيق القائمة الجانبية للأدمن صناديق الاختيار والجداول */
     div[data-testid="stSidebar"] { background-color: #11152c !important; border-left: 1px solid #2c3e50; padding: 20px 10px; }
     div[data-testid="stDataFrame"] { background-color: #11152c !important; padding: 15px; border-radius: 8px; margin-top: 15px; }
     .stTextInput>div>div>input, .stSelectbox>div>div>div { background-color: #11152c !important; color: white !important; border: 1px solid #34495e !important; padding: 10px !important; }
@@ -34,24 +29,24 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط الـ Web App المفتوح والصحيح مئة بالمئة لجلب البيانات المفهومة
-SCRIPT_URL = 'https://google.com'
+# 🔗 رابط جلب الـ CSV المباشر والآمن والمضاد لحجب خوادم جوجل نهائياً لجدولك
+CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
     try:
-        response = requests.get(SCRIPT_URL)
+        response = requests.get(CSV_URL)
         if response.status_code == 200:
-            return pd.DataFrame(response.json())
+            return pd.read_csv(io.StringIO(response.text))
     except Exception as e:
-        st.error(f"خطأ في الاتصال بقاعدة البيانات: {e}")
+        st.error(f"خطأ في الاتصال المباشر بجوجل: {e}")
     return pd.DataFrame()
 
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري الاتصال الآمن بجوجل واسترجاع البيانات المفهومة الحية من هاتفك...")
+    st.warning("⚠️ جاري الاتصال الآمن بالجدول واسترجاع البيانات المفهومة الحية من هاتفك...")
 else:
-    # إبقاء الأسماء الأصلية للأعمدة مع تنظيف المسافات المحيطة بها فقط لضمان دقة الربط العربي والإنجليزي
+    # تنظيف المسافات المحيطة بأسماء الأعمدة لضمان الربط
     df.columns = [str(col).strip() for col in df.columns]
     
     # 🏢 شريط القائمة الجانبية (Sidebar) للأدمن
@@ -59,7 +54,7 @@ else:
     st.sidebar.markdown("<p style='text-align:center; opacity:0.7; margin-bottom:25px;'>لوحة تحكم الشحن</p>", unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
-    # التعرف الذكي المرن على عمود الأكواد (عربي أو إنجليزي)
+    # التعرف المرن الذكي على عمود الأكواد (عربي أو إنجليزي)
     code_col = next((c for c in df.columns if 'code' in c.lower() or 'كود' in c), None)
     
     if code_col:
@@ -76,19 +71,17 @@ else:
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 دالة حسابية فائقة الذكاء والمرونة (تبحث عن جزء من الكلمة عربي/إنجليزي وتجرد الحروف)
+    # 📊 دالة حسابية فائقة الذكاء لجمع خلايا الأوزان والمبالغ وتجريدها من الحروف (كجم، ¥)
     total_rows = len(df_filtered)
     
     def get_flexible_sum(df_target, matches):
-        # البحث عن العمود الذي يحتوي على أي من الكلمات المفتاحية الممررة (مثل الوزن أو weight)
         col = next((c for c in df_target.columns if any(m in c.lower() or m in c for m in matches)), None)
         if col:
-            # تجريد محتويات الخلايا من النصوص كجم أو ¥ والإبقاء على الأرقام والنقاط العشرية فقط
             clean_series = df_target[col].astype(str).str.replace(r'[^0-9.]', '', regex=True)
             return float(pd.to_numeric(clean_series, errors='coerce').fillna(0.0).sum())
         return 0.0
 
-    # ربط كروت الإحصائيات بمرونة فائقة باللغتين العربية والإنجليزية لضمان الربط المباشر
+    # ربط كروت الإحصائيات بمرونة فائقة باللغتين العربية والإنجليزية لجدولك
     total_weight = get_flexible_sum(df_filtered, ['الوزن', 'weight', 'wgt', 'وزن'])
     total_volume = get_flexible_sum(df_filtered, ['حجم', 'volume', 'cbm', 'الحجم'])
     
@@ -96,7 +89,6 @@ else:
     client_paid = get_flexible_sum(df_filtered, ['الزبون', 'client paid', 'client', 'زبون'])
     total_amount = get_flexible_sum(df_filtered, ['المجموع', 'total', 'إجمالي', 'اجمالي'])
 
-    # التعرف المرن على عمود الحاويات لحساب عددها الفريد
     container_col = next((c for c in df_filtered.columns if 'container' in c.lower() or 'حاوية' in c), None)
     active_containers = df_filtered[container_col].nunique() if container_col else 0
 
