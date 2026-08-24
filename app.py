@@ -8,7 +8,7 @@ st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
 )
 
-# 2. تنسيقات CSS لزيادة المساحة وتصميم بطاقات المؤشرات وتكبير الجدول
+# 2. تنسيقات CSS
 st.markdown(
     """
     <style>
@@ -22,7 +22,6 @@ st.markdown(
     .metric-value { font-size: 20px; font-weight: bold; }
     .block-container { padding-top: 1.5rem !important; padding-bottom: 2rem; max-width: 99% !important; }
     
-    /* تكبير حجم الخط وارتفاع صفوف الجدول */
     [data-testid="stDataFrame"] div[role="grid"] { font-size: 15px !important; }
     [data-testid="stDataFrame"] div[role="row"] { min-height: 42px !important; }
     </style>
@@ -30,20 +29,34 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 3. دالة تحميل وحفظ البيانات
 DATA_FILE = "shipping_data.xlsx"
 
 
+# دالة لتنظيف وتحويل النصوص المالية إلى أرقام صحيحة
+def clean_numeric(series):
+  return (
+      pd.to_numeric(
+          series.astype(str)
+          .str.replace("¥", "", regex=False)
+          .str.replace("$", "", regex=False)
+          .str.replace(",", "", regex=False)
+          .str.strip(),
+          errors="coerce",
+      )
+      .fillna(0)
+  )
+
+
+# 3. دالة تحميل البيانات
 def load_data(uploaded_file):
   df = None
-
   if uploaded_file is not None:
     try:
       df = pd.read_excel(uploaded_file)
       df.to_excel(DATA_FILE, index=False)
       st.sidebar.success("تم حفظ الملف الجديد بنجاح ✔️")
     except Exception as e:
-      st.sidebar.error(f"خطأ في قراءة الملف المرفوع: {e}")
+      st.sidebar.error(f"خطأ في قراءة الملف: {e}")
 
   if df is None and os.path.exists(DATA_FILE):
     try:
@@ -53,48 +66,48 @@ def load_data(uploaded_file):
 
   if df is None:
     df = pd.DataFrame({
-        "No": [972, 994, 996, 998, 1020],
-        "code": ["SM165", "SM165", "SM165", "SM170", "SM170"],
-        "Shipping mark": [
-            "SM165-B07",
-            "SM165-B03",
-            "SM165-B05",
-            "SM170-B01",
-            "SM170-B02",
-        ],
-        "رقم دخول المخزن": ["RS2601", "RS2602", "RS2603", "RS2604", "RS2605"],
-        "المكتب دفع": [25934.0, 13500.0, 9036.0, 12000.0, 5000.0],
-        "Client Paid": [500.0, 300.0, 200.0, 150.0, 200.0],
-        "نوع البضاعة": [
-            "Lady Trousers",
-            "White shirt",
-            "Skirt",
-            "Top",
-            "Coat",
-        ],
-        "عدد الكارتون": [8, 3, 3, 5, 4],
-        "الوزن": [364, 126, 150, 200, 180],
-        "حجم": [1.255, 0.527, 0.492, 0.800, 0.600],
-        "رقم الفاتورة": ["INV-01", "INV-02", "INV-03", "INV-04", "INV-05"],
-        "رقم الحاوية": ["RQ6044", "RQ6044", "RQ6045", "RQ6045", "RQ6046"],
+        "No": [1324, 1352],
+        "code": ["B7512", "B7512"],
+        "Shipping mark": ["B7512-C23", "B7512-C03"],
+        "رقم دخول المخزن": ["RS2607223184", "RS2607202745"],
+        "المكتب دفع": [0, 0],
+        "الزبون دفع": [100, 690],
+        "المجموع": [3465, 5600],
+        "عدد الكارتون": [1, 2],
+        "الوزن": [40, 98],
+        "حجم": [0.132, 0.525],
+        "رقم الحاوية": ["RQ6052", "RQ6052"],
     })
 
+  # تنظيف أسماء الأوردة
   df.columns = df.columns.astype(str).str.strip()
+
+  # دمج المسميات الممكنة للأعمدة (عربي / إنجليزي)
+  if "الزبون دفع" in df.columns and "Client Paid" not in df.columns:
+    df["Client Paid"] = df["الزبون دفع"]
+
+  if "المكتب دفع" in df.columns:
+    df["Office Paid"] = df["المكتب دفع"]
+
+  # تنظيف وتحويل الأعمدة الرقمية
   numeric_cols = [
       "المكتب دفع",
+      "Office Paid",
+      "الزبون دفع",
       "Client Paid",
       "عدد الكارتون",
       "الوزن",
       "حجم",
+      "المجموع",
   ]
   for col in numeric_cols:
     if col in df.columns:
-      df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+      df[col] = clean_numeric(df[col])
 
   return df
 
 
-# 4. القائمة الجانبية: رفع الملفات، التنقل، والفلاتر
+# 4. القائمة الجانبية
 st.sidebar.title("🚢 إدارة اللوجستيات")
 st.sidebar.markdown("---")
 
@@ -123,8 +136,6 @@ if container_col:
     ]
 
 st.sidebar.markdown("---")
-
-# قائمة التنقل بين الصفحات
 page = st.sidebar.radio(
     "📌 القائمة الرئيسية",
     [
@@ -134,22 +145,19 @@ page = st.sidebar.radio(
         "📈 واجهة التقارير",
     ],
 )
-
 st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 
-# 5. دالة تمييز عمود رقم الحاوية
 def style_container_col(val):
   return "background-color: #fee2e2; color: #dc2626; font-weight: bold;"
 
 
-# 6. التنقل بين الصفحات
+# 5. الصفحة الرئيسية
 if page == "📊 لوحة التحكم (Dashboard)":
   st.title("📊 لوحة التحكم الرئيسية")
   st.markdown("---")
 
-  # فلتر الكود من الجدول الكامل
   if "code" in df.columns:
     all_codes = ["الكل"] + sorted(
         df["code"].dropna().astype(str).unique().tolist()
@@ -164,17 +172,34 @@ if page == "📊 لوحة التحكم (Dashboard)":
   else:
     selected_code = "غير محدد"
 
+  # حساب المبالغ مع فحص المسميات (الزبون دفع / المجموع / المكتب دفع)
   total_containers = (
       filtered_df[container_col].nunique() if container_col else 0
   )
-  total_client_paid = (
-      filtered_df["Client Paid"].sum() if "Client Paid" in filtered_df else 0.0
-  )
+
+  # فحص عمود Client Paid أو الزبون دفع
+  if "Client Paid" in filtered_df:
+    total_client_paid = filtered_df["Client Paid"].sum()
+  elif "الزبون دفع" in filtered_df:
+    total_client_paid = filtered_df["الزبون دفع"].sum()
+  else:
+    total_client_paid = 0.0
+
+  # فحص عمود Office Paid أو المكتب دفع
+  if "Office Paid" in filtered_df:
+    office_paid = filtered_df["Office Paid"].sum()
+  elif "المكتب دفع" in filtered_df:
+    office_paid = filtered_df["المكتب دفع"].sum()
+  else:
+    office_paid = 0.0
+
+  # إجمالي المبالغ من عمود (المجموع) إن وجد
+  if "المجموع" in filtered_df and filtered_df["المجموع"].sum() > 0:
+    total_amount = filtered_df["المجموع"].sum()
+  else:
+    total_amount = float(office_paid) * 1.01
+
   total_orders = len(filtered_df)
-  office_paid = (
-      filtered_df["المكتب دفع"].sum() if "المكتب دفع" in filtered_df else 0.0
-  )
-  total_amount = float(office_paid) * 1.01
   total_cbm = filtered_df["حجم"].sum() if "حجم" in filtered_df else 0.0
   total_ctns = (
       filtered_df["عدد الكارتون"].sum()
@@ -186,7 +211,7 @@ if page == "📊 لوحة التحكم (Dashboard)":
   c1, c2, c3, c4 = st.columns(4)
   with c1:
     st.markdown(
-        f'<div class="metric-card" style="background-color: #10b981;"><div class="metric-title">Client Paid</div><div class="metric-value">¥ {total_client_paid:,.1f}</div></div>',
+        f'<div class="metric-card" style="background-color: #10b981;"><div class="metric-title">الزبون دفع (Client Paid)</div><div class="metric-value">¥ {total_client_paid:,.1f}</div></div>',
         unsafe_allow_html=True,
     )
   with c2:
@@ -213,7 +238,7 @@ if page == "📊 لوحة التحكم (Dashboard)":
     )
   with c6:
     st.markdown(
-        f'<div class="metric-card" style="background-color: #f97316;"><div class="metric-title">Office Paid</div><div class="metric-value">¥ {office_paid:,.1f}</div></div>',
+        f'<div class="metric-card" style="background-color: #f97316;"><div class="metric-title">المكتب دفع (Office Paid)</div><div class="metric-value">¥ {office_paid:,.1f}</div></div>',
         unsafe_allow_html=True,
     )
   with c7:
@@ -230,28 +255,22 @@ if page == "📊 لوحة التحكم (Dashboard)":
   st.markdown("---")
   st.subheader("📊 جدول التفاصيل المصفى")
 
-  # خيارات التصدير (CSV & Excel)
   btn_col1, btn_col2 = st.columns([1, 1])
-
   with btn_col1:
-    # تحويل البيانات إلى Excel في الذاكرة
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
       filtered_df.to_excel(writer, index=False, sheet_name="Filtered_Data")
-    excel_bytes = buffer.getvalue()
-
     st.download_button(
         label="📊 Download as Excel",
-        data=excel_bytes,
+        data=buffer.getvalue(),
         file_name="filtered_details.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
   with btn_col2:
-    csv = filtered_df.to_csv(index=False).encode("utf-8")
     st.download_button(
         label="📥 Download as CSV",
-        data=csv,
+        data=filtered_df.to_csv(index=False).encode("utf-8"),
         file_name="filtered_details.csv",
         mime="text/csv",
     )
@@ -277,8 +296,6 @@ elif page == "📦 الطلبات":
 elif page == "📈 واجهة التقارير":
   st.title("📈 واجهة التقارير الشاملة")
   st.markdown("---")
-
-  # المؤشرات الإحصائية العامة
   c1, c2, c3, c4 = st.columns(4)
   with c1:
     st.metric("إجمالي الشحنات / الطلبات", f"{len(filtered_df)} طلب")
@@ -299,25 +316,16 @@ elif page == "📈 واجهة التقارير":
     )
 
   st.markdown("---")
-  st.subheader("📊 ملخص الحاويات والأكواد")
-
-  # جدول ملخص البيانات مقسم حسب الحاوية
   if container_col and container_col in filtered_df.columns:
-    agg_dict = {}
-    if "عدد الكارتون" in filtered_df:
-      agg_dict["عدد الكارتون"] = "sum"
-    if "حجم" in filtered_df:
-      agg_dict["حجم"] = "sum"
-    if "الوزن" in filtered_df:
-      agg_dict["الوزن"] = "sum"
-    if "code" in filtered_df:
-      agg_dict["code"] = "count"
-
-    if agg_dict:
-      summary_df = (
-          filtered_df.groupby(container_col)
-          .agg(agg_dict)
-          .reset_index()
-          .rename(columns={"code": "عدد الأكواد المسجلة"})
-      )
-      st.dataframe(summary_df, use_container_width=True, height=500)
+    summary_df = (
+        filtered_df.groupby(container_col)
+        .agg({
+            "عدد الكارتون": "sum",
+            "حجم": "sum",
+            "الوزن": "sum",
+            "code": "count",
+        })
+        .reset_index()
+        .rename(columns={"code": "عدد الأكواد المسجلة"})
+    )
+    st.dataframe(summary_df, use_container_width=True, height=500)
