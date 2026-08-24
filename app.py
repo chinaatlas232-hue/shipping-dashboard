@@ -306,13 +306,21 @@ elif page == "💰 كشف الكمارك المستحصلة":
       else 0.0
   )
 
-  osama_customs = 0.0
+  # --- استخراج الكفيل الرئيسي وقيمة الجمرك الخاصة به ديناميكياً من البيانات المفلترة ---
+  sponsor_name = "الكفيل"
+  sponsor_customs = 0.0
+
   if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
-    osama_customs = pivot_filtered_df[
-        pivot_filtered_df["الكفيل"]
-        .astype(str)
-        .str.contains("اسامة|أسامة", na=False)
-    ]["مبلغ الجمرك"].sum()
+    valid_sponsors = [
+        s
+        for s in pivot_filtered_df["الكفيل"].dropna().unique()
+        if "لم تصل بعد" not in str(s)
+    ]
+    if valid_sponsors:
+      sponsor_name = str(valid_sponsors[0]).strip()
+      sponsor_customs = pivot_filtered_df[
+          pivot_filtered_df["الكفيل"] == valid_sponsors[0]
+      ]["مبلغ الجمرك"].sum()
 
   not_arrived_customs = 0.0
   if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
@@ -333,8 +341,8 @@ elif page == "💰 كشف الكمارك المستحصلة":
   with m2:
     st.markdown(
         f'<div class="metric-card" style="background-color: #0f766e;"><div'
-        ' class="metric-title">أسامة</div><div'
-        f' class="metric-value">${osama_customs:,.2f}</div></div>',
+        f' class="metric-title">{sponsor_name}</div><div'
+        f' class="metric-value">${sponsor_customs:,.2f}</div></div>',
         unsafe_allow_html=True,
     )
   with m3:
@@ -367,7 +375,6 @@ elif page == "💰 كشف الكمارك المستحصلة":
 
     sponsor_col = "الكفيل" if "الكفيل" in pivot_filtered_df.columns else None
 
-    # مراجعة وتجميع البيانات حسب الكفيل والكود معاً
     group_cols = []
     if sponsor_col:
       group_cols.append(sponsor_col)
@@ -459,7 +466,6 @@ elif page == "💰 كشف الكمارك المستحصلة":
     is_not_arrived_list = pivot_display_df["is_not_arrived"].tolist()
     display_df = pivot_display_df.drop(columns=["is_not_arrived"])
 
-    # تنسيق الخانات والصفوف بالألوان المناسبة
     def apply_row_styles(row):
       idx = row.name
       label = str(row["Row Labels"])
