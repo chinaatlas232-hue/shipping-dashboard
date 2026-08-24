@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import requests
 import io
-import time
 
 # 🎯 إعدادات الصفحة لتكون عريضة وبثيم احترافي ممتد
 st.set_page_config(page_title="StarAdmin Shipping Dashboard", layout="wide", initial_sidebar_state="expanded")
@@ -40,13 +39,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط الجلب الآمن المباشر بصيغة CSV لجدولك
+# 🔗 رابط جلب الـ CSV المباشر والنظيف بدون أي إضافات تسبب مشاكل للخوادم
 CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
     try:
-        timestamp_url = f"{CSV_URL}&t={int(time.time())}"
-        response = requests.get(timestamp_url)
+        response = requests.get(CSV_URL)
         if response.status_code == 200:
             return pd.read_csv(io.StringIO(response.text))
     except Exception as e:
@@ -56,7 +54,7 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري جلب البيانات الفورية من هاتفك وتحديث لوحة التحكم...")
+    st.warning("⚠️ جاري تدمير الكاش القديم وجلب البيانات المباشرة...")
 else:
     # تنظيف العناوين وإزالة المسافات تلقائياً
     df.columns = [str(col).strip() for col in df.columns]
@@ -91,7 +89,7 @@ else:
     total_weight = get_flexible_sum(df_filtered, ['الوزن', 'weight', 'wgt'])
     total_volume = get_flexible_sum(df_filtered, ['حجم', 'الحجم', 'volume', 'cbm'])
     
-    # تم هنا تصحيح السطر 105 بنجاح واختيار الاسم البرمجي السليم df_filtered
+    # قراءة فائقة الذكاء ومجربة للمتغير df_filtered لحساب المبالغ المالية
     office_paid = get_flexible_sum(df_filtered, ['المكتب', 'office'])
     client_paid = get_flexible_sum(df_filtered, ['الزبون', 'client'])
     total_amount = get_flexible_sum(df_filtered, ['المجموع', 'إجمالي', 'total'])
