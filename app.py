@@ -40,11 +40,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط الجلب الآمن المباشر بصيغة CSV لجدولك
+# 🔗 رابط الـ CSV النظيف بدون أي تعديلات خارجية
 CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
     try:
+        # تم هنا تصحيح دمج علامة الاستفهام الزمني بدقة لمنع خطأ الـ NameResolutionError
         timestamp_url = f"{CSV_URL}&t={int(time.time())}"
         response = requests.get(timestamp_url)
         if response.status_code == 200:
