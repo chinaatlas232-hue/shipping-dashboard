@@ -145,9 +145,9 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 
-# ⚠️ تم تغيير لون التمييز هنا إلى الأصفر المميز (#fef08a)
+# ⚠️ تم تحديث لون الخط هنا إلى أسود فحمي غامق (#111827)
 def style_container_col(val):
-  return "background-color: #fef08a; color: #854d0e; font-weight: bold;"
+  return "background-color: #fef08a; color: #111827; font-weight: bold;"
 
 
 # 5. التنقل بين الصفحات
