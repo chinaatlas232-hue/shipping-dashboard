@@ -40,24 +40,20 @@ DATA_FILE = "shipping_data.xlsx"
 def load_data(uploaded_file):
   df = None
 
-  # إذا قام المستخدم برفع ملف جديد، نحفظه محلياً ونقرأه
   if uploaded_file is not None:
     try:
       df = pd.read_excel(uploaded_file)
-      # حفظ نسخة محلية لاستخدامها مستقبلاً
       df.to_excel(DATA_FILE, index=False)
       st.sidebar.success("تم حفظ الملف الجديد بنجاح ✔️")
     except Exception as e:
       st.sidebar.error(f"خطأ في قراءة الملف المرفوع: {e}")
 
-  # إذا لم يتم رفع ملف جديد، نقرأ الملف المحفوظ سابقاً
   if df is None and os.path.exists(DATA_FILE):
     try:
       df = pd.read_excel(DATA_FILE)
     except Exception:
       df = None
 
-  # بيانات افتراضية في حال عدم وجود أي ملف
   if df is None:
     df = pd.DataFrame({
         "No": [972, 994, 996, 998, 1020],
@@ -86,7 +82,6 @@ def load_data(uploaded_file):
         "رقم الحاوية": ["RQ6044", "RQ6044", "RQ6045", "RQ6045", "RQ6046"],
     })
 
-  # معالجة وتنظيف البيانات
   df.columns = df.columns.astype(str).str.strip()
   numeric_cols = [
       "المكتب دفع",
@@ -104,7 +99,33 @@ def load_data(uploaded_file):
 
 df = load_data(uploaded_file)
 
-# 5. القائمة الرئيسية
+# 5. الفلاتر الجانبية (الشحنات / الحاويات)
+st.sidebar.markdown("### 🔍 الفلاتر الجانبية")
+
+# تحديد عمود الحاوية
+container_col = (
+    "رقم الحاوية"
+    if "رقم الحاوية" in df.columns
+    else ("رقم الحاويات" if "رقم الحاويات" in df.columns else None)
+)
+
+selected_container = "الكل"
+if container_col:
+  containers = ["الكل"] + sorted(
+      df[container_col].dropna().astype(str).unique().tolist()
+  )
+  selected_container = st.sidebar.selectbox("🚢 اختر رقم الحاوية:", containers)
+
+# تطبيق التصفية
+filtered_df = df.copy()
+if selected_container != "الكل" and container_col:
+  filtered_df = filtered_df[
+      filtered_df[container_col].astype(str) == selected_container
+  ]
+
+st.sidebar.markdown("---")
+
+# 6. التنقل بين الصفحات
 page = st.sidebar.radio(
     "القائمة الرئيسية",
     [
@@ -118,37 +139,30 @@ page = st.sidebar.radio(
 st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
-# 6. التنسيق الأحمر لعمود رقم الحاوية
+
+# 7. دالة تنسيق العمود بالأحمر
 def style_container_col(val):
   return "background-color: #fee2e2; color: #dc2626; font-weight: bold;"
 
 
-# 7. عرض الصفحات
+# 8. عرض المحتوى
 if page == "📊 لوحة التحكم (Dashboard)":
   st.title("📊 لوحة التحكم الرئيسية")
   st.markdown("---")
 
-  if "code" in df.columns:
-    codes = df["code"].dropna().unique().tolist()
-    selected_code = st.selectbox(
-        "🔍 اختر أو ابحث عن رقم الكود لتجميع البيانات الخاصة به تلقائياً في الأعلى:",
-        codes,
-    )
-    filtered_df = df[df["code"] == selected_code]
+  if "code" in filtered_df.columns:
+    codes = filtered_df["code"].dropna().unique().tolist()
+    if codes:
+      selected_code = st.selectbox("🔍 تصفية إضافية برقم الكود:", codes)
+      filtered_df = filtered_df[filtered_df["code"] == selected_code]
+    else:
+      selected_code = "غير متوفر"
   else:
-    st.warning("⚠️ لم يتم العثور على عمود باسم 'code' في البيانات.")
-    filtered_df = df.copy()
     selected_code = "غير محدد"
 
-  container_col = (
-      "رقم الحاوية"
-      if "رقم الحاوية" in filtered_df.columns
-      else ("رقم الحاويات" if "رقم الحاويات" in filtered_df.columns else None)
-  )
   total_containers = (
       filtered_df[container_col].nunique() if container_col else 0
   )
-
   total_client_paid = (
       filtered_df["Client Paid"].sum() if "Client Paid" in filtered_df else 0.0
   )
@@ -178,7 +192,7 @@ if page == "📊 لوحة التحكم (Dashboard)":
     )
   with c3:
     st.markdown(
-        f'<div class="metric-card" style="background-color: #22c55e;"><div class="metric-title">رقم الكود المختار</div><div class="metric-value">{selected_code}</div></div>',
+        f'<div class="metric-card" style="background-color: #22c55e;"><div class="metric-title">الحاوية / الكود</div><div class="metric-value">{selected_container}</div></div>',
         unsafe_allow_html=True,
     )
   with c4:
@@ -210,17 +224,16 @@ if page == "📊 لوحة التحكم (Dashboard)":
     )
 
   st.markdown("---")
-  st.subheader(f"📊 جدول التفاصيل المصفى للكود الحالي: {selected_code}")
+  st.subheader("📊 جدول التفاصيل المصفى")
 
   csv = filtered_df.to_csv(index=False).encode("utf-8")
   st.download_button(
       label="📥 Download as CSV",
       data=csv,
-      file_name=f"{selected_code}_details.csv",
+      file_name="filtered_details.csv",
       mime="text/csv",
   )
 
-  # تطبيق تلوين عمود رقم الحاوية
   if container_col:
     styled_df = filtered_df.style.map(
         style_container_col, subset=[container_col]
@@ -232,34 +245,34 @@ if page == "📊 لوحة التحكم (Dashboard)":
 elif page == "🚢 الشحنات والحاويات":
   st.title("🚢 إدارة الشحنات والحاويات")
   st.markdown("---")
-  container_col = (
-      "رقم الحاوية"
-      if "رقم الحاوية" in df.columns
-      else ("رقم الحاويات" if "رقم الحاويات" in df.columns else None)
-  )
 
   if container_col:
     agg_dict = {}
     for col in ["عدد الكارتون", "حجم", "المكتب دفع"]:
-      if col in df.columns:
+      if col in filtered_df.columns:
         agg_dict[col] = "sum"
-    if "code" in df.columns:
+    if "code" in filtered_df.columns:
       agg_dict["code"] = "count"
 
-    container_summary = df.groupby(container_col).agg(agg_dict).reset_index()
+    container_summary = (
+        filtered_df.groupby(container_col).agg(agg_dict).reset_index()
+    )
     if "code" in container_summary.columns:
       container_summary = container_summary.rename(
           columns={"code": "عدد الطلبات"}
       )
 
-    st.dataframe(container_summary, use_container_width=True, height=650)
+    styled_summary = container_summary.style.map(
+        style_container_col, subset=[container_col]
+    )
+    st.dataframe(styled_summary, use_container_width=True, height=650)
   else:
-    st.warning("⚠️ لم يتم العثور على عمود رقم الحاويات في البيانات.")
+    st.warning("⚠️ لم يتم العثور على عمود رقم الحاوية.")
 
 elif page == "📦 الطلبات":
   st.title("📦 جميع الطلبات المسجلة")
   st.markdown("---")
-  st.dataframe(df, use_container_width=True, height=700)
+  st.dataframe(filtered_df, use_container_width=True, height=700)
 
 elif page == "📈 التقارير":
   st.title("📈 التقارير الشاملة")
@@ -267,9 +280,13 @@ elif page == "📈 التقارير":
   col_r1, col_r2 = st.columns(2)
   with col_r1:
     office_sum = (
-        float(df["المكتب دفع"].sum()) if "المكتب دفع" in df.columns else 0.0
+        float(filtered_df["المكتب دفع"].sum())
+        if "المكتب دفع" in filtered_df.columns
+        else 0.0
     )
     st.metric(label="إجمالي مدفوعات المكتب", value=f"¥ {office_sum:,.1f}")
   with col_r2:
-    cbm_sum = float(df["حجم"].sum()) if "حجم" in df.columns else 0.0
+    cbm_sum = (
+        float(filtered_df["حجم"].sum()) if "حجم" in filtered_df.columns else 0.0
+    )
     st.metric(label="إجمالي حجم CBM", value=f"{cbm_sum:,.3f}")
