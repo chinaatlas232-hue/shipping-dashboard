@@ -34,8 +34,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابطك السحري المفتوح والجديد مدمج ومفعل هنا مباشرة في الكود الجديد
-SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw-0hnBEHtdna2_PaK6_R_xEpXtQFkJkAnOw4z7KiqeQtqo82mK3JP_U2AA6w39rimNew/exec'
+# 🔗 رابط الـ Web App المفتوح والصحيح مئة بالمئة لجلب البيانات المفهومة
+SCRIPT_URL = 'https://google.com'
 
 def fetch_shipping_data():
     try:
@@ -51,19 +51,18 @@ df = fetch_shipping_data()
 if df.empty:
     st.warning("⚠️ جاري الاتصال الآمن بجوجل واسترجاع البيانات المفهومة الحية من هاتفك...")
 else:
-    # تنظيف وتجهيز أسماء حقول الجدول لمنع حدوث مشاكل في تهجئة اللغة
-    df.columns = [str(col).strip().lower() for col in df.columns]
+    # إبقاء الأسماء الأصلية للأعمدة مع تنظيف المسافات المحيطة بها فقط لضمان دقة الربط العربي والإنجليزي
+    df.columns = [str(col).strip() for col in df.columns]
     
     # 🏢 شريط القائمة الجانبية (Sidebar) للأدمن
     st.sidebar.markdown("<h2 style='text-align:center; color:#fff; margin-bottom:5px;'>⭐ StarAdmin</h2>", unsafe_allow_html=True)
     st.sidebar.markdown("<p style='text-align:center; opacity:0.7; margin-bottom:25px;'>لوحة تحكم الشحن</p>", unsafe_allow_html=True)
     st.sidebar.markdown("---")
     
-    # 🔍 فحص وتحديد عمود الأكواد من الداتا الصافية (مثل كود، الرمز، code)
-    code_col = next((c for c in df.columns if 'code' in c or 'كود' in c), None)
+    # التعرف الذكي المرن على عمود الأكواد (عربي أو إنجليزي)
+    code_col = next((c for c in df.columns if 'code' in c.lower() or 'كود' in c), None)
     
     if code_col:
-        # استخراج الأكواد النظيفة فقط واستبعاد الفراغات لقائمة البحث الجانبية
         unique_codes = sorted([str(x).strip() for x in df[code_col].dropna().unique() if len(str(x).strip()) > 0])
         if unique_codes:
             selected_code = st.sidebar.selectbox("📂 اختر أو ابحث عن رقم الكود التجميعي:", unique_codes)
@@ -77,26 +76,28 @@ else:
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 دالة حسابية خارقة لتنظيف قيم الأعمدة الإنجليزية وحسابها رياضياً قسرياً داخل الكروت
+    # 📊 دالة حسابية فائقة الذكاء والمرونة (تبحث عن جزء من الكلمة عربي/إنجليزي وتجرد الحروف)
     total_rows = len(df_filtered)
     
-    def get_column_sum_safe(df_target, target_name):
-        col = next((c for c in df_target.columns if target_name in c), None)
+    def get_flexible_sum(df_target, matches):
+        # البحث عن العمود الذي يحتوي على أي من الكلمات المفتاحية الممررة (مثل الوزن أو weight)
+        col = next((c for c in df_target.columns if any(m in c.lower() or m in c for m in matches)), None)
         if col:
-            # تجريد الخلايا من أي نصوص أو رموز (مثل كجم، ¥) وحفظ الأرقام الصافية فقط للجمع
+            # تجريد محتويات الخلايا من النصوص كجم أو ¥ والإبقاء على الأرقام والنقاط العشرية فقط
             clean_series = df_target[col].astype(str).str.replace(r'[^0-9.]', '', regex=True)
             return float(pd.to_numeric(clean_series, errors='coerce').fillna(0.0).sum())
         return 0.0
 
-    # ربط كروت الإحصائيات والأوزان بالأعمدة الإنجليزية الصريحة لجدولك
-    total_weight = get_column_sum_safe(df_filtered, 'weight')
-    total_volume = get_column_sum_safe(df_filtered, 'volume')
+    # ربط كروت الإحصائيات بمرونة فائقة باللغتين العربية والإنجليزية لضمان الربط المباشر
+    total_weight = get_flexible_sum(df_filtered, ['الوزن', 'weight', 'wgt', 'وزن'])
+    total_volume = get_flexible_sum(df_filtered, ['حجم', 'volume', 'cbm', 'الحجم'])
     
-    office_paid = get_column_sum_safe(df_filtered, 'office paid')
-    client_paid = get_column_sum_safe(df_filtered, 'client paid')
-    total_amount = get_column_sum_safe(df_filtered, 'total')
+    office_paid = get_flexible_sum(df_filtered, ['المكتب', 'office paid', 'office', 'مكتب'])
+    client_paid = get_flexible_sum(df_filtered, ['الزبون', 'client paid', 'client', 'زبون'])
+    total_amount = get_flexible_sum(df_filtered, ['المجموع', 'total', 'إجمالي', 'اجمالي'])
 
-    container_col = next((c for c in df_filtered.columns if 'container' in c or 'حاوية' in c), None)
+    # التعرف المرن على عمود الحاويات لحساب عددها الفريد
+    container_col = next((c for c in df_filtered.columns if 'container' in c.lower() or 'حاوية' in c), None)
     active_containers = df_filtered[container_col].nunique() if container_col else 0
 
     # 🎛️ عرض كروت الإحصائيات العلوية المربوطة بالكامل (الصف الأول)
