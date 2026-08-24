@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import requests
 import io
-import time
 
 # 🎯 إعدادات الصفحة لتكون عريضة وبثيم احترافي ممتد
 st.set_page_config(page_title="StarAdmin Shipping Dashboard", layout="wide", initial_sidebar_state="expanded")
@@ -40,14 +39,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط الجلب المباشر والآمن والنظيف بصيغة CSV لجدولك الفعلي والمحدث
+# 🔗 رابط جلب الـ CSV المباشر والنظيف والمستقر تماماً وبدون حقن أوقات عشوائية مكسورة
 CSV_URL = "https://google.com"
 
 def fetch_shipping_data():
     try:
-        # كسر الكاش لقراءة أي بضاعة جديدة تضيفها من هاتفك فوراً
-        timestamp_url = f"{CSV_URL}&t={int(time.time())}"
-        response = requests.get(timestamp_url)
+        response = requests.get(CSV_URL)
         if response.status_code == 200:
             return pd.read_csv(io.StringIO(response.text))
     except Exception as e:
@@ -79,7 +76,7 @@ else:
 
     st.markdown(f"<h2 style='text-align: center; margin-top:10px; margin-bottom:35px;'>📊 لوحة تحكم ومساحات الكود الحالي: {selected_code}</h2>", unsafe_allow_html=True)
 
-    # 📊 العمليات الحسابية والمالية الذكية والممتدة والتنظيف التلقائي من الحروف (كجم، ¥)
+    # 📊 العمليات الحسابية والمالية الذكية والممتدة والتنظيف التلقائي للحروف (كجم، ¥)
     total_rows = len(df_filtered)
     
     def get_flexible_sum(df_target, possible_names):
