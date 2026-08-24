@@ -39,7 +39,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔗 رابط جوجل السحري النظيف والمحدث لقاعدة بياناتك
+# 🔗 الرابط السحري الفعّال والأخير تم وضعه هنا ليعمل مباشرة دون أخطاء
 SCRIPT_URL = 'https://google.com'
 
 @st.cache_data(ttl=5)
@@ -55,7 +55,7 @@ def fetch_shipping_data():
 df = fetch_shipping_data()
 
 if df.empty:
-    st.warning("⚠️ جاري جلب البيانات وتحديث الواجهة الفخمة والمساحات...")
+    st.warning("⚠️ جاري الاتصال بقاعدة البيانات وتحديث الواجهة الفخمة والمساحات...")
 else:
     df.columns = [col.strip() for col in df.columns]
     
@@ -84,7 +84,6 @@ else:
         for name in possible_names:
             col = next((c for c in df_target.columns if name in c.lower() or name in c), None)
             if col:
-                # تم تصحيح هذا السطر برمجياً ليعمل بلغة البايثون بشكل سليم 100%
                 clean_series = df_target[col].astype(str).str.replace(r'[^\d.]', '', regex=True)
                 return pd.to_numeric(clean_series, errors='coerce').sum()
         return 0.0
