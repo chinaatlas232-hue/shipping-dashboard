@@ -114,7 +114,7 @@ def clean_numeric(series):
         errors="coerce"
     ).fillna(0)
 
-# 2. تحميل البيانات
+# 2. تحميل البيانات وتوحيد أسماء الأعمدة لمنع ظهور أصفار
 def load_data(uploaded_file):
     df = None
     if uploaded_file is not None:
@@ -140,11 +140,24 @@ def load_data(uploaded_file):
 
     df.columns = df.columns.astype(str).str.strip()
 
+    # معالجة مرنة لأعمدة الدفع لضمان قراءتها وعدم ظهور أصفار
+    office_col_candidate = next((c for c in df.columns if any(k in c for k in ["المكتب دفع", "Office Paid", "دفع الشركة"])), None)
+    client_col_candidate = next((c for c in df.columns if any(k in c for k in ["الزبون دفع", "Client Paid", "دفع الزبون"])), None)
+
+    if office_col_candidate and "Office Paid" not in df.columns:
+        df["Office Paid"] = df[office_col_candidate]
+    if client_col_candidate and "Client Paid" not in df.columns:
+        df["Client Paid"] = df[client_col_candidate]
+
     if "الزبون دفع" in df.columns and "Client Paid" not in df.columns:
         df["Client Paid"] = df["الزبون دفع"]
+    elif "Client Paid" in df.columns and "الزبون دفع" not in df.columns:
+        df["الزبون دفع"] = df["Client Paid"]
 
     if "المكتب دفع" in df.columns and "Office Paid" not in df.columns:
         df["Office Paid"] = df["المكتب دفع"]
+    elif "Office Paid" in df.columns and "المكتب دفع" not in df.columns:
+        df["المكتب دفع"] = df["Office Paid"]
 
     numeric_cols = [
         "المكتب دفع", "Office Paid", "الزبون دفع", "Client Paid",
@@ -630,14 +643,12 @@ elif page == "📈 الرسوم البيانية":
     if filtered_df.empty:
         st.warning("لا توجد بيانات متاحة لعرض الرسوم البيانية.")
     else:
-        # 1. مخطط مبالغ الجمرك والاستحصالات حسب الحاويات
         if container_col and "مبلغ الجمرك" in filtered_df.columns:
             st.subheader("📦 مقارنة مبالغ الجمرك والاستحصالات حسب الحاويات")
             chart_data = filtered_df.groupby(container_col)[["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"]].sum()
             st.bar_chart(chart_data)
             st.markdown("---")
 
-        # 2. مخطط الأوزان والأحجام حسب الحاويات
         col_chart1, col_chart2 = st.columns(2)
         with col_chart1:
             if container_col and "الوزن" in filtered_df.columns:
@@ -653,11 +664,9 @@ elif page == "📈 الرسوم البيانية":
 
         st.markdown("---")
 
-        # 3. مخطط توزيع الديون والمبالغ حسب الكفلاء
         if "الكفيل" in filtered_df.columns and "مبلغ الجمرك" in filtered_df.columns:
             st.subheader("👤 إجمالي مبالغ الجمرك والاستحصالات حسب الكفلاء")
             sponsor_chart_data = filtered_df.groupby("الكفيل")[["مبلغ الجمرك", "قيمة الاستحصالات"]].sum()
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
-
