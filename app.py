@@ -387,67 +387,60 @@ elif page == "customs":
 
     st.markdown("---")
     
-    # جدول البايفت الخاص بكشف أجور الكمارك (الاستحصالات والمتبقي حسب الكود والحاوية)
-    st.markdown("### 📊 جدول الاستحصالات والمتبقي للشحنات (Pivot Table)")
+    # جدول كشف أجور الكمارك بالتنسيق العمودي المطلوب (Row Labels, Sum of عدد الكارتون, مبلغ الجمرك, قيمة الاستحصالات, متبقي حقيقي)
+    st.markdown("### 📊 جدول ملخص أجور الكمارك والاستحصالات حسب الكود")
     
     pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
-    pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
     
-    # اختيار القيمة المراد عرضها في جدول البايفت (المتبقي حقيقي أو قيمة الاستحصالات)
-    metric_choice = st.radio("اختر نوع البيانات لعرضها في الجدول:", ["المتبقي حقيقي", "قيمة الاستحصالات", "مبلغ الجمرك"], horizontal=True)
-
-    if pivot_code_col and pivot_container_col and metric_choice in pivot_filtered_df.columns:
+    if pivot_code_col and not pivot_filtered_df.empty:
         base_pivot_df = pivot_filtered_df.copy()
 
-        pivot_table_df = base_pivot_df.pivot_table(
-            index=pivot_code_col,
-            columns=pivot_container_col,
-            values=metric_choice,
-            aggfunc="sum",
-            fill_value=0
-        )
+        # تجميع البيانات حسب الكود (Row Labels)
+        customs_summary = base_pivot_df.groupby(pivot_code_col, dropna=False).agg({
+            "عدد الكارتون": "sum",
+            "مبلغ الجمرك": "sum",
+            "قيمة الاستحصالات": "sum",
+            "متبقي حقيقي": "sum"
+        }).reset_index()
 
-        pivot_table_df = pivot_table_df[(pivot_table_df != 0).any(axis=1)]
+        # إضافة صف الإجمالي الكلي (Grand Total)
+        grand_total_row = pd.DataFrame({
+            pivot_code_col: ["Grand Total"],
+            "عدد الكارتون": [customs_summary["عدد الكارتون"].sum()],
+            "مبلغ الجمرك": [customs_summary["مبلغ الجمرك"].sum()],
+            "قيمة الاستحصالات": [customs_summary["قيمة الاستحصالات"].sum()],
+            "متبقي حقيقي": [customs_summary["متبقي حقيقي"].sum()]
+        })
 
-        pivot_table_df["Grand Total"] = pivot_table_df.sum(axis=1)
-        grand_total_row = pivot_table_df.sum(axis=0)
-        pivot_table_df.loc["Grand Total"] = grand_total_row
+        customs_summary = pd.concat([customs_summary, grand_total_row], ignore_index=True)
 
-        new_columns = []
-        for col in pivot_table_df.columns:
-            if col == "Grand Total":
-                new_columns.append(col)
-                continue
-            
-            sub_df = base_pivot_df[base_pivot_df[pivot_container_col].astype(str) == str(col)]
-            is_not_arrived = False
-            if not sub_df.empty and "الكفيل" in sub_df.columns:
-                sponsors_in_col = sub_df["الكفيل"].astype(str).unique()
-                if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
-                    is_not_arrived = True
-            
-            bg_color = "#fef08a" if is_not_arrived else "#bbf7d0"
-            html_col_name = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{col}</div>'
-            new_columns.append(html_col_name)
+        # إعادة تسمية الأعمدة تماماً كما في الصورة المطلوبة
+        customs_summary = customs_summary.rename(columns={
+            pivot_code_col: "Row Labels",
+            "عدد الكارتون": "Sum of عدد الكارتون",
+            "مبلغ الجمرك": "Sum of مبلغ الجمرك",
+            "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
+            "متبقي حقيقي": "Sum of متبقي حقيقي"
+        })
 
-        pivot_table_df.columns = new_columns
+        # تنسيق المبالغ المالية بالشكل الصحيح ($ أو ¥ حسب رغبتك، هنا سنحافظ على تنسيق الارقام)
+        formatted_customs = customs_summary.copy()
+        for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
+            formatted_customs[col] = formatted_customs[col].apply(lambda x: f"${x:,.2f}" if isinstance(x, (int, float)) else x)
 
-        formatted_pivot = pivot_table_df.map(
-            lambda val: f"¥{val:,.0f}" if isinstance(val, (int, float)) and val != 0 else ""
-        )
-        
-        def style_pivot_cells(val):
-            if val == "":
-                return 'background-color: #f8fafc; color: transparent;'
-            return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
+        def style_customs_table(row):
+            styles = [''] * len(row)
+            if str(row["Row Labels"]) == "Grand Total":
+                return ['background-color: #e2e8f0; color: #000000; font-weight: bold;'] * len(row)
+            return styles
 
-        styled_matrix = formatted_pivot.style.map(style_pivot_cells)
-        
-        render_download_buttons(pivot_table_df.reset_index())
-        matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
-        st.markdown(f'<div style="width: 100%; overflow-x: auto;">{matrix_html}</div>', unsafe_allow_html=True)
+        styled_customs_table = formatted_customs.style.apply(style_customs_table, axis=1)
+
+        render_download_buttons(customs_summary)
+        table_height = max(300, min(len(formatted_customs) * 35 + 50, 1200))
+        st.dataframe(styled_customs_table, use_container_width=True, height=table_height)
     else:
-        st.warning("الأعمدة المطلوبة لإنشاء الجدول المحوري غير متوفرة أو البيانات فارغة.")
+        st.warning("الأعمدة المطلوبة لإنشاء الجدول غير متوفرة أو البيانات فارغة.")
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
