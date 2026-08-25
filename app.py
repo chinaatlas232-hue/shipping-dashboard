@@ -270,7 +270,6 @@ if page == "📊 لوحة التحكم (Dashboard)":
     render_download_buttons(filtered_df)
     
     styled_filtered_df = style_container_column(filtered_df)
-    # عرض الجدول بالكامل بدون سكرول داخلي (تم احتساب الارتفاع بناءً على عدد الصفوف تلقائياً)
     table_height = max(300, min(len(filtered_df) * 35 + 50, 1200))
     st.dataframe(styled_filtered_df, use_container_width=True, height=table_height)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
@@ -405,7 +404,6 @@ elif page == "💰 كشف اجور الكمارك":
         styled_pivot = display_df.style.apply(apply_row_styles, axis=1)
         render_download_buttons(display_df)
         
-        # عرض جدول الكمارك بالكامل بدون سكرول داخلي
         pivot_table_height = max(300, min(len(display_df) * 35 + 50, 1200))
         st.dataframe(styled_pivot, use_container_width=True, height=pivot_table_height)
         st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
@@ -478,12 +476,18 @@ elif page == "📈 واجهة التقارير":
             
             def style_pivot_cells(val):
                 if val == "" or val == "$0":
-                    return 'background-color: #f1f5f9; color: #f1f5f9;' # خلفية رصاصي فاتح للخلايا الفارغة
-                return 'background-color: #fce7f3; color: #000000; font-weight: bold;' # خلفية وردي فاتح ونصوص سوداء عريضة للمبالغ
+                    return 'background-color: #f1f5f9; color: #f1f5f9;'
+                return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
             
-            # عرض جدول التقارير بالكامل بدون سكرول داخلي
+            # تنسيق أعمدة "code" (أي فهرس الجدول) وأعمدة الحاويات (rq) لتكون بخط أسود واضح
+            styled_matrix = styled_matrix.set_table_styles([
+                {'selector': 'th.row_heading', 'props': [('color', '#000000'), ('font-weight', 'bold')]},
+                {'selector': 'th.col_heading', 'props': [('color', '#000000'), ('font-weight', 'bold')]},
+                {'selector': 'td', 'props': [('color', '#000000')]}
+            ], overwrite=False)
+            
             matrix_height = max(300, min(len(pivot_table_df) * 35 + 50, 1200))
             st.dataframe(styled_matrix, use_container_width=True, height=matrix_height)
         else:
