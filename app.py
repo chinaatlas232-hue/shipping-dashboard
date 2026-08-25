@@ -510,11 +510,13 @@ elif page == "aging":
                     styles.append('background-color: #ffffff; color: #000000; font-weight: bold; text-align: center;')
             return styles
 
-        styled_aging_matrix = formatted_aging.style.apply(style_aging_cells, axis=1)
+        styled_aging_matrix = formatted_aging.style.apply(style_aging_cells, axis=1).set_table_styles([
+            {"selector": "th", "props": [("text-align", "center"), ("vertical-align", "middle")]}
+        ])
         render_download_buttons(aging_pivot.reset_index())
         
-        aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
-        st.markdown(f'<div style="width: 100%; overflow-x: auto;">{aging_html}</div>', unsafe_allow_html=True)
+        aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center;" id')
+        st.markdown(f'<div style="width: 100%; overflow-x: auto; text-align: center;">{aging_html}</div>', unsafe_allow_html=True)
     else:
         st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
 
