@@ -31,6 +31,11 @@ st.markdown(
         margin-bottom: 35px !important;
     }
     
+    /* تكبير عرض الجداول في الصفحة لتأخذ المساحة بالكامل */
+    [data-testid="stDataFrame"] > div {
+        width: 100% !important;
+    }
+    
     /* تخصيص شريط التمرير ليصبح على شكل مربع صغير ومرتب بلون أحمر فاتح */
     ::-webkit-scrollbar {
         width: 10px !important;
@@ -460,16 +465,16 @@ elif page == "📈 واجهة التقارير":
             grand_total_row = pivot_table_df.sum(axis=0)
             pivot_table_df.loc["Grand Total"] = grand_total_row
 
-            # تم تعديل applymap إلى map هنا لحل المشكلة نهائياً
             formatted_pivot = pivot_table_df.map(lambda val: f"${val:,.0f}" if val > 0 else "")
             
+            # تعديل تنسيق الخلايا لجعل الخط أسود وبخط عريض (Bold Black) وتكبير ارتفاع الجدول
             def style_pivot_cells(val):
                 if val == "" or val == "$0":
                     return 'background-color: #1e3a8a; color: #1e3a8a;'
-                return 'background-color: #ffffff; color: #000000; font-weight: bold;'
+                return 'background-color: #ffffff; color: #000000; font-weight: 900; font-size: 15px;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
-            st.dataframe(styled_matrix, use_container_width=True)
+            st.dataframe(styled_matrix, use_container_width=True, height=750)
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت (الكود، رقم الحاوية، مبلغ الجمرك) غير متوفرة بالكامل.")
             st.dataframe(sponsor_summary, use_container_width=True)
