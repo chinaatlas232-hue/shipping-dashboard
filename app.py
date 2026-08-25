@@ -8,6 +8,7 @@ st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
 )
 
+# CSS مخصص لتغيير ألوان رأس الجدول بشكل مضمون وإلغاء خلفية الـ Canvas
 st.markdown(
     """
     <style>
@@ -26,24 +27,40 @@ st.markdown(
         border: 2px solid #3b82f6 !important;
     }
 
-    /* --- توسيط جميع كتابات ومحتويات الجدول --- */
-    div[data-testid="stDataFrame"] div[role="gridcell"],
-    div[data-testid="stDataFrame"] div[role="columnheader"],
-    div[data-testid="stDataFrame"] th,
-    div[data-testid="stDataFrame"] td {
-        text-align: center !important;
-        justify-content: center !important;
+    /* --- تنسيق جدول HTML الثابت ليكون باللون الأحمر للرأس --- */
+    .custom-table-container {
+        width: 100%;
+        max-height: 700px;
+        overflow-y: auto;
+        border: 1px solid #444;
+        border-radius: 8px;
     }
-
-    /* --- تغيير لون الشريط العلوي للجدول بالكامل إلى اللون الأحمر --- */
-    div[data-testid="stDataFrame"] div[role="columnheader"],
-    div[data-testid="stDataFrame"] th,
-    div[data-testid="stDataFrame"] [data-testid="stTable"] th {
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        direction: rtl;
+    }
+    .custom-table th {
         background-color: #ff0000 !important;
         color: #ffffff !important;
+        position: sticky;
+        top: 0;
+        padding: 10px;
+        text-align: center;
+        border: 1px solid #dc2626;
+        z-index: 10;
     }
-    div[data-testid="stDataFrame"] div[role="columnheader"] span {
-        color: #ffffff !important;
+    .custom-table td {
+        padding: 8px;
+        text-align: center;
+        border: 1px solid #333;
+        color: #e2e8f0;
+        background-color: #1e293b;
+    }
+    .custom-table tr:nth-child(even) td {
+        background-color: #0f172a;
     }
     </style>
 """,
@@ -132,13 +149,11 @@ def load_data(uploaded_file):
   return df
 
 
-# --- دالة البحث المفلترة الصارمة على عمود code فقط ---
 def apply_strict_code_search(data_frame, search_term):
   if not search_term or "code" not in data_frame.columns:
     return data_frame
 
   clean_term = search_term.strip().upper()
-
   code_series = data_frame["code"].astype(str).str.strip().str.upper()
 
   exact_match = data_frame[code_series == clean_term]
@@ -286,7 +301,26 @@ def render_dashboard_metrics(data_df):
     )
 
 
-# 5. عرض الصفحات والفلترة الفعلية
+# دالة جديدة لعرض الجدول بـ HTML المباشر باللون الأحمر للرأس
+def render_red_header_table(data_df):
+  html_table = (
+      '<div class="custom-table-container"><table class="custom-table"><thead><tr>'
+  )
+  for col in data_df.columns:
+    html_table += f"<th>{col}</th>"
+  html_table += "</tr></thead><tbody>"
+
+  for _, row in data_df.iterrows():
+    html_table += "<tr>"
+    for val in row:
+      html_table += f"<td>{val}</td>"
+    html_table += "</tr>"
+  html_table += "</tbody></table></div>"
+
+  st.markdown(html_table, unsafe_allow_html=True)
+
+
+# 5. عرض الصفحات
 if page in [
     "📊 لوحة التحكم (Dashboard)",
     "🚢 الشحنات والحاويات",
@@ -297,12 +331,13 @@ if page in [
   st.markdown("---")
 
   search_input = render_search_bar()
-
   display_df = apply_strict_code_search(filtered_df, search_input)
 
   render_dashboard_metrics(display_df)
   render_download_buttons(display_df)
-  st.dataframe(display_df, use_container_width=True, height=700)
+
+  # عرض الجدول المخصص برأس أحمر فاقع مضاعف
+  render_red_header_table(display_df)
 
 elif page == "💰 كشف الكمارك المستحصلة":
   st.title("💰 كشف الكمارك المستحصلة من العميل (Pivot Report)")
@@ -458,7 +493,6 @@ elif page == "💰 كشف الكمارك المستحصلة":
             "Sum of مبلغ الجمرك": f"${sum_customs:,.2f}",
             "Sum of قيمة الاستحصالات": f"${sum_collections:,.2f}",
             "Sum of متبقي حقيقي": f"${sum_remaining:,.0f}",
-            "is_not_arrived": is_not_arrived,
         })
 
         if container_col:
@@ -486,7 +520,6 @@ elif page == "💰 كشف الكمارك المستحصلة":
                 "Sum of مبلغ الجمرك": f"${c_customs:,.2f}",
                 "Sum of قيمة الاستحصالات": f"${c_collections:,.2f}",
                 "Sum of متبقي حقيقي": f"${c_remaining:,.0f}",
-                "is_not_arrived": is_not_arrived,
             })
 
     tree_rows.append({
@@ -494,33 +527,12 @@ elif page == "💰 كشف الكمارك المستحصلة":
         "Sum of مبلغ الجمرك": f"${grand_customs:,.2f}",
         "Sum of قيمة الاستحصالات": f"${grand_collections:,.2f}",
         "Sum of متبقي حقيقي": f"${grand_remaining:,.0f}",
-        "is_not_arrived": False,
     })
 
   pivot_display_df = pd.DataFrame(tree_rows)
 
   if not pivot_display_df.empty:
-    is_not_arrived_list = pivot_display_df["is_not_arrived"].tolist()
-    display_df = pivot_display_df.drop(columns=["is_not_arrived"])
-
-    def apply_row_styles(row):
-      idx = row.name
-      label = str(row["Row Labels"])
-      is_not_arr = is_not_arrived_list[idx]
-
-      if is_not_arr:
-        return [
-            "background-color: #fee2e2; color: #991b1b; font-weight: bold;"
-        ] * len(row)
-      elif label.startswith("➖") or label == "Grand Total":
-        return [
-            "background-color: #f1f5f9; color: #0f172a; font-weight: bold;"
-        ] * len(row)
-
-      return ["color: #1e293b; background-color: #ffffff;"] * len(row)
-
-    styled_pivot = display_df.style.apply(apply_row_styles, axis=1)
-    render_download_buttons(display_df)
-    st.dataframe(styled_pivot, use_container_width=True, height=750)
+    render_download_buttons(pivot_display_df)
+    render_red_header_table(pivot_display_df)
   else:
     st.warning("لا توجد نتائج مطابقة.")
