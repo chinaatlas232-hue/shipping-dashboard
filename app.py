@@ -26,16 +26,23 @@ st.markdown(
         border: 2px solid #3b82f6 !important;
     }
 
-    /* --- توسيط محتويات ومحاذاة ورؤوس الجدول --- */
+    /* --- توسيط جميع كتابات ومحتويات الجدول --- */
     div[data-testid="stDataFrame"] div[role="gridcell"],
-    div[data-testid="stDataFrame"] div[role="columnheader"] {
+    div[data-testid="stDataFrame"] div[role="columnheader"],
+    div[data-testid="stDataFrame"] th,
+    div[data-testid="stDataFrame"] td {
         text-align: center !important;
         justify-content: center !important;
     }
 
-    /* --- تغيير لون شريط رؤوس الجدول (Header) إلى اللون الأحمـر --- */
-    div[data-testid="stDataFrame"] div[role="columnheader"] {
-        background-color: #dc2626 !important;
+    /* --- تغيير لون الشريط العلوي للجدول بالكامل إلى اللون الأحمر --- */
+    div[data-testid="stDataFrame"] div[role="columnheader"],
+    div[data-testid="stDataFrame"] th,
+    div[data-testid="stDataFrame"] [data-testid="stTable"] th {
+        background-color: #ff0000 !important;
+        color: #ffffff !important;
+    }
+    div[data-testid="stDataFrame"] div[role="columnheader"] span {
         color: #ffffff !important;
     }
     </style>
@@ -132,15 +139,12 @@ def apply_strict_code_search(data_frame, search_term):
 
   clean_term = search_term.strip().upper()
 
-  # 1. تنظيف عمود code ومطابقته مباشرة مع النص المكتوب
   code_series = data_frame["code"].astype(str).str.strip().str.upper()
 
-  # البحث أولاً عن مطابقة تامة حصراً
   exact_match = data_frame[code_series == clean_term]
   if not exact_match.empty:
     return exact_match
 
-  # إذا لم يجد مطابقة تامة، يفلتر الأكواد التي تبدأ بنفس الرمز فقط
   starts_with_match = data_frame[code_series.str.startswith(clean_term)]
   return starts_with_match
 
@@ -294,7 +298,6 @@ if page in [
 
   search_input = render_search_bar()
 
-  # تطبيق البحث مباشرة على الجدول والبطاقات
   display_df = apply_strict_code_search(filtered_df, search_input)
 
   render_dashboard_metrics(display_df)
