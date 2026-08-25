@@ -460,16 +460,16 @@ elif page == "📈 واجهة التقارير":
             main_pivot["Grand Total"] = main_pivot.sum(axis=1)
             main_pivot.loc["Grand Total"] = main_pivot.sum(axis=0)
 
-            formatted_pivot = main_pivot.applymap(lambda val: f"${val:,.0f}" if val > 0 else "")
+            # استخدام .map بدلاً من applymap للتوافق مع الإصدارات الحديثة من مكتبة pandas
+            formatted_pivot = main_pivot.map(lambda val: f"${val:,.0f}" if val > 0 else "")
             
             def style_pivot_cells(val):
                 if val == "" or val == "$0":
                     return 'background-color: #f8fafc; color: #cbd5e1;'
                 return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
 
-            styled_matrix = formatted_pivot.applymap(style_pivot_cells)
+            styled_matrix = formatted_pivot.map(style_pivot_cells)
             
-            # --- تعديل طريقة تمرير الـ Styles لتفادي أي Syntax Error ---
             styled_matrix = styled_matrix.set_table_styles([
                 {"selector": "th.row_heading", "props": [("color", "#000000"), ("font-weight", "bold"), ("background-color", "#f1f5f9")]},
                 {"selector": "th.col_heading", "props": [("color", "#000000"), ("font-weight", "bold"), ("background-color", "#f1f5f9")]},
