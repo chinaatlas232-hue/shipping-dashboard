@@ -1,114 +1,135 @@
 import pandas as pd
 import streamlit as st
 
-# إعداد الصفحة
+# إعداد الصفحة لتكون بعرض الشاشة (Wide)
 st.set_page_config(
-    page_title="إدارة الشحنات والحاويات", page_icon="🚢", layout="wide"
+    page_title="نظام إدارة اللوجستيات - النسخة المحدثة",
+    page_icon="🚢",
+    layout="wide",
 )
 
-st.title("🚢 إدارة الشحنات والحاويات")
+st.title("📦 إدارة الطلبات والشحنات - لوحة التحكم المحدثة")
 st.markdown("---")
 
-# 1. محاكاة تحميل البيانات (استبدل هذا بقراءة ملف الـ Excel الخاص بك مثل: pd.read_excel('your_file.xlsx'))
-# تأكد من أن أسماء الأعمدة تطابق الموجودة في ملفك الفعلي
+# 1. محاكاة قاعدة البيانات (استبدل هذا بملف الـ Excel الخاص بك باستخدام pd.read_excel)
 data = {
-    "No.": [397, 1025, 1026, 1027, 1028],
-    "code": ["E235", "KB130", "B4344", "BS1313", "B6135"],
-    "Shipping mark": [
-        "E235-A53",
-        "KB130",
-        "B4344-C48",
-        "BS1313-B20",
-        "B6135-02",
-    ],
+    "رقم الحاوية": ["RQ6025", "RQ6026", "RQ6025", "RQ6027", "RQ6028"],
+    "Code": ["KST", "KST", "QR8120-A1", "QR8116-1", "QR812-135"],
     "رقم دخول المخزن": [
-        "RS260516045",
-        "RS2607152074",
-        "RS2607141878",
-        "RS260708968",
-        "RS260707896",
+        "RS2608244348",
+        "RS26082513728",
+        "RS2608244315",
+        "RS2608244418",
+        "RS2608244322",
     ],
     "نوع البضاعة": [
         "LADYS BAGS",
         "Air conditioner",
-        "BED,CART,rocker",
-        "Mirror,Mirror frame",
-        "HANGER",
+        "LADY SUIT",
+        "Lady bag",
+        "women top",
     ],
-    "إجمالي الطلبات": [1, 2, 1, 3, 2],
-    "إجمالي الكارتون": [40, 15, 22, 10, 30],
-    "إجمالي الوزن": [150.5, 300.0, 120.0, 85.5, 210.0],
-    "إجمالي الحجم": [2.5, 5.1, 1.8, 3.2, 4.0],
-    "دفع الشركة": [150, 430, 200, 120, 310],
-    "دفع الزبون": [250, 600, 350, 220, 450],
+    "القطع": [1, 1, 1, 1, 1],
+    "الوزن": [72.5, 24.1, 40.0, 30.5, 62.2],
+    "CBM": [0.12, 0.14, 0.18, 0.25, 0.22],
+    "حالة الطلب": [
+        "تحت الإدخال",
+        "تم الإدخال",
+        "تحت الإدخال",
+        "تم الإدخال",
+        "جاهز للشحن",
+    ],
+    "دفع الزبون": [2, 3, 5, 4, 3],
+    "دفع الشركة": [4, 6, 8, 7, 6],
 }
 df = pd.DataFrame(data)
 
-# 2. شريط البحث الذكي المفلتر بدقة
-search_query = st.text_input(
-    "🔍 ابحث في الأعمدة (اكتب رقم الشحنة، الكود، أو رقم الحاوية بدقة)...",
-    placeholder="مثال: RS260516045 أو E235...",
+# --- 2. صناديق الإحصائيات العلوية المتحدثة ديناميكياً ---
+# (سيتم حسابها لاحقاً بناءً على نتائج البحث والفلترة)
+
+# --- 3. حقول البحث المتقدم والفلاتر (حل مشكلة البحث القديم) ---
+st.subheader("🔍 البحث المتقدم وفلترة البيانات بدقة")
+
+col_f1, col_f2, col_f3 = st.columns(3)
+
+with col_f1:
+  search_container = st.selectbox(
+      "اختر رقم الحاوية:", ["الكل"] + list(df["رقم الحاوية"].unique())
+  )
+
+with col_f2:
+  search_code = st.text_input(
+      "البحث برقم الكود (Code):", placeholder="اكتب الكود بدقة..."
+  )
+
+with col_f3:
+  search_warehouse = st.text_input(
+      "البحث برقم دخول المخزن:", placeholder="اكتب رقم المخزن بدقة..."
+  )
+
+# --- 4. تطبيق منطق الفلترة والبحث (دمج الكود القديم والجديد) ---
+filtered_df = df.copy()
+
+# أ) فلتر رقم الحاوية (من القائمة الجانبية أو المنسدلة)
+if search_container != "الكل":
+  filtered_df = filtered_df[
+      filtered_df["رقم الحاوية"].astype(str).str.strip()
+      == str(search_container).strip()
+  ]
+
+# ب) فلتر الكود (مع استخدام المطابقة الدقيقة لمنع جلب نتائج عشوائية خاطئة)
+if search_code:
+  code_query = search_code.strip().lower()
+  filtered_df = filtered_df[
+      filtered_df["Code"].astype(str).str.lower().str.strip() == code_query
+  ]
+
+# ج) فلتر رقم دخول المخزن (مطابقة دقيقة لمنع الأخطاء)
+if search_warehouse:
+  wh_query = search_warehouse.strip().lower()
+  filtered_df = filtered_df[
+      filtered_df["رقم دخول المخزن"].astype(str).str.lower().str.strip()
+      == wh_query
+  ]
+
+# --- 5. حساب إجماليات الكروت بناءً على البيانات المصفاة فقط ---
+total_orders = len(filtered_df)
+total_pcs = filtered_df["القطع"].sum() if not filtered_df.empty else 0
+total_cbm = filtered_df["CBM"].sum() if not filtered_df.empty else 0
+total_weight = filtered_df["الوزن"].sum() if not filtered_df.empty else 0
+total_cost = (
+    (filtered_df["دفع الشركة"].sum() + filtered_df["دفع الزبون"].sum())
+    if not filtered_df.empty
+    else 0
 )
 
-# 3. منطق الفلترة الدقيقة (لمنع اقتراح النتائج الخاطئة التي تبدأ فقط بالحرف)
-if search_query:
-    query_str = str(search_query).strip()
-
-    # تحديد الأعمدة التي يتم البحث فيها بدقة (مثل الأكواد وأرقام المخزن)
-    # يمكنك تعديل أسماء الأعمدة لتطابق جدولك تماماً
-    searchable_cols = ["code", "Shipping mark", "رقم دخول المخزن"]
-
-    # فلترة تعتمد على المطابقة التامة أو الإحتواء الدقيق للرمز المكتوب حصراً
-    mask = pd.Series(False, index=df.index)
-    for col in df.columns:
-        # إذا أردت مطابقة تامة لكل خلية تحتوي على النص أو تطابقه
-        mask = mask | (df[col].astype(str).str.strip().str.lower() == query_str.lower())
-        
-        # إذا أردت البحث الجزئي ولكن ضمن الأعمدة المحددة فقط بدون عشوائية:
-        # mask = mask | df[col].astype(str).str.contains(query_str, case=False, na=False)
-
-    filtered_df = df[mask]
-else:
-    filtered_df = df.copy()
-
-# 4. حساب المجاميع للكروت الملونة في الأعلى بناءً على البيانات المصفاة
-total_orders = filtered_df["إجمالي الطلبات"].sum() if not filtered_df.empty else 0
-total_cartons = filtered_df["إجمالي الكارتون"].sum() if not filtered_df.empty else 0
-total_weight = filtered_df["إجمالي الوزن"].sum() if not filtered_df.empty else 0
-total_volume = filtered_df["إجمالي الحجم"].sum() if not filtered_df.empty else 0
-total_company_pay = filtered_df["دفع الشركة"].sum() if not filtered_df.empty else 0
-total_customer_pay = filtered_df["دفع الزبون"].sum() if not filtered_df.empty else 0
-
-# 5. عرض الكروت الإحصائية الملونة بشكل مرتب وأنيق
-col1, col2, col3, col4, col5, col6 = st.columns(6)
-
-with col1:
-    st.metric(label="📦 إجمالي الطلبات", value=f"{total_orders}")
-with col2:
-    st.metric(label="📦 إجمالي الكارتون", value=f"{total_cartons}")
-with col3:
-    st.metric(label="⚖️ إجمالي الوزن", value=f"{total_weight:,.2f} kg")
-with col4:
-    st.metric(label="📐 إجمالي الحجم", value=f"{total_volume:,.2f} m³")
-with col5:
-    st.metric(label="💵 دفع الشركة", value=f"${total_company_pay:,.2f}")
-with col6:
-    st.metric(label="💳 دفع الزبون", value=f"${total_customer_pay:,.2f}")
+# عرض الكروت الإحصائية العلوية
+m1, m2, m3, m4, m5 = st.columns(5)
+with m1:
+  st.metric(label="📋 إجمالي الطلبات", value=f"{total_orders}")
+with m2:
+  st.metric(label="📦 إجمالي القطع", value=f"{total_pcs}")
+with m3:
+  st.metric(label="📐 إجمالي CBM", value=f"{total_cbm:,.3f}")
+with m4:
+  st.metric(label="⚖️ إجمالي الوزن", value=f"{total_weight:,.2f} kg")
+with m5:
+  st.metric(label="💵 إجمالي التكلفة", value=f"${total_cost:,.2f}")
 
 st.markdown("---")
 
-# 6. أزرار التصدير (Excel / CSV)
-c_ex1, c_ex2 = st.columns(2)
-with c_ex1:
-    if not filtered_df.empty:
-        # تحويل البيانات لتصدير Excel (يمكنك استخدام مكتبة io و XlsxWriter لاحقاً إذا رغبت)
-        st.download_button(
-            label="📊 Download as Excel",
-            data=filtered_df.to_csv(index=False).encode('utf-8-sig'),
-            file_name="shipments_report.csv",
-            mime="text/csv",
-        )
+# --- 6. أزرار التصدير وتحديث الجدول ---
+col_btn1, col_btn2 = st.columns([1, 6])
+with col_btn1:
+  if not filtered_df.empty:
+    csv_data = filtered_df.to_csv(index=False).encode("utf-8-sig")
+    st.download_button(
+        label="📥 Export Excel",
+        data=csv_data,
+        file_name="updated_logistics_report.csv",
+        mime="text/csv",
+    )
 
-# 7. عرض جدول النتائج النهائي
-st.subheader("📋 جدول الشحنات:")
+# --- 7. عرض جدول النتائج النهائي ---
+st.subheader(f"📋 النتائج المعروضة ({len(filtered_df)} طلب)")
 st.dataframe(filtered_df, use_container_width=True)
