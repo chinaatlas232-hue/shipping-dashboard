@@ -170,7 +170,8 @@ page = st.sidebar.radio(
         "📊 لوحة التحكم (Dashboard)",
         "💰 كشف اجور الكمارك",
         "👥 الديون على الكفلاء",
-        "🛃 كمرك الشحنات والاستحصالات"
+        "🛃 كمرك الشحنات والاستحصالات",
+        "📈 الرسوم البيانية"
     ]
 )
 st.sidebar.markdown("---")
@@ -577,5 +578,43 @@ elif page == "🛃 كمرك الشحنات والاستحصالات":
         st.dataframe(styled_summary, use_container_width=True, height=summary_height)
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
+
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
+elif page == "📈 الرسوم البيانية":
+    st.title("📈 لوحة الرسوم البيانية والتحليلات")
+    st.markdown("---")
+
+    if filtered_df.empty:
+        st.warning("لا توجد بيانات متاحة لعرض الرسوم البيانية.")
+    else:
+        # 1. مخطط مبالغ الجمرك والاستحصالات حسب الحاويات
+        if container_col and "مبلغ الجمرك" in filtered_df.columns:
+            st.subheader("📦 مقارنة مبالغ الجمرك والاستحصالات حسب الحاويات")
+            chart_data = filtered_df.groupby(container_col)[["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"]].sum()
+            st.bar_chart(chart_data)
+            st.markdown("---")
+
+        # 2. مخطط الأوزان والأحجام حسب الحاويات
+        col_chart1, col_chart2 = st.columns(2)
+        with col_chart1:
+            if container_col and "الوزن" in filtered_df.columns:
+                st.subheader("⚖️ إجمالي الوزن حسب الحاوية (kg)")
+                weight_data = filtered_df.groupby(container_col)["الوزن"].sum()
+                st.bar_chart(weight_data)
+
+        with col_chart2:
+            if container_col and "حجم" in filtered_df.columns:
+                st.subheader("📐 إجمالي الحجم حسب الحاوية (m³)")
+                volume_data = filtered_df.groupby(container_col)["حجم"].sum()
+                st.bar_chart(volume_data)
+
+        st.markdown("---")
+
+        # 3. مخطط توزيع الديون والمبالغ حسب الكفلاء
+        if "الكفيل" in filtered_df.columns and "مبلغ الجمرك" in filtered_df.columns:
+            st.subheader("👤 إجمالي مبالغ الجمرك والاستحصالات حسب الكفلاء")
+            sponsor_chart_data = filtered_df.groupby("الكفيل")[["مبلغ الجمرك", "قيمة الاستحصالات"]].sum()
+            st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
