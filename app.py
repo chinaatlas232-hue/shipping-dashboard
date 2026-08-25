@@ -107,35 +107,33 @@ if code_filter and "code" in filtered_df.columns:
 if "لوحة التحكم" in nav_option:
     st.markdown("## 📊 لوحة التحكم الرئيسية")
 
-    # (تمت إزالة خانة البحث هنا نهائياً بناءً على طلبك مع الحفاظ على باقي التنسيقات والجداول)
-
-    # عرض البطاقات الإحصائية (Metrics Cards)
+    # عرض البطاقات الإحصائية (Metrics Cards) بالشكل والتصميم الأصلي تماماً
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
-        st.metric(label="إجمالي الطلبات", value="28")
+        st.metric(label="إجمالي الطلبات", value="28")  #
     with col2:
-        st.metric(label="إجمالي الكارتون", value="126")
+        st.metric(label="إجمالي الكارتون", value="126")  #
     with col3:
-        st.metric(label="إجمالي الوزن", value="6,540.50 kg")
+        st.metric(label="إجمالي الوزن", value="6,540.50 kg")  #
     with col4:
-        st.metric(label="إجمالي الحجم", value="30.202 m³")
+        st.metric(label="إجمالي الحجم", value="30.202 m³")  #
     with col5:
-        st.metric(label="دفع الشركة", value="$579,715.00")
+        st.metric(label="دفع الشركة", value="$579,715.00")  #
     with col6:
-        st.metric(label="دفع الزبون", value="$116,680.00")
+        st.metric(label="دفع الزبون", value="$116,680.00")  #
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # أزرار التصدير
+    # أزرار التصدير بنفس التخطيط الأصلي
     exp_col1, exp_col2, _ = st.columns([1, 1, 4])
     with exp_col1:
-        st.button("📊 Download as Excel")
+        st.button("📊 Download as Excel")  #
     with exp_col2:
-        st.button("📥 Download as CSV")
+        st.button("📥 Download as CSV")  #
 
     st.markdown("---")
 
-    # عرض الجدول الرئيسي مع المحافظة على الألوان وتنسيق الشيتات
+    # عرض الجدول الرئيسي مع المحافظة على الألوان وتنسيق الشيتات الأصلي
     st.dataframe(filtered_df, use_container_width=True, hide_index=True)
 
 else:
