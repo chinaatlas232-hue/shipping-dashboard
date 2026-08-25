@@ -8,7 +8,6 @@ st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
 )
 
-# CSS مخصص للجدول المظلم صاحب الهيدر الأحمر الذكي
 st.markdown(
     """
     <style>
@@ -22,49 +21,10 @@ st.markdown(
     .metric-value { font-size: 20px; font-weight: bold; }
     .block-container { padding-top: 1.5rem !important; padding-bottom: 2rem; max-width: 99% !important; }
 
-    div[data-baseweb="input"] {
-        border-radius: 8px !important;
-        border: 2px solid #3b82f6 !important;
-    }
-
-    /* --- جدول HTML ذو الهيدر الأحمر والخلفية الداكنة --- */
-    .custom-table-container {
-        width: 100%;
-        max-height: 700px;
-        overflow-x: auto !important;
-        overflow-y: auto !important;
-        border: 1px solid #444;
-        border-radius: 8px;
-    }
-    .custom-table {
-        width: max-content !important;
-        min-width: 100%;
-        border-collapse: collapse;
-        font-family: Arial, sans-serif;
-        font-size: 13px;
-        direction: rtl;
-    }
-    .custom-table th {
-        background-color: #ff0000 !important;
-        color: #ffffff !important;
-        position: sticky;
-        top: 0;
-        padding: 10px 14px;
-        text-align: center;
-        border: 1px solid #dc2626;
-        z-index: 10;
-        white-space: nowrap;
-    }
-    .custom-table td {
-        padding: 8px 12px;
-        text-align: center;
-        border: 1px solid #333;
-        color: #ffffff !important;
-        background-color: #1e293b;
-        white-space: nowrap;
-    }
-    .custom-table tr:nth-child(even) td {
-        background-color: #0f172a;
+    [data-testid="stTextInput"] label {
+        font-size: 18px !important;
+        font-weight: bold !important;
+        color: #1f2937 !important;
     }
     </style>
 """,
@@ -107,34 +67,20 @@ def load_data(uploaded_file):
 
   if df is None:
     df = pd.DataFrame({
-        "No": [1324],
-        "code": ["BS79"],
-        "الكفيل": ["أسامة"],
-        "Shipping mark": ["BS79-C23"],
-        "رقم دخول المخزن": ["RS2607223184"],
-        "نوع البضاعة": ["Ladies dress"],
-        "عدد الكارتون": [1],
-        "الوزن": [40],
-        "حجم": [0.132],
-        "رقم الحاوية": ["RQ6029"],
-        "Staff": ["JOYCE"],
-        "المجموع": [3465],
-        "الزبون دفع": [100],
-        "المكتب دفع": [0],
-        "نقل داخلي": [0],
-        "%": [0],
-        "قيمة الفاتورة بالدولار": [0],
-        "رقم قيد الادخال": [0],
-        "رقم الفاتورة": [0],
-        "سعر البيع": [0],
-        "مبلغ الجمرك": [3768.30],
-        "قيمة الاستحصالات": [0.0],
-        "شرح تفصيلي": ["-"],
-        "تاريخ التوزيع": ["2026-08-24"],
-        "عدد الايام": [0],
-        "رقم فورم زينب": [1.0],
-        "وصل الاستلام": ["-"],
-        "رقم فورم اسامة": ["-"],
+        "No": [1324, 1352],
+        "code": ["BS79", "BS79"],
+        "الكفيل": ["مرتضى", "لم تصل بعد"],
+        "Shipping mark": ["BS79-C23", "BS79-C03"],
+        "رقم دخول المخزن": ["RS2607223184", "RS2607202745"],
+        "المكتب دفع": [0, 0],
+        "الزبون دفع": [100, 690],
+        "المجموع": [3465, 5600],
+        "عدد الكارتون": [1, 2],
+        "الوزن": [40, 98],
+        "حجم": [0.132, 0.525],
+        "رقم الحاوية": ["RQ6029", "RQ6034"],
+        "مبلغ الجمرك": [3768.30, 94.80],
+        "قيمة الاستحصالات": [0.0, 0.0],
     })
 
   df.columns = df.columns.astype(str).str.strip()
@@ -167,62 +113,25 @@ def load_data(uploaded_file):
   return df
 
 
-def apply_strict_code_search(data_frame, search_term):
-  if not search_term or "code" not in data_frame.columns:
-    return data_frame
+# 3. القائمة الجانبية (Sidebar)
+st.sidebar.title("🚢 إدارة اللوجستيات")
+st.sidebar.markdown("---")
 
-  clean_term = search_term.strip().upper()
-  code_series = data_frame["code"].astype(str).str.strip().str.upper()
-
-  exact_match = data_frame[code_series == clean_term]
-  if not exact_match.empty:
-    return exact_match
-
-  return data_frame[code_series.str.startswith(clean_term)]
-
-
-# 3. رفع وتحميل البيانات
 uploaded_file = st.sidebar.file_uploader(
     "📁 رفع ملف Excel جديد", type=["xlsx", "xls"]
 )
 df = load_data(uploaded_file)
+filtered_df = df.copy()
 
-# 4. القائمة الجانبية (Sidebar)
-st.sidebar.title("🚢 إدارة اللوجستيات")
-
-sidebar_search_term = st.sidebar.text_input(
-    "🔍 بحث ذكي (كود / كفيل / حاوية):",
-    value="",
-    placeholder="اكتب واضغط Enter...",
-    key="sidebar_smart_search",
-).strip()
-
-st.sidebar.markdown("---")
 st.sidebar.markdown("### 🔍 الفلاتر الجانبية")
-
 container_col = next(
     (c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df.columns), None
 )
 
-filtered_df = df.copy()
-
-if sidebar_search_term:
-  search_cols = [
-      c
-      for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات"]
-      if c in filtered_df.columns
-  ]
-  if search_cols:
-    mask = filtered_df[search_cols].apply(
-        lambda col: col.astype(str).str.contains(
-            sidebar_search_term, case=False, na=False
-        )
-    )
-    filtered_df = filtered_df[mask.any(axis=1)]
-
+selected_container = "الكل"
 if container_col:
   containers = ["الكل"] + sorted(
-      filtered_df[container_col].dropna().astype(str).unique().tolist()
+      df[container_col].dropna().astype(str).unique().tolist()
   )
   selected_container = st.sidebar.selectbox("🚢 اختر رقم الحاوية:", containers)
   if selected_container != "الكل":
@@ -245,13 +154,16 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 
-def render_search_bar():
-  return st.text_input(
-      "🔍 فلترة فورية وحصرية لعمود الكود (code):",
-      value="",
-      placeholder="...اكتب الكود هنا بالضبط (مثال: B7 أو B12)",
-      key="code_search_input",
+def apply_text_search(data_frame):
+  search_q = st.text_input(
+      "🔍 بحث سريع في كافة الأعمدة (اخفاء باقي البيانات غير المطبقة):", ""
   )
+  if search_q:
+    mask = data_frame.astype(str).apply(
+        lambda x: x.str.contains(search_q, case=False, na=False)
+    )
+    return data_frame[mask.any(axis=1)]
+  return data_frame
 
 
 def render_download_buttons(data_to_download):
@@ -339,56 +251,38 @@ def render_dashboard_metrics(data_df):
     )
 
 
-def render_red_header_table(data_df):
-  html_table = (
-      '<div class="custom-table-container"><table class="custom-table"><thead><tr>'
-  )
-  for col in data_df.columns:
-    html_table += f"<th>{col}</th>"
-  html_table += "</tr></thead><tbody>"
-
-  for _, row in data_df.iterrows():
-    html_table += "<tr>"
-    for val in row:
-      val_str = "" if pd.isna(val) else str(val)
-      html_table += f"<td>{val_str}</td>"
-    html_table += "</tr>"
-  html_table += "</tbody></table></div>"
-
-  st.markdown(html_table, unsafe_allow_html=True)
-
-
-# 5. عرض الصفحات
-if page in [
-    "📊 لوحة التحكم (Dashboard)",
-    "🚢 الشحنات والحاويات",
-    "📦 الطلبات",
-    "📈 واجهة التقارير",
-]:
-  st.title(f"{page}")
+# 4. التنقل بين الصفحات
+if page == "📊 لوحة التحكم (Dashboard)":
+  st.title("📊 لوحة التحكم الرئيسية")
   st.markdown("---")
+  filtered_df = apply_text_search(filtered_df)
+  render_dashboard_metrics(filtered_df)
+  render_download_buttons(filtered_df)
+  st.dataframe(filtered_df, use_container_width=True, height=700)
 
-  search_input = render_search_bar()
-  display_df = apply_strict_code_search(filtered_df, search_input)
+elif page == "🚢 الشحنات والحاويات":
+  st.title("🚢 إدارة الشحنات والحاويات")
+  st.markdown("---")
+  filtered_df = apply_text_search(filtered_df)
+  render_dashboard_metrics(filtered_df)
+  render_download_buttons(filtered_df)
+  st.dataframe(filtered_df, use_container_width=True, height=700)
 
-  render_dashboard_metrics(display_df)
-  render_download_buttons(display_df)
-
-  render_red_header_table(display_df)
+elif page == "📦 الطلبات":
+  st.title("📦 جميع الطلبات المسجلة")
+  st.markdown("---")
+  filtered_df = apply_text_search(filtered_df)
+  render_dashboard_metrics(filtered_df)
+  render_download_buttons(filtered_df)
+  st.dataframe(filtered_df, use_container_width=True, height=700)
 
 elif page == "💰 كشف الكمارك المستحصلة":
   st.title("💰 كشف الكمارك المستحصلة من العميل (Pivot Report)")
   st.markdown("---")
 
-  # نموذج البحث
-  with st.form(key="search_form"):
-    search_query = (
-        st.text_input(
-            "🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", ""
-        )
-        .strip()
-    )
-    submit_button = st.form_submit_button(label="🔍 بحث")
+  search_query = st.text_input(
+      "🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", ""
+  ).strip()
 
   pivot_filtered_df = filtered_df.copy()
 
@@ -406,5 +300,208 @@ elif page == "💰 كشف الكمارك المستحصلة":
       )
       pivot_filtered_df = pivot_filtered_df[mask.any(axis=1)]
 
-  # عرض الجدول بنفس التنسيق المظلم ذي الهيدر الأحمر بدون أي تغيير
-  render_red_header_table(pivot_filtered_df)
+  total_customs = (
+      pivot_filtered_df["مبلغ الجمرك"].sum()
+      if "مبلغ الجمرك" in pivot_filtered_df
+      else 0.0
+  )
+
+  # --- استخراج الكفيل الرئيسي وحساب المتبقي + المسدد من الزبون ---
+  sponsor_name = "الكفيل"
+  sponsor_remaining = 0.0
+  sponsor_collected = 0.0
+
+  if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
+    valid_sponsors = [
+        s
+        for s in pivot_filtered_df["الكفيل"].dropna().unique()
+        if "لم تصل بعد" not in str(s)
+    ]
+    if valid_sponsors:
+      sponsor_name = str(valid_sponsors[0]).strip()
+      sponsor_df = pivot_filtered_df[
+          pivot_filtered_df["الكفيل"] == valid_sponsors[0]
+      ]
+      sponsor_remaining = sponsor_df["متبقي حقيقي"].sum()
+      sponsor_collected = sponsor_df["قيمة الاستحصالات"].sum()
+
+  not_arrived_remaining = 0.0
+  if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
+    not_arrived_remaining = pivot_filtered_df[
+        pivot_filtered_df["الكفيل"]
+        .astype(str)
+        .str.contains("لم تصل بعد", na=False)
+    ]["متبقي حقيقي"].sum()
+
+  # 4 مربعات إحصائية بدلاً من 3
+  m1, m2, m3, m4 = st.columns(4)
+  with m1:
+    st.markdown(
+        f'<div class="metric-card" style="background-color: #1e3a8a;"><div'
+        ' class="metric-title">أجور الجمرك الكلي</div><div'
+        f' class="metric-value">${total_customs:,.2f}</div></div>',
+        unsafe_allow_html=True,
+    )
+  with m2:
+    st.markdown(
+        f'<div class="metric-card" style="background-color: #0f766e;"><div'
+        f' class="metric-title">متبقي ({sponsor_name})</div><div'
+        f' class="metric-value">${sponsor_remaining:,.2f}</div></div>',
+        unsafe_allow_html=True,
+    )
+  with m3:
+    st.markdown(
+        f'<div class="metric-card" style="background-color: #16a34a;"><div'
+        f' class="metric-title">مسدد ({sponsor_name})</div><div'
+        f' class="metric-value">${sponsor_collected:,.2f}</div></div>',
+        unsafe_allow_html=True,
+    )
+  with m4:
+    st.markdown(
+        f'<div class="metric-card" style="background-color: #dc2626;"><div'
+        ' class="metric-title">متبقي (لم تصل بعد)</div><div'
+        f' class="metric-value">${not_arrived_remaining:,.2f}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+  st.markdown("---")
+
+  tree_rows = []
+  if not pivot_filtered_df.empty:
+    grand_customs = (
+        pivot_filtered_df["مبلغ الجمرك"].sum()
+        if "مبلغ الجمرك" in pivot_filtered_df
+        else 0.0
+    )
+    grand_collections = (
+        pivot_filtered_df["قيمة الاستحصالات"].sum()
+        if "قيمة الاستحصالات" in pivot_filtered_df
+        else 0.0
+    )
+    grand_remaining = (
+        pivot_filtered_df["متبقي حقيقي"].sum()
+        if "متبقي حقيقي" in pivot_filtered_df
+        else 0.0
+    )
+
+    sponsor_col = "الكفيل" if "الكفيل" in pivot_filtered_df.columns else None
+
+    group_cols = []
+    if sponsor_col:
+      group_cols.append(sponsor_col)
+    if "code" in pivot_filtered_df.columns:
+      group_cols.append("code")
+
+    if group_cols:
+      grouped_parents = pivot_filtered_df.groupby(group_cols, dropna=False)
+
+      for group_keys, parent_group in grouped_parents:
+        is_not_arrived = False
+        if isinstance(group_keys, tuple):
+          s_val, c_val = group_keys[0], group_keys[1]
+          sponsor_str = str(s_val).strip() if pd.notna(s_val) else "غير محدد"
+          code_str = str(c_val).strip() if pd.notna(c_val) else ""
+
+          label_text = f"➖ الكفيل: {sponsor_str} ({code_str})"
+          if "لم تصل بعد" in sponsor_str:
+            is_not_arrived = True
+        else:
+          val_str = str(group_keys).strip()
+          label_text = f"➖ الكفيل: {val_str}"
+          if "لم تصل بعد" in val_str:
+            is_not_arrived = True
+
+        sum_customs = (
+            parent_group["مبلغ الجمرك"].sum()
+            if "مبلغ الجمرك" in parent_group
+            else 0.0
+        )
+        sum_collections = (
+            parent_group["قيمة الاستحصالات"].sum()
+            if "قيمة الاستحصالات" in parent_group
+            else 0.0
+        )
+        sum_remaining = (
+            parent_group["متبقي حقيقي"].sum()
+            if "متبقي حقيقي" in parent_group
+            else 0.0
+        )
+
+        tree_rows.append({
+            "Row Labels": label_text,
+            "Sum of مبلغ الجمرك": f"${sum_customs:,.2f}",
+            "Sum of قيمة الاستحصالات": f"${sum_collections:,.2f}",
+            "Sum of متبقي حقيقي": f"${sum_remaining:,.0f}",
+            "is_not_arrived": is_not_arrived,
+        })
+
+        if container_col:
+          for container, c_group in parent_group.groupby(
+              container_col, dropna=False
+          ):
+            c_customs = (
+                c_group["مبلغ الجمرك"].sum()
+                if "مبلغ الجمرك" in c_group
+                else 0.0
+            )
+            c_collections = (
+                c_group["قيمة الاستحصالات"].sum()
+                if "قيمة الاستحصالات" in c_group
+                else 0.0
+            )
+            c_remaining = (
+                c_group["متبقي حقيقي"].sum()
+                if "متبقي حقيقي" in c_group
+                else 0.0
+            )
+
+            tree_rows.append({
+                "Row Labels": f"    ↳ {container}",
+                "Sum of مبلغ الجمرك": f"${c_customs:,.2f}",
+                "Sum of قيمة الاستحصالات": f"${c_collections:,.2f}",
+                "Sum of متبقي حقيقي": f"${c_remaining:,.0f}",
+                "is_not_arrived": is_not_arrived,
+            })
+
+    tree_rows.append({
+        "Row Labels": "Grand Total",
+        "Sum of مبلغ الجمرك": f"${grand_customs:,.2f}",
+        "Sum of قيمة الاستحصالات": f"${grand_collections:,.2f}",
+        "Sum of متبقي حقيقي": f"${grand_remaining:,.0f}",
+        "is_not_arrived": False,
+    })
+
+  pivot_display_df = pd.DataFrame(tree_rows)
+
+  if not pivot_display_df.empty:
+    is_not_arrived_list = pivot_display_df["is_not_arrived"].tolist()
+    display_df = pivot_display_df.drop(columns=["is_not_arrived"])
+
+    def apply_row_styles(row):
+      idx = row.name
+      label = str(row["Row Labels"])
+      is_not_arr = is_not_arrived_list[idx]
+
+      if is_not_arr:
+        return [
+            "background-color: #fee2e2; color: #991b1b; font-weight: bold;"
+        ] * len(row)
+      elif label.startswith("➖") or label == "Grand Total":
+        return [
+            "background-color: #f1f5f9; color: #0f172a; font-weight: bold;"
+        ] * len(row)
+
+      return ["color: #1e293b; background-color: #ffffff;"] * len(row)
+
+    styled_pivot = display_df.style.apply(apply_row_styles, axis=1)
+    render_download_buttons(display_df)
+    st.dataframe(styled_pivot, use_container_width=True, height=750)
+  else:
+    st.warning("لا توجد نتائج مطابقة.")
+
+elif page == "📈 واجهة التقارير":
+  st.title("📈 واجهة التقارير الشاملة")
+  st.markdown("---")
+  render_dashboard_metrics(filtered_df)
+  render_download_buttons(filtered_df)
+  st.dataframe(filtered_df, use_container_width=True, height=500)
