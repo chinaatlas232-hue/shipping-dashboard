@@ -350,7 +350,7 @@ elif page == "💰 كشف اجور الكمارك":
                         c_remaining = c_group["متبقي حقيقي"].sum() if "متبقي حقيقي" in c_group else 0.0
 
                         tree_rows.append({
-                            "Row Labels": f"    ↳ {container}",
+                            "RowLabels": f"    ↳ {container}",
                             "Sum of مبلغ الجمرك": f"${c_customs:,.2f}",
                             "Sum of قيمة الاستحصالات": f"${c_collections:,.2f}",
                             "Sum of متبقي حقيقي": f"${c_remaining:,.0f}",
@@ -393,9 +393,8 @@ elif page == "💰 كشف اجور الكمارك":
 elif page == "📈 واجهة التقارير":
     st.title("📈 واجهة التقارير الشاملة")
     st.markdown("---")
-    render_dashboard_metrics(filtered_df)
-    render_download_buttons(filtered_df)
     
-    styled_filtered_df = style_container_column(filtered_df)
-    st.dataframe(styled_filtered_df, use_container_width=True, height=500)
+    # تم إفراغ هذه الصفحة تماماً لتتمكن من بناء محتواها وابتكار أشكال تقارير جديدة من الصفر حسب رغبتك!
+    st.info("هذه الصفحة جاهزة الآن لبناء واجهة التقارير الجديدة من الصفر.")
+    
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
