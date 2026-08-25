@@ -20,7 +20,6 @@ st.markdown(
     .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
     .metric-value { font-size: 20px; font-weight: bold; }
     
-    /* جعل الحاوية وتخطيط الصفحة يمتد على كامل الشاشة وبدون هوامش جانبية مقيدة */
     .block-container { 
         padding-top: 1rem !important; 
         padding-bottom: 3rem !important; 
@@ -40,7 +39,6 @@ st.markdown(
         width: 100% !important;
     }
     
-    /* تخصيص شريط التمرير ليصبح على شكل مربع صغير ومرتب بلون أحمر فاتح */
     ::-webkit-scrollbar {
         width: 10px !important;
         height: 10px !important;
@@ -51,11 +49,11 @@ st.markdown(
         margin: 5px !important;
     }
     ::-webkit-scrollbar-thumb {
-        background: #f87171 !important; /* لون أحمر فاتح */
-        border-radius: 4px !important; /* شكل يشبه المربع الصغير */
+        background: #f87171 !important;
+        border-radius: 4px !important;
     }
     ::-webkit-scrollbar-thumb:hover {
-        background: #ef4444 !important; /* أحمر داكن قليلاً عند التمرير عليها */
+        background: #ef4444 !important;
     }
     </style>
 """,
@@ -157,7 +155,6 @@ if code_col in df.columns and not df.empty:
     if selected_code != "الكل":
         filtered_df = filtered_df[filtered_df[code_col].astype(str) == selected_code]
 
-# إضافة الفلتر الجانبي لاسم الكفيل
 sponsor_filter_col = next((c for c in ["الكفيل", "كفيل"] if c in df.columns), None)
 selected_sponsor = "الكل"
 if sponsor_filter_col and not df.empty:
@@ -230,7 +227,6 @@ def render_dashboard_metrics(data_df):
     with c7:
         st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">دفع الزبون</div><div class="metric-value">¥{client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
-# دالة لتلوين عمود رقم الحاوية بناءً على حالة الكفيل
 def style_container_column(df_to_style):
     target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_style.columns), None)
     sponsor_col_check = "الكفيل" if "الكفيل" in df_to_style.columns else None
@@ -270,7 +266,6 @@ if page == "📊 لوحة التحكم (Dashboard)":
     render_download_buttons(filtered_df)
     
     styled_filtered_df = style_container_column(filtered_df)
-    # عرض الجدول بالكامل بدون سكرول داخلي (تم احتساب الارتفاع بناءً على عدد الصفوف تلقائياً)
     table_height = max(300, min(len(filtered_df) * 35 + 50, 1200))
     st.dataframe(styled_filtered_df, use_container_width=True, height=table_height)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
@@ -280,7 +275,6 @@ elif page == "💰 كشف اجور الكمارك":
     st.markdown("---")
     
     search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
-    
     pivot_filtered_df = filtered_df.copy()
     
     if search_query and not pivot_filtered_df.empty:
@@ -405,7 +399,6 @@ elif page == "💰 كشف اجور الكمارك":
         styled_pivot = display_df.style.apply(apply_row_styles, axis=1)
         render_download_buttons(display_df)
         
-        # عرض جدول الكمارك بالكامل بدون سكرول داخلي
         pivot_table_height = max(300, min(len(display_df) * 35 + 50, 1200))
         st.dataframe(styled_pivot, use_container_width=True, height=pivot_table_height)
         st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
@@ -462,7 +455,14 @@ elif page == "📈 واجهة التقارير":
         pivot_value_col = "مبلغ الجمرك" if "مبلغ الجمرك" in filtered_df.columns else None
 
         if pivot_code_col and pivot_container_col and pivot_value_col:
-            pivot_table_df = filtered_df.pivot_table(
+            base_pivot_df = df.copy()
+            
+            if selected_code != "الكل":
+                base_pivot_df = base_pivot_df[base_pivot_df[pivot_code_col].astype(str) == selected_code]
+            if selected_sponsor != "الكل" and "الكفيل" in base_pivot_df.columns:
+                base_pivot_df = base_pivot_df[base_pivot_df["الكفيل"].astype(str) == selected_sponsor]
+
+            pivot_table_df = base_pivot_df.pivot_table(
                 index=pivot_code_col,
                 columns=pivot_container_col,
                 values=pivot_value_col,
@@ -478,12 +478,46 @@ elif page == "📈 واجهة التقارير":
             
             def style_pivot_cells(val):
                 if val == "" or val == "$0":
-                    return 'background-color: #f1f5f9; color: #f1f5f9;' # خلفية رصاصي فاتح للخلايا الفارغة
-                return 'background-color: #fce7f3; color: #000000; font-weight: bold;' # خلفية وردي فاتح ونصوص سوداء عريضة للمبالغ
+                    return 'background-color: #f8fafc; color: #cbd5e1;'
+                return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
-            
-            # عرض جدول التقارير بالكامل بدون سكرول داخلي
+
+            # تحديد حالة كل عمود (حاوية) بناءً على اسم الكفيل المرتبط بها في البيانات الأصلية
+            container_status_map = {}
+            if "الكفيل" in base_pivot_df.columns:
+                for container_val in pivot_table_df.columns:
+                    if container_val == "Grand Total":
+                        continue
+                    sub_df = base_pivot_df[base_pivot_df[pivot_container_col].astype(str) == str(container_val)]
+                    if not sub_df.empty:
+                        sponsors_in_container = sub_df["الكفيل"].astype(str).unique()
+                        # إذا كان أي كفيل مرتبط بالحاوية يحتوي على "لم تصل بعد"، نعتبرها غير واصلة (أصفر)، وإلا فواصِلة (أخضر)
+                        is_not_arrived_flag = any("لم تصل بعد" in str(s) for s in sponsors_in_container)
+                        container_status_map[container_val] = "yellow" if is_not_arrived_flag else "green"
+                    else:
+                        container_status_map[container_val] = "green"
+
+            # تلوين رؤوس الأعمدة (Column Headers) بناءً على الحالة
+            def style_header_cols(col_name):
+                if col_name in container_status_map:
+                    if container_status_map[col_name] == "green":
+                        return 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
+                    else:
+                        return 'background-color: #fef08a; color: #000000; font-weight: bold;'
+                return ''
+
+            if hasattr(styled_matrix, "set_table_styles"):
+                headers_styles = []
+                for idx, col in enumerate(formatted_pivot.columns):
+                    status = container_status_map.get(col, "green")
+                    bg_color = "#bbf7d0" if status == "green" else "#fef08a"
+                    headers_styles.append({
+                        'selector': f'th.col{idx}',
+                        'props': [('background-color', bg_color), ('color', 'black'), ('font-weight', 'bold')]
+                    })
+                styled_matrix.set_table_styles(headers_styles, overwrite=False)
+
             matrix_height = max(300, min(len(pivot_table_df) * 35 + 50, 1200))
             st.dataframe(styled_matrix, use_container_width=True, height=matrix_height)
         else:
@@ -494,4 +528,3 @@ elif page == "📈 واجهة التقارير":
         st.warning("لا توجد بيانات متاحة لعرض التقارير حالياً.")
     
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
-
