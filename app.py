@@ -706,8 +706,13 @@ elif page == "⏳ اعمار الديون للعملاء":
         cols_order = ["Row Labels"] + [str(c) for c in all_col_values] + ["Grand Total"]
         aging_display_df = aging_display_df[[c for c in cols_order if c in aging_display_df.columns]]
 
-        is_parent_list = aging_display_df["is_parent"].tolist()
-        matrix_df = aging_display_df.drop(columns=["is_parent"])
+        # تصحيح قراءة عمود is_parent بأمان لتفادي خطأ KeyError نهائياً
+        if "is_parent" in aging_display_df.columns:
+            is_parent_list = aging_display_df["is_parent"].tolist()
+            matrix_df = aging_display_df.drop(columns=["is_parent"])
+        else:
+            is_parent_list = [False] * len(aging_display_df)
+            matrix_df = aging_display_df.copy()
 
         formatted_matrix = matrix_df.copy()
         for col in formatted_matrix.columns:
@@ -722,7 +727,7 @@ elif page == "⏳ اعمار الديون للعملاء":
             
             if label == "Grand Total":
                 return ['background-color: #f1f5f9; color: #000000; font-weight: bold;'] * len(row)
-            elif is_parent_list[idx]:
+            elif idx < len(is_parent_list) and is_parent_list[idx]:
                 return ['background-color: #e2e8f0; color: #0f172a; font-weight: bold;'] * len(row)
             else:
                 return ['background-color: #ffffff; color: #1e293b;'] * len(row)
