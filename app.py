@@ -51,14 +51,33 @@ st.markdown(
         width: 100% !important;
     }
     
-    /* تغيير لون الشريط الجانبي فقط إلى رصاي طوخ (Deep Slate / Dark Petrol) مع الحفاظ على النصوص بيضاء */
+    /* تغيير لون الشريط الجانبي فقط إلى رصاي طوخ (Deep Slate / Dark Petrol) مع جعل النصوص باللون الأسود داخل الصناديق وداخل الشريط الجانبي */
     [data-testid="stSidebar"] {
         background-color: #07151a !important;
     }
     [data-testid="stSidebar"] *, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span, [data-testid="stSidebar"] p {
-        color: #f1f5f9 !important;
+        color: #000000 !important;
     }
     
+    /* تثبيت لون النصوص العادية في الشريط الجانبي خارج الصناديق لتكون بيضاء إذا لزم الأمر، أو جعل عناصر الصناديق سوداء بالكامل */
+    [data-testid="stSidebar"] .element-container span, [data-testid="stSidebar"] .stMarkdown p {
+        color: #f1f5f9 !important;
+    }
+
+    /* تعديل عناصر الصناديق والمربعات داخل الشريط الجانبي لتكون الكتابة بداخلها باللون الأسود */
+    [data-testid="stSidebar"] [data-testid="stFileUploader"], 
+    [data-testid="stSidebar"] [data-testid="stButton"], 
+    [data-testid="stSidebar"] [data-testid="stSelectbox"],
+    [data-testid="stSidebar"] .stAlert {
+        color: #000000 !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] *, 
+    [data-testid="stSidebar"] [data-testid="stButton"] *, 
+    [data-testid="stSidebar"] [data-testid="stSelectbox"] * {
+        color: #000000 !important;
+    }
+
     ::-webkit-scrollbar {
         width: 10px !important;
         height: 10px !important;
@@ -531,7 +550,7 @@ elif page == "👥 الديون على الكفلاء":
             summary_height = max(300, min(len(sponsor_summary) * 35 + 50, 1200))
             st.dataframe(sponsor_summary, use_container_width=True, height=summary_height)
     else:
-        st.warning("لا توجد بيانات متاحة لعرض التقارير حالياً.")
+        st.warning("لا توجد بيانات متاحة لعرض التقارير حالياًยุ.")
     
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
