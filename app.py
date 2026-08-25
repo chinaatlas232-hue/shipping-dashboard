@@ -40,7 +40,7 @@ st.markdown(
         width: 100% !important;
     }
     
-    /* تخصيص شريط التمرير ليصبح على شكل مربع صغير ومرتب بلون أحمر فاتح */
+    /* تخصيص شريط التمرير ليصبح على شكل مربع صغير ومرتب بلون برتقالي */
     ::-webkit-scrollbar {
         width: 10px !important;
         height: 10px !important;
@@ -51,11 +51,11 @@ st.markdown(
         margin: 5px !important;
     }
     ::-webkit-scrollbar-thumb {
-        background: #f87171 !important; /* لون أحمر فاتح */
+        background: #f97316 !important; /* لون برتقالي */
         border-radius: 4px !important; /* شكل يشبه المربع الصغير */
     }
     ::-webkit-scrollbar-thumb:hover {
-        background: #ef4444 !important; /* أحمر داكن قليلاً عند التمرير عليها */
+        background: #ea580c !important; /* برتقالي داكن قليلاً عند المرور عليها */
     }
     </style>
 """,
@@ -436,18 +436,19 @@ elif page == "📈 واجهة التقارير":
             s_remaining = row["total_remaining"]
             s_orders = row["total_orders"]
             
-            card_bg = "#1e3a8a"
+            # تعديل الخلفية لتصبح برتقالية داكنة بدلاً من الأزرق، مع الحفاظ على النص الأسود البارز
+            card_bg = "#ea580c"
             if "لم تصل بعد" in str(sponsor_name):
-                card_bg = "#b45309"
+                card_bg = "#c2410c"
             
             st.markdown(f"""
-                <div style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; color: #ffffff !important;">👤 الكفيل: {sponsor_name}</h3>
-                    <div style="display: flex; justify-content: space-between; font-size: 15px; text-align: center; color: #ffffff !important;">
-                        <div>📦 الطلبات: <b style="color: #ffffff;">{s_orders:,}</b></div>
-                        <div>💰 الجمرك: <b style="color: #ffffff;">${s_customs:,.2f}</b></div>
-                        <div>✅ المسدد: <b style="color: #ffffff;">${s_collected:,.2f}</b></div>
-                        <div>⏳ المتبقي: <b style="color: #ffffff;">${s_remaining:,.2f}</b></div>
+                <div style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: black; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid rgba(0,0,0,0.2); padding-bottom: 5px; color: #000000 !important; font-weight: bold;">👤 الكفيل: {sponsor_name}</h3>
+                    <div style="display: flex; justify-content: space-between; font-size: 15px; text-align: center; color: #000000 !important; font-weight: bold;">
+                        <div>📦 الطلبات: <b style="color: #000000;">{s_orders:,}</b></div>
+                        <div>💰 الجمرك: <b style="color: #000000;">${s_customs:,.2f}</b></div>
+                        <div>✅ المسدد: <b style="color: #000000;">${s_collected:,.2f}</b></div>
+                        <div>⏳ المتبقي: <b style="color: #000000;">${s_remaining:,.2f}</b></div>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
@@ -477,11 +478,12 @@ elif page == "📈 واجهة التقارير":
             def style_pivot_cells(val):
                 if val == "" or val == "$0":
                     return 'background-color: #f1f5f9; color: #f1f5f9;'
-                return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
+                # تغيير لون الخلايا الممتلئة ليكون بدرجة متناسقة مع الخلفية البرتقالية وبخط أسود
+                return 'background-color: #ffedd5; color: #000000; font-weight: bold;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
             
-            # تنسيق أعمدة "code" (أي فهرس الجدول) وأعمدة الحاويات (rq) لتكون بخط أسود واضح
+            # تنسيق أعمدة "code" (أي فهرس الجدول) وأعمدة الحاويات لتكون بخط أسود واضح
             styled_matrix = styled_matrix.set_table_styles([
                 {'selector': 'th.row_heading', 'props': [('color', '#000000'), ('font-weight', 'bold')]},
                 {'selector': 'th.col_heading', 'props': [('color', '#000000'), ('font-weight', 'bold')]},
