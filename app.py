@@ -20,6 +20,7 @@ st.markdown(
     .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
     .metric-value { font-size: 20px; font-weight: bold; }
     
+    /* جعل الحاوية وتخطيط الصفحة يمتد على كامل الشاشة وبدون هوامش جانبية مقيدة */
     .block-container { 
         padding-top: 1rem !important; 
         padding-bottom: 3rem !important; 
@@ -39,6 +40,7 @@ st.markdown(
         width: 100% !important;
     }
     
+    /* تخصيص شريط التمرير ليصبح على شكل مربع صغير ومرتب بلون أحمر فاتح */
     ::-webkit-scrollbar {
         width: 10px !important;
         height: 10px !important;
@@ -49,11 +51,11 @@ st.markdown(
         margin: 5px !important;
     }
     ::-webkit-scrollbar-thumb {
-        background: #f87171 !important;
-        border-radius: 4px !important;
+        background: #f87171 !important; /* لون أحمر فاتح */
+        border-radius: 4px !important; /* شكل يشبه المربع الصغير */
     }
     ::-webkit-scrollbar-thumb:hover {
-        background: #ef4444 !important;
+        background: #ef4444 !important; /* أحمر داكن قليلاً عند التمرير عليها */
     }
     </style>
 """,
@@ -155,6 +157,7 @@ if code_col in df.columns and not df.empty:
     if selected_code != "الكل":
         filtered_df = filtered_df[filtered_df[code_col].astype(str) == selected_code]
 
+# إضافة الفلتر الجانبي لاسم الكفيل
 sponsor_filter_col = next((c for c in ["الكفيل", "كفيل"] if c in df.columns), None)
 selected_sponsor = "الكل"
 if sponsor_filter_col and not df.empty:
@@ -227,6 +230,7 @@ def render_dashboard_metrics(data_df):
     with c7:
         st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">دفع الزبون</div><div class="metric-value">¥{client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
+# دالة لتلوين عمود رقم الحاوية بناءً على حالة الكفيل
 def style_container_column(df_to_style):
     target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_style.columns), None)
     sponsor_col_check = "الكفيل" if "الكفيل" in df_to_style.columns else None
@@ -266,6 +270,7 @@ if page == "📊 لوحة التحكم (Dashboard)":
     render_download_buttons(filtered_df)
     
     styled_filtered_df = style_container_column(filtered_df)
+    # عرض الجدول بالكامل بدون سكرول داخلي (تم احتساب الارتفاع بناءً على عدد الصفوف تلقائياً)
     table_height = max(300, min(len(filtered_df) * 35 + 50, 1200))
     st.dataframe(styled_filtered_df, use_container_width=True, height=table_height)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
@@ -400,6 +405,7 @@ elif page == "💰 كشف اجور الكمارك":
         styled_pivot = display_df.style.apply(apply_row_styles, axis=1)
         render_download_buttons(display_df)
         
+        # عرض جدول الكمارك بالكامل بدون سكرول داخلي
         pivot_table_height = max(300, min(len(display_df) * 35 + 50, 1200))
         st.dataframe(styled_pivot, use_container_width=True, height=pivot_table_height)
         st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
@@ -456,40 +462,36 @@ elif page == "📈 واجهة التقارير":
         pivot_value_col = "مبلغ الجمرك" if "مبلغ الجمرك" in filtered_df.columns else None
 
         if pivot_code_col and pivot_container_col and pivot_value_col:
-            base_pivot_df = df.copy()
+            pivot_table_df = filtered_df.pivot_table(
+                index=pivot_code_col,
+                columns=pivot_container_col,
+                values=pivot_value_col,
+                aggfunc="sum",
+                fill_value=0
+            )
+
+            pivot_table_df["Grand Total"] = pivot_table_df.sum(axis=1)
+            grand_total_row = pivot_table_df.sum(axis=0)
+            pivot_table_df.loc["Grand Total"] = grand_total_row
+
+            formatted_pivot = pivot_table_df.map(lambda val: f"${val:,.0f}" if val > 0 else "")
             
-            if selected_code != "الكل":
-                base_pivot_df = base_pivot_df[base_pivot_df[pivot_code_col].astype(str) == selected_code]
-            if selected_sponsor != "الكل" and "الكفيل" in base_pivot_df.columns:
-                base_pivot_df = base_pivot_df[base_pivot_df["الكفيل"].astype(str) == selected_sponsor]
+            def style_pivot_cells(val):
+                if val == "" or val == "$0":
+                    return 'background-color: #f1f5f9; color: #f1f5f9;' # خلفية رصاصي فاتح للخلايا الفارغة
+                return 'background-color: #fce7f3; color: #000000; font-weight: bold;' # خلفية وردي فاتح ونصوص سوداء عريضة للمبالغ
 
-            main_pivot = base_pivot_df.pivot_table(index=pivot_code_col, columns=pivot_container_col, values=pivot_value_col, aggfunc="sum", fill_value=0)
+            styled_matrix = formatted_pivot.style.map(style_pivot_cells)
             
-            if not main_pivot.empty:
-                main_pivot["Grand Total"] = main_pivot.sum(axis=1)
-                main_pivot.loc["Grand Total"] = main_pivot.sum(axis=0)
-
-                formatted_pivot = main_pivot.map(lambda val: f"${val:,.0f}" if val > 0 else "")
-                
-                def style_pivot_cells(row):
-                    styles = []
-                    for val in row:
-                        if val == "" or val == "$0":
-                            styles.append('background-color: #f8fafc; color: #cbd5e1;')
-                        else:
-                            styles.append('background-color: #fce7f3; color: #000000; font-weight: bold;')
-                    return styles
-
-                styled_matrix = formatted_pivot.style.apply(style_pivot_cells, axis=1)
-                matrix_height = max(300, min(len(main_pivot) * 35 + 50, 1200))
-                st.dataframe(styled_matrix, use_container_width=True, height=matrix_height)
-            else:
-                st.warning("لا توجد بيانات مطابقة لهذا الاختيار.")
+            # عرض جدول التقارير بالكامل بدون سكرول داخلي
+            matrix_height = max(300, min(len(pivot_table_df) * 35 + 50, 1200))
+            st.dataframe(styled_matrix, use_container_width=True, height=matrix_height)
         else:
-            st.warning("الأعمدة المطلوبة غير متوفرة بالكامل.")
+            st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت (الكود، رقم الحاوية، مبلغ الجمرك) غير متوفرة بالكامل.")
             summary_height = max(300, min(len(sponsor_summary) * 35 + 50, 1200))
             st.dataframe(sponsor_summary, use_container_width=True, height=summary_height)
     else:
         st.warning("لا توجد بيانات متاحة لعرض التقارير حالياً.")
     
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
