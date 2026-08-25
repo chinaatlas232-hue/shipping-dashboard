@@ -2,13 +2,8 @@ import io
 import os
 import pandas as pd
 import streamlit as st
-import matplotlib.pyplot as plt
-import numpy as np
 
-# إعداد خطوط matplotlib لدعم النصوص العربية والإنجليزية
-plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial', 'Tahoma']
-
-# 1. إعداد الصفحة وتنسيقات العرض الكامل
+# 1. إعداد الصفحة والتنسيقات
 st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
 )
@@ -24,15 +19,7 @@ st.markdown(
     }
     .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
     .metric-value { font-size: 20px; font-weight: bold; }
-    
-    /* جعل الحاوية الرئيسية تمتد على كامل عرض الشاشة وتوسيع الجداول أقصى حد */
-    .block-container { 
-        padding-top: 1.5rem !important; 
-        padding-bottom: 4rem; 
-        max-width: 100% !important; 
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-    }
+    .block-container { padding-top: 1.5rem !important; padding-bottom: 4rem; max-width: 99% !important; }
 
     [data-testid="stTextInput"] label {
         font-size: 18px !important;
@@ -42,18 +29,8 @@ st.markdown(
 
     [data-testid="stDataFrame"] {
         margin-bottom: 35px !important;
-        width: 100% !important;
     }
     
-    /* إجبار عنصر عرض البيانات وجدول البايفوت على أخذ عرض الشاشة بالكامل */
-    [data-testid="stDataFrame"] > div, [data-testid="stDataFrame"] div[data-baseweb="base-input"] {
-        width: 100% !important;
-    }
-    
-    div[data-testid="stHorizontalBlock"] {
-        width: 100% !important;
-    }
-
     /* تخصيص شريط التمرير ليصبح على شكل مربع صغير ومرتب بلون أحمر فاتح */
     ::-webkit-scrollbar {
         width: 10px !important;
@@ -65,11 +42,11 @@ st.markdown(
         margin: 5px !important;
     }
     ::-webkit-scrollbar-thumb {
-        background: #f87171 !important;
-        border-radius: 4px !important;
+        background: #f87171 !important; /* لون أحمر فاتح */
+        border-radius: 4px !important; /* شكل يشبه المربع الصغير */
     }
     ::-webkit-scrollbar-thumb:hover {
-        background: #ef4444 !important;
+        background: #ef4444 !important; /* أحمر داكن قليلاً عند التمرير عليها */
     }
     </style>
 """,
@@ -171,6 +148,7 @@ if code_col in df.columns and not df.empty:
     if selected_code != "الكل":
         filtered_df = filtered_df[filtered_df[code_col].astype(str) == selected_code]
 
+# إضافة الفلتر الجانبي لاسم الكفيل
 sponsor_filter_col = next((c for c in ["الكفيل", "كفيل"] if c in df.columns), None)
 selected_sponsor = "الكل"
 if sponsor_filter_col and not df.empty:
@@ -243,6 +221,7 @@ def render_dashboard_metrics(data_df):
     with c7:
         st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">دفع الزبون</div><div class="metric-value">¥{client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
+# دالة لتلوين عمود رقم الحاوية بناءً على حالة الكفيل
 def style_container_column(df_to_style):
     target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_style.columns), None)
     sponsor_col_check = "الكفيل" if "الكفيل" in df_to_style.columns else None
@@ -481,72 +460,18 @@ elif page == "📈 واجهة التقارير":
             grand_total_row = pivot_table_df.sum(axis=0)
             pivot_table_df.loc["Grand Total"] = grand_total_row
 
+            # تم تعديل applymap إلى map هنا لحل المشكلة نهائياً
             formatted_pivot = pivot_table_df.map(lambda val: f"${val:,.0f}" if val > 0 else "")
             
             def style_pivot_cells(val):
                 if val == "" or val == "$0":
                     return 'background-color: #1e3a8a; color: #1e3a8a;'
-                return 'background-color: #ffffff; color: #000000; font-weight: 900; font-size: 15px;'
+                return 'background-color: #ffffff; color: #000000; font-weight: bold;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
-            
-            # عرض الجدول ليمتد بملء عرض الشاشة بالكامل
-            st.dataframe(styled_matrix, use_container_width=True, height=750)
-            
-            st.markdown("---")
-            if st.button("📸 تجهيز وتحميل جدول البايفوت كصورة"):
-                fig, ax = plt.subplots(figsize=(14, max(6, len(formatted_pivot) * 0.4)))
-                ax.axis('off')
-                
-                cell_colors = []
-                table_data = []
-                
-                headers = [str(formatted_pivot.index.name or 'code')] + [str(c) for c in formatted_pivot.columns]
-                table_data.append(headers)
-                cell_colors.append(['#1e3a8a'] * len(headers))
-                
-                for idx, row in formatted_pivot.iterrows():
-                    row_vals = [str(idx)] + [str(val) for val in row.values]
-                    table_data.append(row_vals)
-                    row_colors = []
-                    for val in row.values:
-                        if val == "" or val == "$0":
-                            row_colors.append('#1e3a8a')
-                        else:
-                            row_colors.append('#ffffff')
-                    row_colors.insert(0, '#f1f5f9')
-                    cell_colors.append(row_colors)
-                
-                table = ax.table(cellText=table_data, cellColours=cell_colors, loc='center', cellLoc='center')
-                table.auto_set_font_size(False)
-                table.set_fontsize(10)
-                table.scale(1.2, 1.8)
-                
-                for key, cell in table.get_celld().items():
-                    row, col = key
-                    cell.set_edgecolor('#cbd5e1')
-                    if row == 0:
-                        cell.set_text_props(color='white', weight='bold')
-                    else:
-                        cell_val = cell.get_text().get_text()
-                        if cell_val != "" and cell_val != "$0":
-                            cell.set_text_props(color='black', weight='bold')
-                        else:
-                            cell.set_text_props(color='#1e3a8a')
-
-                img_buf = io.BytesIO()
-                plt.savefig(img_buf, format='png', bbox_inches='tight', dpi=300, facecolor='#ffffff')
-                img_buf.seek(0)
-                plt.close(fig)
-                
-                st.download_button(
-                    label="📥 تنزيل الصورة الآن (PNG)",
-                    data=img_buf,
-                    file_name="pivot_table_report.png",
-                    mime="image/png"
-                )
+            st.dataframe(styled_matrix, use_container_width=True)
         else:
-            st.warning("الأعمدة المطلوبة غير متوفرة بالكامل.")
+            st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت (الكود، رقم الحاوية، مبلغ الجمرك) غير متوفرة بالكامل.")
             st.dataframe(sponsor_summary, use_container_width=True)
     else:
         st.warning("لا توجد بيانات متاحة لعرض التقارير حالياً.")
