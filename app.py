@@ -301,7 +301,6 @@ if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
     st.markdown("---")
     
-    # حساب المؤشرات للمربعات في لوحة التحكم
     total_orders = len(filtered_df)
     total_weight = filtered_df["الوزن"].sum() if "الوزن" in filtered_df.columns else 0
     total_ctns = filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in filtered_df.columns else 0
@@ -313,7 +312,6 @@ if page == "dashboard":
     total_office_paid = filtered_df[office_paid_col].sum() if office_paid_col else 0
     total_client_paid = filtered_df[client_paid_col].sum() if client_paid_col else 0
 
-    # عرض 6 مربعات مؤشرات في لوحة التحكم
     row1_c1, row1_c2, row1_c3 = st.columns(3)
     with row1_c1:
         st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات / الطرود</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
@@ -326,9 +324,9 @@ if page == "dashboard":
     with row2_c1:
         st.markdown(f'<div class="metric-card" style="background-color: #7c2d12;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.3f}</div></div>', unsafe_allow_html=True)
     with row2_c2:
-        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">💰 مبالغ دفعت من المكتب (Office Paid)</div><div class="metric-value">${total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">💰 مبالغ دفعت من المكتب (Office Paid)</div><div class="metric-value">¥{total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c3:
-        st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون (Client Paid)</div><div class="metric-value">${total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون (Client Paid)</div><div class="metric-value">¥{total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     render_download_buttons(filtered_df)
@@ -371,13 +369,13 @@ elif page == "customs":
 
     m1, m2, m3, m4 = st.columns(4)
     with m1:
-        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">${total_customs:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">¥{total_customs:,.2f}</div></div>', unsafe_allow_html=True)
     with m2:
-        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">متبقي ({sponsor_name})</div><div class="metric-value">${sponsor_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">متبقي ({sponsor_name})</div><div class="metric-value">¥{sponsor_remaining:,.2f}</div></div>', unsafe_allow_html=True)
     with m3:
-        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">مسدد ({sponsor_name})</div><div class="metric-value">${sponsor_collected:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">مسدد ({sponsor_name})</div><div class="metric-value">¥{sponsor_collected:,.2f}</div></div>', unsafe_allow_html=True)
     with m4:
-        st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">${not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">¥{not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -416,9 +414,9 @@ elif page == "sponsors":
                     <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; color: #ffffff !important;">👤 الكفيل: {sponsor_name}</h3>
                     <div style="display: flex; justify-content: space-between; font-size: 15px; text-align: center; color: #ffffff !important;">
                         <div>📦 الطلبات: <b style="color: #ffffff;">{s_orders:,}</b></div>
-                        <div>💰 الجمرك: <b style="color: #ffffff;">${s_customs:,.2f}</b></div>
-                        <div>✅ المسدد: <b style="color: #ffffff;">${s_collected:,.2f}</b></div>
-                        <div>⏳ المتبقي: <b style="color: #ffffff;">${s_remaining:,.2f}</b></div>
+                        <div>💰 الجمرك: <b style="color: #ffffff;">¥{s_customs:,.2f}</b></div>
+                        <div>✅ المسدد: <b style="color: #ffffff;">¥{s_collected:,.2f}</b></div>
+                        <div>⏳ المتبقي: <b style="color: #ffffff;">¥{s_remaining:,.2f}</b></div>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
@@ -472,7 +470,7 @@ elif page == "sponsors":
             pivot_table_df.columns = new_columns
 
             formatted_pivot = pivot_table_df.map(
-                lambda val: f"${val:,.0f}" if isinstance(val, (int, float)) and val > 0 else ""
+                lambda val: f"¥{val:,.0f}" if isinstance(val, (int, float)) and val > 0 else ""
             )
             
             def style_pivot_cells(val):
@@ -523,7 +521,7 @@ elif page == "aging":
             aging_pivot.loc["Grand Total"] = aging_grand_total
 
         formatted_aging = aging_pivot.map(
-            lambda val: f"${val:,.0f}" if isinstance(val, (int, float)) and val > 0 else ""
+            lambda val: f"¥{val:,.0f}" if isinstance(val, (int, float)) and val > 0 else ""
         )
 
         def style_aging_cells(row):
@@ -566,11 +564,11 @@ elif page == "collections":
 
         mc1, mc2, mc3 = st.columns(3)
         with mc1:
-            st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">إجمالي مبالغ الجمرك</div><div class="metric-value">${total_c:,.2f}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">إجمالي مبالغ الجمرك</div><div class="metric-value">¥{total_c:,.2f}</div></div>', unsafe_allow_html=True)
         with mc2:
-            st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">إجمالي الاستحصالات</div><div class="metric-value">${total_coll:,.2f}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">إجمالي الاستحصالات</div><div class="metric-value">¥{total_coll:,.2f}</div></div>', unsafe_allow_html=True)
         with mc3:
-            st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">${total_rem:,.2f}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">¥{total_rem:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     render_download_buttons(filtered_df)
@@ -604,7 +602,7 @@ elif page == "collections":
 
         formatted_agg = agg_df.copy()
         for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
-            formatted_agg[col] = formatted_agg[col].apply(lambda x: f"${x:,.0f}" if x > 0 else "")
+            formatted_agg[col] = formatted_agg[col].apply(lambda x: f"¥{x:,.0f}" if x > 0 else "")
 
         def style_summary_cells(row):
             styles = [''] * len(row)
