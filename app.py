@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import streamlit as st
 
-# 1. إعداد الصفحة والتنسيقات
+# 1. إعداد الصفحة والتنسيقات العامة
 st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
 )
@@ -25,12 +25,6 @@ st.markdown(
         font-size: 18px !important;
         font-weight: bold !important;
         color: #1f2937 !important;
-    }
-
-    /* تعديل لون نص رأس الجدول إلى اللون الأسود */
-    [data-testid="stDataFrame"] table th {
-        color: #000000 !important;
-        font-weight: bold !important;
     }
     </style>
 """,
@@ -283,6 +277,20 @@ elif page == "📦 الطلبات":
   st.dataframe(filtered_df, use_container_width=True, height=700)
 
 elif page == "💰 كشف الكمارك المستحصلة":
+  # جعل لون نص عناوين أسر الجداول أسود لهذه الصفحة فقط
+  st.markdown(
+      """
+    <style>
+    div[data-testid="stTable"] th, 
+    div[data-testid="stTable"] table th {
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+    </style>
+    """,
+      unsafe_allow_html=True,
+  )
+
   st.title("💰 كشف الكمارك المستحصلة من العميل (Pivot Report)")
   st.markdown("---")
 
@@ -356,7 +364,7 @@ elif page == "💰 كشف الكمارك المستحصلة":
   with m3:
     st.markdown(
         f'<div class="metric-card" style="background-color: #16a34a;"><div'
-        f' class="metric-title">مسدد ({sponsor_name})</div><div'
+        ' class="metric-title">مسدد ({sponsor_name})</div><div'
         f' class="metric-value">${sponsor_collected:,.2f}</div></div>',
         unsafe_allow_html=True,
     )
@@ -481,7 +489,7 @@ elif page == "💰 كشف الكمارك المستحصلة":
     is_not_arrived_list = pivot_display_df["is_not_arrived"].tolist()
     display_df = pivot_display_df.drop(columns=["is_not_arrived"])
 
-    # دالة تطبيق الألوان والتنسيق على صفوف الجدول
+    # دالة التنسيق المخصصة لهذه الصفحة فقط
     def apply_row_styles(row):
       idx = row.name
       label = str(row["Row Labels"])
@@ -489,31 +497,39 @@ elif page == "💰 كشف الكمارك المستحصلة":
 
       if is_not_arr:
         return [
-            "background-color: #fee2e2; color: #991b1b; font-weight: bold;"
+            "background-color: #fee2e2 !important; color: #991b1b !important;"
+            " font-weight: bold !important;"
         ] * len(row)
 
-      # 1. تمييز أسطر الحاويات باللون الأحمر
+      # 1. الحاوية (رمز ↳): تلوين الصف بالكامل باللون الأحمر
       elif "↳" in label:
         return [
-            "background-color: #fef2f2; color: #dc2626; font-weight: bold;"
+            "background-color: #fef2f2 !important; color: #dc2626 !important;"
+            " font-weight: bold !important;"
         ] * len(row)
 
-      # 2. تمييز أسطر الكود/الكفيل باللون الأصفر
+      # 2. الكود/الكفيل (رمز ➖): تلوين الصف بالكامل باللون الأصفر
       elif label.startswith("➖"):
         return [
-            "background-color: #fef9c3; color: #854d0e; font-weight: bold;"
+            "background-color: #fef9c3 !important; color: #854d0e !important;"
+            " font-weight: bold !important;"
         ] * len(row)
 
       elif label == "Grand Total":
         return [
-            "background-color: #f1f5f9; color: #0f172a; font-weight: bold;"
+            "background-color: #f1f5f9 !important; color: #0f172a !important;"
+            " font-weight: bold !important;"
         ] * len(row)
 
-      return ["color: #1e293b; background-color: #ffffff;"] * len(row)
+      return [
+          "background-color: #ffffff !important; color: #1e293b !important;"
+      ] * len(row)
 
     styled_pivot = display_df.style.apply(apply_row_styles, axis=1)
     render_download_buttons(display_df)
-    st.dataframe(styled_pivot, use_container_width=True, height=750)
+
+    # لعرض التلوين بشكل صحيح نستخدم st.table في هذه الصفحة فقط
+    st.table(styled_pivot)
   else:
     st.warning("لا توجد نتائج مطابقة.")
 
