@@ -25,6 +25,13 @@ st.markdown(
         border-radius: 8px !important;
         border: 2px solid #3b82f6 !important;
     }
+
+    /* --- توسيط محتويات ورؤوس الجدول --- */
+    div[data-testid="stDataFrame"] div[role="gridcell"],
+    div[data-testid="stDataFrame"] div[role="columnheader"] {
+        text-align: center !important;
+        justify-content: center !important;
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -119,7 +126,7 @@ def apply_strict_code_search(data_frame, search_term):
 
   clean_term = search_term.strip().upper()
 
-  # 1. تنظيف عمود code ومطابقته حرفياً ومباشرة مع النص المكتوب
+  # 1. تنظيف عمود code ومطابقته مباشرة مع النص المكتوب
   code_series = data_frame["code"].astype(str).str.strip().str.upper()
 
   # البحث أولاً عن مطابقة تامة حصراً
