@@ -184,9 +184,9 @@ def render_dashboard_metrics(data_df):
     with c4:
         st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">إجمالي الحجم</div><div class="metric-value">{total_volume:,.3f} m³</div></div>', unsafe_allow_html=True)
     with c5:
-        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">دفع الشركة</div><div class="metric-value">${office_paid:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">دفع الشركة</div><div class="metric-value">¥{office_paid:,.2f}</div></div>', unsafe_allow_html=True)
     with c6:
-        st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">دفع الزبون</div><div class="metric-value">${client_paid:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">دفع الزبون</div><div class="metric-value">¥{client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
 # 4. التنقل بين الصفحات
 if page == "📊 لوحة التحكم (Dashboard)":
