@@ -225,6 +225,7 @@ page = st.sidebar.radio(
         "💰 كشف اجور الكمارك",
         "👥 الديون على الكفلاء",
         "🛃 كمرك الشحنات والاستحصالات",
+        "⏳ اعمار الديون للعملاء",
         "📈 الرسوم البيانية"
     ]
 )
@@ -374,7 +375,6 @@ elif page == "💰 كشف اجور الكمارك":
         grand_customs = pivot_filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in pivot_filtered_df else 0.0
         grand_collections = pivot_filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in pivot_filtered_df else 0.0
         grand_remaining = pivot_filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in pivot_filtered_df else 0.0
-        # استخدام القيمة القصوى أو المتوسط لعدد الأيام إجمالاً لتجنب التراكم التراكمي الخاطئ
         grand_days = pivot_filtered_df["عدد الايام"].max() if "عدد الايام" in pivot_filtered_df and not pivot_filtered_df["عدد الايام"].empty else 0.0
 
         sponsor_col = "الكفيل" if "الكفيل" in pivot_filtered_df.columns else None
@@ -405,8 +405,6 @@ elif page == "💰 كشف اجور الكمارك":
                 sum_customs = parent_group["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in parent_group else 0.0
                 sum_collections = parent_group["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in parent_group else 0.0
                 sum_remaining = parent_group["متبقي حقيقي"].sum() if "متبقي حقيقي" in parent_group else 0.0
-                
-                # تصحيح حساب عدد الأيام: أخذ القيمة القصوى أو الأولى بدلاً من الجمع التراكمي (.sum) لتعكس التأخير الصحيح للشحنة
                 group_days = parent_group["عدد الايام"].max() if "عدد الايام" in parent_group and not parent_group["عدد الايام"].empty else 0.0
 
                 tree_rows.append({
@@ -423,8 +421,6 @@ elif page == "💰 كشف اجور الكمارك":
                         c_customs = c_group["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in c_group else 0.0
                         c_collections = c_group["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in c_group else 0.0
                         c_remaining = c_group["متبقي حقيقي"].sum() if "متبقي حقيقي" in c_group else 0.0
-                        
-                        # أخذ عدد الأيام الحقيقي الخاص بالحاوية/الشحنة (عبر .max) بدلاً من الجمع
                         c_days = c_group["عدد الايام"].max() if "عدد الايام" in c_group and not c_group["عدد الايام"].empty else 0.0
 
                         tree_rows.append({
@@ -573,8 +569,6 @@ elif page == "👥 الديون على الكفلاء":
             st.markdown(styled_matrix.to_html(escape=False), unsafe_allow_html=True)
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
-            summary_height = max(300, min(len(sponsor_summary) * 35 + 50, 1200))
-            st.dataframe(sponsor_summary, use_container_width=True, height=summary_height)
     else:
         st.warning("لا توجد بيانات متاحة لعرض التقارير حالياً.")
     
@@ -646,6 +640,51 @@ elif page == "🛃 كمرك الشحنات والاستحصالات":
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
+elif page == "⏳ اعمار الديون للعملاء":
+    st.title("⏳ اعمار الديون للعملاء (Aging Report)")
+    st.markdown("---")
+    st.markdown("### 📋 جدول اعمار الديون (توزيع المتبقي الحقيقي حسب أرقام الحاوية / الأيام والكودات)")
+
+    aging_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
+    aging_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
+    aging_days_col = "عدد الايام" if "عدد الايام" in filtered_df.columns else None
+
+    if aging_code_col and aging_container_col and "متبقي حقيقي" in filtered_df.columns:
+        base_aging_df = filtered_df.copy()
+
+        # إنشاء جدول بايفت يوزع الحاويات (أو أعمدة الأيام/الحاويات) مقابل الكودات
+        pivot_col_target = aging_days_col if aging_days_col else aging_container_col
+        
+        aging_pivot = base_aging_df.pivot_table(
+            index=aging_code_col,
+            columns=pivot_col_target,
+            values="متبقي حقيقي",
+            aggfunc="sum",
+            fill_value=0
+        )
+
+        aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
+        grand_total_row = aging_pivot.sum(axis=0)
+        aging_pivot.loc["Grand Total"] = grand_total_row
+
+        formatted_aging = aging_pivot.map(lambda val: f"${val:,.0f}" if isinstance(val, (int, float)) and val > 0 else ("" if isinstance(val, (int, float)) else val))
+        
+        def style_aging_cells(val):
+            if val == "" or val == "$0":
+                return 'background-color: #f8fafc; color: #cbd5e1;'
+            return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
+
+        styled_aging_matrix = formatted_aging.style.map(style_aging_cells)
+        
+        render_download_buttons(aging_pivot.reset_index())
+
+        aging_height = max(300, min(len(aging_pivot) * 35 + 50, 1200))
+        st.markdown(styled_aging_matrix.to_html(escape=False), unsafe_allow_html=True)
+    else:
+        st.warning("الأعمدة المطلوبة (الكود، رقم الحاوية، أو المتبقي الحقيقي) غير متوفرة بالكامل في البيانات الحالية.")
+
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
 elif page == "📈 الرسوم البيانية":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
     st.markdown("---")
@@ -680,4 +719,3 @@ elif page == "📈 الرسوم البيانية":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
-
