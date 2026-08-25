@@ -153,7 +153,7 @@ page = st.sidebar.radio(
     "📌 القائمة الرئيسية",
     [
         "📊 لوحة التحكم (Dashboard)",
-        "💰 كشف الكمارك المستحصلة",
+        "💰 كشف اجور الكمارك",
         "📈 واجهة التقارير"
     ]
 )
@@ -256,8 +256,8 @@ if page == "📊 لوحة التحكم (Dashboard)":
     st.dataframe(styled_filtered_df, use_container_width=True, height=700)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
-elif page == "💰 كشف الكمارك المستحصلة":
-    st.title("💰 كشف الكمارك المستحصلة من العميل (Pivot Report)")
+elif page == "💰 كشف اجور الكمارك":
+    st.title("💰 كشف اجور الكمارك")
     st.markdown("---")
     
     search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
