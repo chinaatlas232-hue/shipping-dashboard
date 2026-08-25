@@ -141,13 +141,6 @@ page = st.sidebar.radio(
 st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
-def apply_text_search(data_frame):
-    search_q = st.text_input("🔍 بحث سريع في كافة الأعمدة (اخفاء باقي البيانات غير المطبقة):", "")
-    if search_q:
-        mask = data_frame.astype(str).apply(lambda x: x.str.contains(search_q, case=False, na=False))
-        return data_frame[mask.any(axis=1)]
-    return data_frame
-
 def render_download_buttons(data_to_download):
     btn_col1, btn_col2 = st.columns([1, 1])
     with btn_col1:
@@ -199,7 +192,6 @@ def render_dashboard_metrics(data_df):
 if page == "📊 لوحة التحكم (Dashboard)":
     st.title("📊 لوحة التحكم الرئيسية")
     st.markdown("---")
-    filtered_df = apply_text_search(filtered_df)
     render_dashboard_metrics(filtered_df)
     render_download_buttons(filtered_df)
     st.dataframe(filtered_df, use_container_width=True, height=700)
@@ -207,7 +199,6 @@ if page == "📊 لوحة التحكم (Dashboard)":
 elif page == "🚢 الشحنات والحاويات":
     st.title("🚢 إدارة الشحنات والحاويات")
     st.markdown("---")
-    filtered_df = apply_text_search(filtered_df)
     render_dashboard_metrics(filtered_df)
     render_download_buttons(filtered_df)
     st.dataframe(filtered_df, use_container_width=True, height=700)
@@ -215,7 +206,6 @@ elif page == "🚢 الشحنات والحاويات":
 elif page == "📦 الطلبات":
     st.title("📦 جميع الطلبات المسجلة")
     st.markdown("---")
-    filtered_df = apply_text_search(filtered_df)
     render_dashboard_metrics(filtered_df)
     render_download_buttons(filtered_df)
     st.dataframe(filtered_df, use_container_width=True, height=700)
