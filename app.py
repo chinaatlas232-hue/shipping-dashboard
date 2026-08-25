@@ -19,12 +19,35 @@ st.markdown(
     }
     .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
     .metric-value { font-size: 20px; font-weight: bold; }
-    .block-container { padding-top: 1.5rem !important; padding-bottom: 2rem; max-width: 99% !important; }
+    .block-container { padding-top: 1.5rem !important; padding-bottom: 4rem; max-width: 99% !important; }
 
     [data-testid="stTextInput"] label {
         font-size: 18px !important;
         font-weight: bold !important;
         color: #1f2937 !important;
+    }
+
+    /* تعديل شريط التمرير الأفقي والعمودي للجداول (عريض، واضح، وترك مسافة كافية لمنع التداخل) */
+    [data-testid="stDataFrame"] {
+        margin-bottom: 35px !important;
+    }
+    
+    ::-webkit-scrollbar {
+        width: 14px !important;
+        height: 14px !important;
+    }
+    ::-webkit-scrollbar-track {
+        background: #f1f5f9 !important;
+        border-radius: 8px !important;
+        margin: 5px !important;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #94a3b8 !important;
+        border-radius: 8px !important;
+        border: 3px solid #f1f5f9 !important;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #64748b !important;
     }
     </style>
 """,
@@ -60,7 +83,6 @@ def load_data(uploaded_file):
         except Exception:
             df = None
 
-    # إذا لم يتم رفع ملف ولا يوجد ملف مخزن، يتم إنشاء إطار بيانات فارغ بالأعمدة الأساسية
     if df is None:
         df = pd.DataFrame(columns=[
             "No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن",
@@ -198,6 +220,7 @@ if page == "📊 لوحة التحكم (Dashboard)":
     render_dashboard_metrics(filtered_df)
     render_download_buttons(filtered_df)
     st.dataframe(filtered_df, use_container_width=True, height=700)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "💰 كشف الكمارك المستحصلة":
     st.title("💰 كشف الكمارك المستحصلة من العميل (Pivot Report)")
@@ -329,6 +352,7 @@ elif page == "💰 كشف الكمارك المستحصلة":
         styled_pivot = display_df.style.apply(apply_row_styles, axis=1)
         render_download_buttons(display_df)
         st.dataframe(styled_pivot, use_container_width=True, height=750)
+        st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
     else:
         st.warning("لا توجد نتائج مطابقة.")
 
@@ -338,3 +362,4 @@ elif page == "📈 واجهة التقارير":
     render_dashboard_metrics(filtered_df)
     render_download_buttons(filtered_df)
     st.dataframe(filtered_df, use_container_width=True, height=500)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
