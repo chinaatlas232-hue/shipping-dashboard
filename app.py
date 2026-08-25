@@ -443,13 +443,11 @@ elif page == "📈 واجهة التقارير":
         st.markdown("---")
         st.markdown("### 📊 جدول تفصيلي بملخص الكفلاء (Pivot Table)")
         
-        # إنشاء جدول تقاطعي (Pivot Table) يطابق الشكل المطلوب (الكود كصفوف، والشحنة/الحاوية كأعمدة، والمبلغ كقيم)
         pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
         pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
         pivot_value_col = "مبلغ الجمرك" if "مبلغ الجمرك" in filtered_df.columns else None
 
         if pivot_code_col and pivot_container_col and pivot_value_col:
-            # إنشاء البايفت تيبل
             pivot_table_df = filtered_df.pivot_table(
                 index=pivot_code_col,
                 columns=pivot_container_col,
@@ -458,23 +456,19 @@ elif page == "📈 واجهة التقارير":
                 fill_value=0
             )
 
-            # إضافة عمود المجموع الكلي للمصفوفة (Grand Total للأعمدة)
             pivot_table_df["Grand Total"] = pivot_table_df.sum(axis=1)
-
-            # إضافة صف المجموع الكلي (Grand Total للصفوف)
             grand_total_row = pivot_table_df.sum(axis=0)
             pivot_table_df.loc["Grand Total"] = grand_total_row
 
-            # تنسيق الأرقام لتظهر بشكل جميل كعملة (مثل الصورة)
-            formatted_pivot = pivot_table_df.applymap(lambda val: f"${val:,.0f}" if val > 0 else "")
+            # تم تعديل applymap إلى map هنا لحل المشكلة نهائياً
+            formatted_pivot = pivot_table_df.map(lambda val: f"${val:,.0f}" if val > 0 else "")
             
-            # عرض الجدول مع تنسيق الألوان تماماً مثل الصورة المطلوبة
             def style_pivot_cells(val):
                 if val == "" or val == "$0":
-                    return 'background-color: #1e3a8a; color: #1e3a8a;' # خلفية زرقاء داكنة للخلايا الفارغة تماماً مثل الصورة
+                    return 'background-color: #1e3a8a; color: #1e3a8a;'
                 return 'background-color: #ffffff; color: #000000; font-weight: bold;'
 
-            styled_matrix = formatted_pivot.style.applymap(style_pivot_cells)
+            styled_matrix = formatted_pivot.style.map(style_pivot_cells)
             st.dataframe(styled_matrix, use_container_width=True)
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت (الكود، رقم الحاوية، مبلغ الجمرك) غير متوفرة بالكامل.")
