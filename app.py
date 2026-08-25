@@ -11,7 +11,6 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    /* اللون الأساسي للتطبيق كما كان */
     .main { background-color: #0e1117; }
     
     .metric-card {
@@ -30,7 +29,6 @@ st.markdown(
         max-width: 100% !important; 
     }
 
-    /* تخصيص هيدر الصفحة (العنوان الرئيسي) بخلفية رصاصي فاتح وهوامش مناسبة */
     h1 {
         background-color: #e2e8f0 !important;
         color: #0f172a !important;
@@ -51,12 +49,10 @@ st.markdown(
         width: 100% !important;
     }
     
-    /* تثبيت لون خلفية الشريط الجانبي */
     [data-testid="stSidebar"] {
         background-color: #07151a !important;
     }
     
-    /* إصلاح جذري لإظهار أسماء القائمة الجانبية (Radio) والنصوص والرموز باللون الأبيض الواضح */
     [data-testid="stSidebar"] section div.stRadio label,
     [data-testid="stSidebar"] section div.stRadio p,
     [data-testid="stSidebar"] section div.stRadio span,
@@ -68,7 +64,6 @@ st.markdown(
         font-weight: 600 !important;
     }
 
-    /* تعديل عناصر الصناديق والمربعات داخل الشريط الجانبي لتكون الكتابة بداخلها ملائمة */
     [data-testid="stSidebar"] [data-testid="stFileUploader"] *, 
     [data-testid="stSidebar"] [data-testid="stButton"] *, 
     [data-testid="stSidebar"] [data-testid="stSelectbox"] * {
@@ -105,7 +100,6 @@ st.markdown(
 DATA_FILE = "shipping_data.xlsx"
 
 def clean_numeric(series):
-    # تحويل القيم إلى نصوص ومعالجة كافة الرموز والمسافات الخفية لضمان قراءة الأرقام بدقة
     cleaned = (
         series.astype(str)
         .str.replace("¥", "", regex=False)
@@ -117,7 +111,7 @@ def clean_numeric(series):
     cleaned = cleaned.replace(["nan", "None", "", "null", "-"], "0")
     return pd.to_numeric(cleaned, errors="coerce").fillna(0)
 
-# 2. تحميل البيانات
+# 2. تحميل وتطبيع البيانات
 def load_data(uploaded_file):
     df = None
     if uploaded_file is not None:
@@ -141,12 +135,22 @@ def load_data(uploaded_file):
             "الوزن", "حجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات"
         ])
 
+    # تنظيف أسماء الأعمدة وإزالة المسافات الزائدة
     df.columns = df.columns.astype(str).str.strip()
 
-    # تنظيف وتجهيز الأعمدة الرقمية لضمان عدم ظهورها كصفر
+    # رصد وربط أعمدة "دفع الشركة" و "دفع الزبون" بمرونة تامة بغض النظر عن الاختلاف البسيط في الكتابة
+    office_col = next((c for c in df.columns if any(k in c for k in ["مكتب", "شركة", "Office", "office"])), None)
+    client_col = next((c for c in df.columns if any(k in c for k in ["زبون", "الزبون", "Client", "client"])), None)
+
+    if office_col and "المكتب دفع" not in df.columns:
+        df["المكتب دفع"] = df[office_col]
+    if client_col and "الزبون دفع" not in df.columns:
+        df["الزبون دفع"] = df[client_col]
+
+    # تنظيف كافة الأعمدة الرقمية المحتملة
     numeric_cols = [
         "المكتب دفع", "Office Paid", "الزبون دفع", "Client Paid",
-        "عدد الكارتون", "الوزن", "حجم", "المجموع", "مبلغ الجمرك", "قيمة الاستحصالات"
+        "عدد الكارتون", "الوزن", "حجم", "المجموع", "مبلغ الجمرك", "قيمة الاستحصالات", "سعر البيع"
     ]
     for col in numeric_cols:
         if col in df.columns:
@@ -189,7 +193,10 @@ filtered_df = df.copy()
 
 st.sidebar.markdown("### 🔍 الفلاتر الجانبية")
 
-container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df.columns), None)
+container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات", "حاوية"] if any(k in c for k in ["حاوية", "حاويات", "Container", "container"])), None)
+if not container_col and not df.empty:
+    container_col = df.columns[0]
+
 selected_container = "الكل"
 if container_col and not df.empty:
     containers = ["الكل"] + sorted(df[container_col].dropna().astype(str).unique().tolist())
@@ -197,7 +204,7 @@ if container_col and not df.empty:
     if selected_container != "الكل":
         filtered_df = filtered_df[filtered_df[container_col].astype(str) == selected_container]
 
-code_col = next((c for c in ["code", "الكود", "كود"] if c in df.columns), "code")
+code_col = next((c for c in df.columns if any(k in c.lower() for k in ["code", "كود"])), "code")
 selected_code = "الكل"
 if code_col in df.columns and not df.empty:
     codes = ["الكل"] + sorted(df[code_col].dropna().astype(str).unique().tolist())
@@ -205,7 +212,7 @@ if code_col in df.columns and not df.empty:
     if selected_code != "الكل":
         filtered_df = filtered_df[filtered_df[code_col].astype(str) == selected_code]
 
-sponsor_filter_col = next((c for c in ["الكفيل", "كفيل"] if c in df.columns), None)
+sponsor_filter_col = next((c for c in df.columns if any(k in c for k in ["الكفيل", "كفيل", "Sponsor", "sponsor"])), None)
 selected_sponsor = "الكل"
 if sponsor_filter_col and not df.empty:
     sponsors = ["الكل"] + sorted(df[sponsor_filter_col].dropna().astype(str).unique().tolist())
@@ -257,11 +264,11 @@ def render_dashboard_metrics(data_df):
     target_customer_col = next((c for c in [code_col, "code", "الكفيل", "الزبون"] if c in data_df.columns), None)
     total_customers = data_df[target_customer_col].nunique() if target_customer_col and not data_df.empty else 0
 
-    office_paid_col = next((c for c in ["المكتب دفع", "Office Paid"] if c in data_df.columns), None)
-    client_paid_col = next((c for c in ["الزبون دفع", "Client Paid"] if c in data_df.columns), None)
+    office_paid_col = next((c for c in data_df.columns if any(k in c for k in ["مكتب", "شركة", "Office"])), "المكتب دفع")
+    client_paid_col = next((c for c in data_df.columns if any(k in c for k in ["زبون", "Client"])), "الزبون دفع")
 
-    office_paid = data_df[office_paid_col].sum() if office_paid_col and not data_df.empty else 0.0
-    client_paid = data_df[client_paid_col].sum() if client_paid_col and not data_df.empty else 0.0
+    office_paid = data_df[office_paid_col].sum() if office_paid_col in data_df.columns and not data_df.empty else 0.0
+    client_paid = data_df[client_paid_col].sum() if client_paid_col in data_df.columns and not data_df.empty else 0.0
 
     c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
     with c1:
@@ -280,16 +287,15 @@ def render_dashboard_metrics(data_df):
         st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">دفع الزبون</div><div class="metric-value">¥{client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
 def style_container_column(df_to_style):
-    target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_style.columns), None)
-    sponsor_col_check = "الكفيل" if "الكفيل" in df_to_style.columns else None
+    sponsor_col_check = next((c for c in df_to_style.columns if any(k in c for k in ["الكفيل", "كفيل"])), None)
 
-    if not target_container_col:
+    if not container_col:
         return df_to_style.style
 
     def highlight_cells(row):
         styles = [''] * len(row)
-        if target_container_col in df_to_style.columns:
-            col_idx = df_to_style.columns.get_loc(target_container_col)
+        if container_col in df_to_style.columns:
+            col_idx = df_to_style.columns.get_loc(container_col)
             
             is_arrived = False
             is_not_arrived = False
@@ -330,7 +336,7 @@ elif page == "💰 كشف اجور الكمارك":
     pivot_filtered_df = filtered_df.copy()
     
     if search_query and not pivot_filtered_df.empty:
-        search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات"] if c in pivot_filtered_df.columns]
+        search_cols = [c for c in [code_col, sponsor_filter_col, container_col] if c in pivot_filtered_df.columns and c is not None]
         if search_cols:
             mask = pivot_filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
             pivot_filtered_df = pivot_filtered_df[mask.any(axis=1)]
@@ -341,17 +347,17 @@ elif page == "💰 كشف اجور الكمارك":
     sponsor_remaining = 0.0
     sponsor_collected = 0.0
     
-    if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
-        valid_sponsors = [s for s in pivot_filtered_df["الكفيل"].dropna().unique() if "لم تصل بعد" not in str(s)]
+    if sponsor_filter_col and sponsor_filter_col in pivot_filtered_df.columns and not pivot_filtered_df.empty:
+        valid_sponsors = [s for s in pivot_filtered_df[sponsor_filter_col].dropna().unique() if "لم تصل بعد" not in str(s)]
         if valid_sponsors:
             sponsor_name = str(valid_sponsors[0]).strip()
-            sponsor_df = pivot_filtered_df[pivot_filtered_df["الكفيل"] == valid_sponsors[0]]
-            sponsor_remaining = sponsor_df["متبقي حقيقي"].sum()
-            sponsor_collected = sponsor_df["قيمة الاستحصالات"].sum()
+            sponsor_df = pivot_filtered_df[pivot_filtered_df[sponsor_filter_col] == valid_sponsors[0]]
+            sponsor_remaining = sponsor_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in sponsor_df.columns else 0.0
+            sponsor_collected = sponsor_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in sponsor_df.columns else 0.0
             
     not_arrived_remaining = 0.0
-    if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
-        not_arrived_remaining = pivot_filtered_df[pivot_filtered_df["الكفيل"].astype(str).str.contains("لم تصل بعد", na=False)]["متبقي حقيقي"].sum()
+    if sponsor_filter_col and sponsor_filter_col in pivot_filtered_df.columns and not pivot_filtered_df.empty:
+        not_arrived_remaining = pivot_filtered_df[pivot_filtered_df[sponsor_filter_col].astype(str).str.contains("لم تصل بعد", na=False)]["متبقي حقيقي"].sum() if "متبقي حقيقي" in pivot_filtered_df.columns else 0.0
 
     m1, m2, m3, m4 = st.columns(4)
     with m1:
@@ -367,15 +373,13 @@ elif page == "💰 كشف اجور الكمارك":
 
     tree_rows = []
     if not pivot_filtered_df.empty:
-        grand_customs = pivot_filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in pivot_filtered_df else 0.0
-        grand_collections = pivot_filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in pivot_filtered_df else 0.0
-        grand_remaining = pivot_filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in pivot_filtered_df else 0.0
+        grand_customs = pivot_filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in pivot_filtered_df.columns else 0.0
+        grand_collections = pivot_filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in pivot_filtered_df.columns else 0.0
+        grand_remaining = pivot_filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in pivot_filtered_df.columns else 0.0
 
-        sponsor_col = "الكفيل" if "الكفيل" in pivot_filtered_df.columns else None
-        
         group_cols = []
-        if sponsor_col: group_cols.append(sponsor_col)
-        if "code" in pivot_filtered_df.columns: group_cols.append("code")
+        if sponsor_filter_col and sponsor_filter_col in pivot_filtered_df.columns: group_cols.append(sponsor_filter_col)
+        if code_col in pivot_filtered_df.columns: group_cols.append(code_col)
 
         if group_cols:
             grouped_parents = pivot_filtered_df.groupby(group_cols, dropna=False)
@@ -396,9 +400,9 @@ elif page == "💰 كشف اجور الكمارك":
                     if "لم تصل بعد" in val_str:
                         is_not_arrived = True
 
-                sum_customs = parent_group["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in parent_group else 0.0
-                sum_collections = parent_group["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in parent_group else 0.0
-                sum_remaining = parent_group["متبقي حقيقي"].sum() if "متبقي حقيقي" in parent_group else 0.0
+                sum_customs = parent_group["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in parent_group.columns else 0.0
+                sum_collections = parent_group["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in parent_group.columns else 0.0
+                sum_remaining = parent_group["متبقي حقيقي"].sum() if "متبقي حقيقي" in parent_group.columns else 0.0
 
                 tree_rows.append({
                     "Row Labels": label_text,
@@ -410,9 +414,9 @@ elif page == "💰 كشف اجور الكمارك":
 
                 if container_col:
                     for container, c_group in parent_group.groupby(container_col, dropna=False):
-                        c_customs = c_group["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in c_group else 0.0
-                        c_collections = c_group["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in c_group else 0.0
-                        c_remaining = c_group["متبقي حقيقي"].sum() if "متبقي حقيقي" in c_group else 0.0
+                        c_customs = c_group["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in c_group.columns else 0.0
+                        c_collections = c_group["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in c_group.columns else 0.0
+                        c_remaining = c_group["متبقي حقيقي"].sum() if "متبقي حقيقي" in c_group.columns else 0.0
 
                         tree_rows.append({
                             "RowLabels": f"    ↳ {container}",
@@ -461,13 +465,13 @@ elif page == "👥 الديون على الكفلاء":
     st.title("👥 الديون على الكفلاء")
     st.markdown("---")
     
-    if "الكفيل" in filtered_df.columns and not filtered_df.empty:
+    if sponsor_filter_col and sponsor_filter_col in filtered_df.columns and not filtered_df.empty:
         col_customs = "مبلغ الجمرك" if "مبلغ الجمرك" in filtered_df.columns else filtered_df.columns[0]
         col_collected = "قيمة الاستحصالات" if "قيمة الاستحصالات" in filtered_df.columns else filtered_df.columns[0]
         col_remaining = "متبقي حقيقي" if "متبقي حقيقي" in filtered_df.columns else filtered_df.columns[0]
-        col_count = "No" if "No" in filtered_df.columns else filtered_df.columns[0]
+        col_count = filtered_df.columns[0]
 
-        sponsor_summary = filtered_df.groupby("الكفيل").agg(
+        sponsor_summary = filtered_df.groupby(sponsor_filter_col).agg(
             total_customs=(col_customs, "sum"),
             total_collected=(col_collected, "sum"),
             total_remaining=(col_remaining, "sum"),
@@ -477,7 +481,7 @@ elif page == "👥 الديون على الكفلاء":
         st.markdown("### 📋 ملخص المبالغ لكل كفيل")
         
         for index, row in sponsor_summary.iterrows():
-            sponsor_name = row["الكفيل"]
+            sponsor_name = row[sponsor_filter_col]
             s_customs = row["total_customs"]
             s_collected = row["total_collected"]
             s_remaining = row["total_remaining"]
@@ -502,21 +506,19 @@ elif page == "👥 الديون على الكفلاء":
         st.markdown("---")
         st.markdown("### 📊 جدول تفصيلي بملخص الكفلاء (Pivot Table)")
         
-        pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
-        pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
         pivot_value_col = "مبلغ الجمرك" if "مبلغ الجمرك" in filtered_df.columns else None
 
-        if pivot_code_col and pivot_container_col and pivot_value_col:
+        if code_col and container_col and pivot_value_col:
             base_pivot_df = df.copy()
             
             if selected_code != "الكل":
-                base_pivot_df = base_pivot_df[base_pivot_df[pivot_code_col].astype(str) == selected_code]
-            if selected_sponsor != "الكل" and "الكفيل" in base_pivot_df.columns:
-                base_pivot_df = base_pivot_df[base_pivot_df["الكفيل"].astype(str) == selected_sponsor]
+                base_pivot_df = base_pivot_df[base_pivot_df[code_col].astype(str) == selected_code]
+            if selected_sponsor != "الكل" and sponsor_filter_col in base_pivot_df.columns:
+                base_pivot_df = base_pivot_df[base_pivot_df[sponsor_filter_col].astype(str) == selected_sponsor]
 
             pivot_table_df = base_pivot_df.pivot_table(
-                index=pivot_code_col,
-                columns=pivot_container_col,
+                index=code_col,
+                columns=container_col,
                 values=pivot_value_col,
                 aggfunc="sum",
                 fill_value=0
@@ -532,10 +534,10 @@ elif page == "👥 الديون على الكفلاء":
                     new_columns.append(col)
                     continue
                 
-                sub_df = base_pivot_df[base_pivot_df[pivot_container_col].astype(str) == str(col)]
+                sub_df = base_pivot_df[base_pivot_df[container_col].astype(str) == str(col)]
                 is_not_arrived = False
-                if not sub_df.empty and "الكفيل" in sub_df.columns:
-                    sponsors_in_col = sub_df["الكفيل"].astype(str).unique()
+                if not sub_df.empty and sponsor_filter_col in sub_df.columns:
+                    sponsors_in_col = sub_df[sponsor_filter_col].astype(str).unique()
                     if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
                         is_not_arrived = True
                 
@@ -554,10 +556,8 @@ elif page == "👥 الديون على الكفلاء":
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
 
-            matrix_height = max(300, min(len(pivot_table_df) * 35 + 50, 1200))
             st.markdown(styled_matrix.to_html(escape=False), unsafe_allow_html=True)
         else:
-            st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
             summary_height = max(300, min(len(sponsor_summary) * 35 + 50, 1200))
             st.dataframe(sponsor_summary, use_container_width=True, height=summary_height)
     else:
@@ -585,11 +585,9 @@ elif page == "🛃 كمرك الشحنات والاستحصالات":
 
     st.markdown("---")
     render_download_buttons(filtered_df)
-
-    container_field = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
     
-    if container_field and not filtered_df.empty:
-        agg_df = filtered_df.groupby(container_field, dropna=False).agg(
+    if container_col and not filtered_df.empty:
+        agg_df = filtered_df.groupby(container_col, dropna=False).agg(
             {
                 "مبلغ الجمرك": "sum",
                 "قيمة الاستحصالات": "sum",
@@ -598,7 +596,7 @@ elif page == "🛃 كمرك الشحنات والاستحصالات":
         ).reset_index()
 
         grand_totals = pd.DataFrame({
-            container_field: ["Grand Total"],
+            container_col: ["Grand Total"],
             "مبلغ الجمرك": [agg_df["مبلغ الجمرك"].sum()],
             "قيمة الاستحصالات": [agg_df["قيمة الاستحصالات"].sum()],
             "متبقي حقيقي": [agg_df["متبقي حقيقي"].sum()]
@@ -607,7 +605,7 @@ elif page == "🛃 كمرك الشحنات والاستحصالات":
         agg_df = pd.concat([agg_df, grand_totals], ignore_index=True)
 
         agg_df = agg_df.rename(columns={
-            container_field: "رقم الحاوية",
+            container_col: "رقم الحاوية",
             "مبلغ الجمرك": "Sum of مبلغ الجمرك",
             "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
             "متبقي حقيقي": "Sum of متبقي حقيقي"
@@ -638,14 +636,12 @@ elif page == "📈 الرسوم البيانية":
     if filtered_df.empty:
         st.warning("لا توجد بيانات متاحة لعرض الرسوم البيانية.")
     else:
-        # 1. مخطط مبالغ الجمرك والاستحصالات حسب الحاويات
         if container_col and "مبلغ الجمرك" in filtered_df.columns:
             st.subheader("📦 مقارنة مبالغ الجمرك والاستحصالات حسب الحاويات")
             chart_data = filtered_df.groupby(container_col)[["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"]].sum()
             st.bar_chart(chart_data)
             st.markdown("---")
 
-        # 2. مخطط الأوزان والأحجام حسب الحاويات
         col_chart1, col_chart2 = st.columns(2)
         with col_chart1:
             if container_col and "الوزن" in filtered_df.columns:
@@ -661,10 +657,9 @@ elif page == "📈 الرسوم البيانية":
 
         st.markdown("---")
 
-        # 3. مخطط توزيع الديون والمبالغ حسب الكفلاء
-        if "الكفيل" in filtered_df.columns and "مبلغ الجمرك" in filtered_df.columns:
+        if sponsor_filter_col and sponsor_filter_col in filtered_df.columns and "مبلغ الجمرك" in filtered_df.columns:
             st.subheader("👤 إجمالي مبالغ الجمرك والاستحصالات حسب الكفلاء")
-            sponsor_chart_data = filtered_df.groupby("الكفيل")[["مبلغ الجمرك", "قيمة الاستحصالات"]].sum()
+            sponsor_chart_data = filtered_df.groupby(sponsor_filter_col)[["مبلغ الجمرك", "قيمة الاستحصالات"]].sum()
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
