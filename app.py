@@ -585,7 +585,6 @@ elif page == "📦 تفاصيل الحاويات":
     st.title("📦 تفاصيل الحاويات الشاملة")
     st.markdown("---")
     
-    # حقل بحث مخصص ضمن هذه الصفحة
     container_search = st.text_input("🔍 ابحث برقم حاوية محدد:", "").strip()
     page_data = filtered_df.copy()
     
@@ -595,7 +594,6 @@ elif page == "📦 تفاصيل الحاويات":
         page_data = page_data[page_data[target_cont_col].astype(str).str.contains(container_search, case=False, na=False)]
 
     if not page_data.empty:
-        # عرض إحصائيات سريعة للحاويات المعروضة
         t_orders = len(page_data)
         t_cartons = page_data["عدد الكارتون"].sum() if "عدد الكارتون" in page_data.columns else 0
         t_weight = page_data["الوزن"].sum() if "الوزن" in page_data.columns else 0
@@ -624,4 +622,3 @@ elif page == "📦 تفاصيل الحاويات":
         st.warning("لا توجد بيانات مطابقة للحاويات الحالية.")
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
-
