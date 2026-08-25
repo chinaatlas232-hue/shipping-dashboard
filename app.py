@@ -148,6 +148,15 @@ if code_col in df.columns and not df.empty:
     if selected_code != "الكل":
         filtered_df = filtered_df[filtered_df[code_col].astype(str) == selected_code]
 
+# إضافة الفلتر الجانبي لاسم الكفيل
+sponsor_filter_col = next((c for c in ["الكفيل", "كفيل"] if c in df.columns), None)
+selected_sponsor = "الكل"
+if sponsor_filter_col and not df.empty:
+    sponsors = ["الكل"] + sorted(df[sponsor_filter_col].dropna().astype(str).unique().tolist())
+    selected_sponsor = st.sidebar.selectbox("👤 اختر اسم الكفيل:", sponsors)
+    if selected_sponsor != "الكل":
+        filtered_df = filtered_df[filtered_df[sponsor_filter_col].astype(str) == selected_sponsor]
+
 st.sidebar.markdown("---")
 page = st.sidebar.radio(
     "📌 القائمة الرئيسية",
@@ -394,13 +403,11 @@ elif page == "📈 واجهة التقارير":
     st.markdown("---")
     
     if "الكفيل" in filtered_df.columns and not filtered_df.empty:
-        # التحقق الآمن من أسماء الأعمدة لتجنب أخطاء KeyError
         col_customs = "مبلغ الجمرك" if "مبلغ الجمرك" in filtered_df.columns else filtered_df.columns[0]
         col_collected = "قيمة الاستحصالات" if "قيمة الاستحصالات" in filtered_df.columns else filtered_df.columns[0]
         col_remaining = "متبقي حقيقي" if "متبقي حقيقي" in filtered_df.columns else filtered_df.columns[0]
         col_count = "No" if "No" in filtered_df.columns else filtered_df.columns[0]
 
-        # تجميع البيانات لكل كفيل استناداً للأسماء المتحقق منها
         sponsor_summary = filtered_df.groupby("الكفيل").agg(
             total_customs=(col_customs, "sum"),
             total_collected=(col_collected, "sum"),
@@ -410,7 +417,6 @@ elif page == "📈 واجهة التقارير":
 
         st.markdown("### 📋 ملخص المبالغ لكل كفيل")
         
-        # عرض المربعات (Cards) لكل كفيل بشكل ديناميكي
         for index, row in sponsor_summary.iterrows():
             sponsor_name = row["الكفيل"]
             s_customs = row["total_customs"]
@@ -418,9 +424,9 @@ elif page == "📈 واجهة التقارير":
             s_remaining = row["total_remaining"]
             s_orders = row["total_orders"]
             
-            card_bg = "#1e3a8a" # أزرق افتراضي
+            card_bg = "#1e3a8a"
             if "لم تصل بعد" in str(sponsor_name):
-                card_bg = "#b45309" # برتقالي/أصفر داكن للحالات التي لم تصل
+                card_bg = "#b45309"
             
             st.markdown(f"""
                 <div style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
