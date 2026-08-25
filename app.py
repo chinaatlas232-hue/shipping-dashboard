@@ -104,6 +104,19 @@ st.sidebar.title("🚢 إدارة اللوجستيات")
 st.sidebar.markdown("---")
 
 uploaded_file = st.sidebar.file_uploader("📁 رفع ملف Excel جديد", type=["xlsx", "xls"])
+
+# زر مسح بيانات شيت الطلبات فقط (حذف ملف البيانات المحفوظ وإعادة تحميل الصفحة)
+if st.sidebar.button("🗑️ مسح بيانات الملف الحالي"):
+    if os.path.exists(DATA_FILE):
+        try:
+            os.remove(DATA_FILE)
+            st.sidebar.success("تم مسح بيانات الشيت بنجاح! ✔️")
+            st.rerun()
+        except Exception as e:
+            st.sidebar.error(f"خطأ أثناء حذف الملف: {e}")
+    else:
+        st.sidebar.info("لا توجد بيانات مسجلة مسبقاً.")
+
 df = load_data(uploaded_file)
 filtered_df = df.copy()
 
@@ -168,7 +181,6 @@ def render_dashboard_metrics(data_df):
     total_weight = data_df["الوزن"].sum() if "الوزن" in data_df.columns else 0
     total_volume = data_df["حجم"].sum() if "حجم" in data_df.columns else 0
 
-    # حساب عدد الزبائن الفريدين بناءً على عمود الكود أو عمود الزبون إذا وجد
     target_customer_col = next((c for c in [code_col, "code", "الكفيل", "الزبون"] if c in data_df.columns), None)
     total_customers = data_df[target_customer_col].nunique() if target_customer_col else 0
 
@@ -178,7 +190,6 @@ def render_dashboard_metrics(data_df):
     office_paid = data_df[office_paid_col].sum() if office_paid_col else 0.0
     client_paid = data_df[client_paid_col].sum() if client_paid_col else 0.0
 
-    # تقسيم العرض إلى 7 أعمدة بدلاً من 6 لاستيعاب المربع الجديد
     c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
     with c1:
         st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">إجمالي الطلبات</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
