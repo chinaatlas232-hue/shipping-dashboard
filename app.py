@@ -112,15 +112,35 @@ def load_data(uploaded_file):
   return df
 
 
-# 3. القائمة الجانبية (Sidebar)
-st.sidebar.title("🚢 إدارة اللوجستيات")
-st.sidebar.markdown("---")
+# --- دالة البحث المفلترة الصارمة على عمود code فقط ---
+def apply_strict_code_search(data_frame, search_term):
+  if not search_term or "code" not in data_frame.columns:
+    return data_frame
 
+  clean_term = search_term.strip().upper()
+
+  # 1. تنظيف عمود code ومطابقته حرفياً ومباشرة مع النص المكتوب
+  code_series = data_frame["code"].astype(str).str.strip().str.upper()
+
+  # البحث أولاً عن مطابقة تامة حصراً
+  exact_match = data_frame[code_series == clean_term]
+  if not exact_match.empty:
+    return exact_match
+
+  # إذا لم يجد مطابقة تامة، يفلتر الأكواد التي تبدأ بنفس الرمز فقط
+  starts_with_match = data_frame[code_series.str.startswith(clean_term)]
+  return starts_with_match
+
+
+# 3. تحميل البيانات وإتاحة الفلترة
 uploaded_file = st.sidebar.file_uploader(
     "📁 رفع ملف Excel جديد", type=["xlsx", "xls"]
 )
 df = load_data(uploaded_file)
-filtered_df = df.copy()
+
+# 4. القائمة الجانبية (Sidebar)
+st.sidebar.title("🚢 إدارة اللوجستيات")
+st.sidebar.markdown("---")
 
 st.sidebar.markdown("### 🔍 الفلاتر الجانبية")
 container_col = next(
@@ -128,6 +148,8 @@ container_col = next(
 )
 
 selected_container = "الكل"
+filtered_df = df.copy()
+
 if container_col:
   containers = ["الكل"] + sorted(
       df[container_col].dropna().astype(str).unique().tolist()
@@ -153,37 +175,13 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 
-# --- شريط البحث الدقيق والذكي حصرياً للكود ---
-def apply_text_search(data_frame):
-  search_term = st.text_input(
-      "🔍 اكتب الكود للفلترة الدقيقة:",
+def render_search_bar():
+  return st.text_input(
+      "🔍 فلترة فورية وحصرية لعمود الكود (code):",
       value="",
-      placeholder="...اكتب الكود هنا (مثال: B7)",
-      key="smart_search_input",
-  ).strip()
-
-  if search_term and "code" in data_frame.columns:
-    clean_search = search_term.upper().replace(" ", "")
-
-    # 1. أولاً نبحث عن المطابقة التامة للكود (مثل B7 فقط)
-    exact_mask = (
-        data_frame["code"].astype(str).str.upper().str.strip() == clean_search
-    )
-
-    if exact_mask.any():
-      return data_frame[exact_mask]
-
-    # 2. إذا لم يجد مطابقة تامة، يفلتر الصفوف التي يبدأ كودها بهذا النص
-    starts_with_mask = (
-        data_frame["code"]
-        .astype(str)
-        .str.upper()
-        .str.strip()
-        .str.startswith(clean_search)
-    )
-    return data_frame[starts_with_mask]
-
-  return data_frame
+      placeholder="...اكتب الكود هنا بالضبط (مثال: B7 أو B12)",
+      key="code_search_input",
+  )
 
 
 def render_download_buttons(data_to_download):
@@ -271,30 +269,24 @@ def render_dashboard_metrics(data_df):
     )
 
 
-# 4. التنقل بين الصفحات
-if page == "📊 لوحة التحكم (Dashboard)":
-  st.title("📊 لوحة التحكم الرئيسية")
+# 5. عرض الصفحات والفلترة الفعلية
+if page in [
+    "📊 لوحة التحكم (Dashboard)",
+    "🚢 الشحنات والحاويات",
+    "📦 الطلبات",
+    "📈 واجهة التقارير",
+]:
+  st.title(f"{page}")
   st.markdown("---")
-  filtered_df = apply_text_search(filtered_df)
-  render_dashboard_metrics(filtered_df)
-  render_download_buttons(filtered_df)
-  st.dataframe(filtered_df, use_container_width=True, height=700)
 
-elif page == "🚢 الشحنات والحاويات":
-  st.title("🚢 إدارة الشحنات والحاويات")
-  st.markdown("---")
-  filtered_df = apply_text_search(filtered_df)
-  render_dashboard_metrics(filtered_df)
-  render_download_buttons(filtered_df)
-  st.dataframe(filtered_df, use_container_width=True, height=700)
+  search_input = render_search_bar()
 
-elif page == "📦 الطلبات":
-  st.title("📦 جميع الطلبات المسجلة")
-  st.markdown("---")
-  filtered_df = apply_text_search(filtered_df)
-  render_dashboard_metrics(filtered_df)
-  render_download_buttons(filtered_df)
-  st.dataframe(filtered_df, use_container_width=True, height=700)
+  # تطبيق البحث مباشرة على الجدول والبطاقات
+  display_df = apply_strict_code_search(filtered_df, search_input)
+
+  render_dashboard_metrics(display_df)
+  render_download_buttons(display_df)
+  st.dataframe(display_df, use_container_width=True, height=700)
 
 elif page == "💰 كشف الكمارك المستحصلة":
   st.title("💰 كشف الكمارك المستحصلة من العميل (Pivot Report)")
@@ -516,10 +508,3 @@ elif page == "💰 كشف الكمارك المستحصلة":
     st.dataframe(styled_pivot, use_container_width=True, height=750)
   else:
     st.warning("لا توجد نتائج مطابقة.")
-
-elif page == "📈 واجهة التقارير":
-  st.title("📈 واجهة التقارير الشاملة")
-  st.markdown("---")
-  render_dashboard_metrics(filtered_df)
-  render_download_buttons(filtered_df)
-  st.dataframe(filtered_df, use_container_width=True, height=500)
