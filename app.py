@@ -575,12 +575,36 @@ elif page == "collections":
         for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
             formatted_agg[col] = formatted_agg[col].apply(lambda x: f"${x:,.0f}" if x > 0 else "")
 
-        def style_summary_rows(row):
-            if row["رقم الحاوية"] == "Grand Total":
+        # دالة تلوين خلية رقم الحاوية فقط بناءً على حالة الكفيل في الشحنات الأصلية
+        def style_summary_cells(row):
+            styles = [''] * len(row)
+            container_val = str(row["رقم الحاوية"])
+            
+            if container_val == "Grand Total":
                 return ['background-color: #f1f5f9; color: #000000; font-weight: bold;'] * len(row)
-            return ['background-color: #ffffff; color: #000000; font-weight: bold;'] * len(row)
+            
+            container_col_name = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
+            if container_col_name and "الكفيل" in filtered_df.columns:
+                sub_df = filtered_df[filtered_df[container_col_name].astype(str) == container_val]
+                is_arrived = False
+                is_not_arrived = False
+                
+                if not sub_df.empty:
+                    sponsors_in_col = sub_df["الكفيل"].astype(str).unique()
+                    if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
+                        is_not_arrived = True
+                    elif any(s and s != "nan" and s != "غير محدد" for s in sponsors_in_col):
+                        is_arrived = True
+                
+                col_idx = row.index.get_loc("رقم الحاوية")
+                if is_not_arrived:
+                    styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold;'
+                elif is_arrived:
+                    styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
+            
+            return styles
 
-        styled_summary = formatted_agg.style.apply(style_summary_rows, axis=1)
+        styled_summary = formatted_agg.style.apply(style_summary_cells, axis=1)
 
         summary_height = max(300, min(len(formatted_agg) * 35 + 50, 1200))
         st.dataframe(styled_summary, use_container_width=True, height=summary_height)
