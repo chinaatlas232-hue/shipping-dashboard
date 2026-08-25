@@ -81,6 +81,19 @@ st.markdown(
         color: #ffffff !important;
     }
 
+    /* تنسيق زر مسح الملف بخلفية حمراء */
+    [data-testid="stSidebar"] button[kind="secondary"] {
+        background-color: #dc2626 !important;
+        color: #ffffff !important;
+        border-color: #dc2626 !important;
+    }
+    
+    [data-testid="stSidebar"] button[kind="secondary"]:hover {
+        background-color: #b91c1c !important;
+        color: #ffffff !important;
+        border-color: #b91c1c !important;
+    }
+
     ::-webkit-scrollbar {
         width: 10px !important;
         height: 10px !important;
@@ -437,7 +450,6 @@ elif page == "sponsors":
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
             
-            # تعديل الجدول ليعمل بنسبة عرض 100% بدون فراغات جانبية
             matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
             st.markdown(f'<div style="width: 100%; overflow-x: auto;">{matrix_html}</div>', unsafe_allow_html=True)
         else:
@@ -501,7 +513,6 @@ elif page == "aging":
         styled_aging_matrix = formatted_aging.style.apply(style_aging_cells, axis=1)
         render_download_buttons(aging_pivot.reset_index())
         
-        # تمديد الجدول بالكامل ليغطي عرض 100% للشاشة
         aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
         st.markdown(f'<div style="width: 100%; overflow-x: auto;">{aging_html}</div>', unsafe_allow_html=True)
     else:
