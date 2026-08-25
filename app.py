@@ -460,17 +460,20 @@ elif page == "📈 واجهة التقارير":
             main_pivot["Grand Total"] = main_pivot.sum(axis=1)
             main_pivot.loc["Grand Total"] = main_pivot.sum(axis=0)
 
-            # استخدام .map للتنسيق بدلاً من applymap
+            # فصل تنسيق الأرقام والعملة عن تطبيق الألوان لتجنب ظهور أكواد التنسيق كنصوص
             formatted_pivot = main_pivot.map(lambda val: f"${val:,.0f}" if val > 0 else "")
             
-            def style_pivot_cells(val):
-                if val == "" or val == "$0":
-                    return 'background-color: #f8fafc; color: #cbd5e1;'
-                return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
+            def style_pivot_cells(row):
+                styles = []
+                for val in row:
+                    if val == "" or val == "$0":
+                        styles.append('background-color: #f8fafc; color: #cbd5e1;')
+                    else:
+                        styles.append('background-color: #fce7f3; color: #000000; font-weight: bold;')
+                return styles
 
-            styled_matrix = formatted_pivot.map(style_pivot_cells)
+            styled_matrix = formatted_pivot.style.apply(style_pivot_cells, axis=1)
             
-            # إزالة استدعاء set_table_styles غير المتوافق، وتم الاعتماد على العرض المباشر للجدول
             matrix_height = max(300, min(len(main_pivot) * 35 + 50, 1200))
             st.dataframe(styled_matrix, use_container_width=True, height=matrix_height)
         else:
