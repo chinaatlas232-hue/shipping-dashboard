@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="🚢", layout="wide"
 )
 
-# تفعيل التصميم المخصص لدعم اللغة العربية وتناسق الألواح
+# تفعيل التصميم المخصص لدعم اللغة العربية وتعديل اتجاه الأرقام داخل البطاقات الإحصائية
 st.markdown(
     """
     <style>
@@ -18,12 +18,20 @@ st.markdown(
     .stDataFrame {
         text-align: right;
     }
+    /* تعديل اتجاه الأرقام والعلامات في الـ Metrics لتعرض بشكل سليم بالعربي */
+    [data-testid="stMetricValue"] {
+        direction: ltr;
+        unicode-bidi: plaintext;
+        text-align: right;
+    }
+    [data-testid="stMetricLabel"] {
+        text-align: right;
+    }
     div[data-testid="metric-container"] {
         background-color: #f8f9fa;
         border: 1px solid #e9ecef;
         padding: 15px;
         border-radius: 8px;
-        text-align: center;
     }
     </style>
 """,
@@ -114,7 +122,7 @@ if code_filter and "code" in filtered_df.columns:
 if "لوحة التحكم" in nav_option:
     st.markdown("## 📊 لوحة التحكم الرئيسية")
 
-    # البطاقات الإحصائية مع الترتيب السليم للأرقام والنصوص العربية
+    # البطاقات الإحصائية مع ضبط الـ CSS للأرقام الإنجليزية/العربية والرموز
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
         st.metric(label="إجمالي الطلبات", value="28")
