@@ -132,7 +132,6 @@ page = st.sidebar.radio(
     "📌 القائمة الرئيسية",
     [
         "📊 لوحة التحكم (Dashboard)",
-        "🚢 الشحنات والحاويات",
         "💰 كشف الكمارك المستحصلة",
         "📈 واجهة التقارير"
     ]
@@ -195,13 +194,6 @@ def render_dashboard_metrics(data_df):
 # 4. التنقل بين الصفحات
 if page == "📊 لوحة التحكم (Dashboard)":
     st.title("📊 لوحة التحكم الرئيسية")
-    st.markdown("---")
-    render_dashboard_metrics(filtered_df)
-    render_download_buttons(filtered_df)
-    st.dataframe(filtered_df, use_container_width=True, height=700)
-
-elif page == "🚢 الشحنات والحاويات":
-    st.title("🚢 إدارة الشحنات والحاويات")
     st.markdown("---")
     render_dashboard_metrics(filtered_df)
     render_download_buttons(filtered_df)
