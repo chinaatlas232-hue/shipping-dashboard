@@ -510,16 +510,16 @@ elif page == "📈 واجهة التقارير":
             summary_height = max(300, min(len(sponsor_summary) * 35 + 50, 1200))
             st.dataframe(sponsor_summary, use_container_width=True, height=summary_height)
     else:
-        st.warning("لا توجد بيانات متاحة لعرض التقارير حالياً.")
+        st.warning("لا توجد بيانات متاحة لعرض التقارير حالياًية.")
     
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "🛃 كمرك الشحنات والاستحصالات":
     st.title("🛃 نافذة كمرك الشحنات والاستحصالات")
     st.markdown("---")
-    st.markdown("### 📋 استعراض تفصيلي للبيانات المرتبطة بالكمرك والاستحصالات والمتبقي")
+    st.markdown("### 📋 ملخص الحاويات حسب مبالغ الجمرك والاستحصالات والمتبقي الحقيقي")
 
-    # عرض إحصائيات سريعة خاصة بهذه النافذة
+    # إحصائيات سريعة
     if not filtered_df.empty:
         total_c = filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in filtered_df.columns else 0
         total_coll = filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in filtered_df.columns else 0
@@ -536,10 +536,52 @@ elif page == "🛃 كمرك الشحنات والاستحصالات":
     st.markdown("---")
     render_download_buttons(filtered_df)
 
-    # اختيار الأعمدة الخاصة بالكمرك والاستحصالات لعرضها بشكل مركز إن وجدت
-    target_columns = [c for c in ["No", "code", "الكفيل", "رقم الحاوية", "رقم الحاويات", "مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"] if c in filtered_df.columns]
-    display_subset = filtered_df[target_columns] if target_columns else filtered_df
+    # إنشاء جدول مجمع (Group By) حسب رقم الحاوية تماماً مثل الشكل المطلوب (3 أعمدة أساسية بالإضافة لرقم الحاوية)
+    container_field = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
+    
+    if container_field and not filtered_df.empty:
+        agg_df = filtered_df.groupby(container_field, dropna=False).agg(
+            {
+                "مبلغ الجمرك": "sum",
+                "قيمة الاستحصالات": "sum",
+                "متبقي حقيقي": "sum"
+            }
+        ).reset_index()
 
-    customs_table_height = max(300, min(len(display_subset) * 35 + 50, 1200))
-    st.dataframe(display_subset, use_container_width=True, height=customs_table_height)
+        # إضافة صف الإجمالي الكلي (Grand Total)
+        grand_totals = pd.DataFrame({
+            container_field: ["Grand Total"],
+            "مبلغ الجمرك": [agg_df["مبلغ الجمرك"].sum()],
+            "قيمة الاستحصالات": [agg_df["قيمة الاستحصالات"].sum()],
+            "متبقي حقيقي": [agg_df["متبقي حقيقي"].sum()]
+        })
+        
+        agg_df = pd.concat([agg_df, grand_totals], ignore_index=True)
+
+        # إعادة تسمية الأعمدة لتطابق التنسيق المطلوب تماماً
+        agg_df = agg_df.rename(columns={
+            container_field: "رقم الحاوية",
+            "مبلغ الجمرك": "Sum of مبلغ الجمرك",
+            "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
+            "متبقي حقيقي": "Sum of متبقي حقيقي"
+        })
+
+        # تنسيق الأرقام لتظهر بصيغة العملة ($)
+        formatted_agg = agg_df.copy()
+        for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
+            formatted_agg[col] = formatted_agg[col].apply(lambda x: f"${x:,.0f}")
+
+        # تطبيق تنسيق مميز للصف الأخير (Grand Total)
+        def style_summary_rows(row):
+            if row["رقم الحاوية"] == "Grand Total":
+                return ['background-color: #f1f5f9; color: #000000; font-weight: bold;'] * len(row)
+            return ['background-color: #ffffff; color: #000000; font-weight: bold;'] * len(row)
+
+        styled_summary = formatted_agg.style.apply(style_summary_rows, axis=1)
+
+        summary_height = max(300, min(len(formatted_agg) * 35 + 50, 1200))
+        st.dataframe(styled_summary, use_container_width=True, height=summary_height)
+    else:
+        st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
+
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
