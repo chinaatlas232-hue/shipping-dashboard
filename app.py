@@ -460,7 +460,7 @@ elif page == "📈 واجهة التقارير":
             grand_total_row = pivot_table_df.sum(axis=0)
             pivot_table_df.loc["Grand Total"] = grand_total_row
 
-            # تم تعديل applymap إلى map هنا لحل المشكلة نهائياً
+            # استخدام map بدلاً من applymap لضمان التوافق مع الإصدارات الحديثة
             formatted_pivot = pivot_table_df.map(lambda val: f"${val:,.0f}" if val > 0 else "")
             
             def style_pivot_cells(val):
