@@ -153,28 +153,35 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 
-# --- شريط البحث المفلتر الذكي حصرياً لعمود الكود ---
+# --- شريط البحث الدقيق والذكي حصرياً للكود ---
 def apply_text_search(data_frame):
   search_term = st.text_input(
-      "🔍 اكتب الكود للفلترة الفورية:",
+      "🔍 اكتب الكود للفلترة الدقيقة:",
       value="",
-      placeholder="...اكتب الكود هنا (مثال: B4344 أو 4344)",
+      placeholder="...اكتب الكود هنا (مثال: B7)",
       key="smart_search_input",
   ).strip()
 
   if search_term and "code" in data_frame.columns:
     clean_search = search_term.upper().replace(" ", "")
 
-    # مطابقة الحروف والأرقام حصرياً مع عمود الكود code
-    mask_code = (
+    # 1. أولاً نبحث عن المطابقة التامة للكود (مثل B7 فقط)
+    exact_mask = (
+        data_frame["code"].astype(str).str.upper().str.strip() == clean_search
+    )
+
+    if exact_mask.any():
+      return data_frame[exact_mask]
+
+    # 2. إذا لم يجد مطابقة تامة، يفلتر الصفوف التي يبدأ كودها بهذا النص
+    starts_with_mask = (
         data_frame["code"]
         .astype(str)
         .str.upper()
-        .str.replace(" ", "")
-        .str.contains(clean_search, na=False)
+        .str.strip()
+        .str.startswith(clean_search)
     )
-
-    return data_frame[mask_code]
+    return data_frame[starts_with_mask]
 
   return data_frame
 
