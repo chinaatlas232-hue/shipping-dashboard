@@ -656,7 +656,7 @@ elif page == "📈 الرسوم البيانية":
 
         col_chart1, col_chart2 = st.columns(2)
         with col_chart1:
-            if container_col and " الوزن" in filtered_df.columns or "الوزن" in filtered_df.columns:
+            if container_col and "الوزن" in filtered_df.columns:
                 st.subheader("⚖️ إجمالي الوزن حسب الحاوية (kg)")
                 weight_col = "الوزن" if "الوزن" in filtered_df.columns else " الوزن"
                 weight_data = filtered_df.groupby(container_col)[weight_col].sum()
@@ -676,7 +676,7 @@ elif page == "📈 الرسوم البيانية":
             st.bar_chart(sponsor_chart_data)
 
     # ---------------------------------------------------------
-    # الجدول الإضافي أسفل الرسوم البيانية (اسم الكود، عدد الأسماء المتأخرة، أرقام الشحنات، المبالغ المستحقة)
+    # الشيت الجديد أسفل الرسوم البيانية
     # ---------------------------------------------------------
     st.markdown("---")
     st.subheader("📋 ملخص الأكواد والشحنات المتأخرة والمبالغ المستحقة")
@@ -689,11 +689,10 @@ elif page == "📈 الرسوم البيانية":
     if code_key and not filtered_df.empty:
         summary_rows = []
         
-        # التجميع حسب الكود
         for code_val, group in filtered_df.groupby(code_key, dropna=False):
             c_str = str(code_val).strip() if pd.notna(code_val) else "غير محدد"
             
-            # فلترة الشحنات المتأخرة (مثلاً التي عدد الأيام فيها أكبر من 0، أو حسب رغبتك في تعريف التأخير)
+            # الشحنات المتأخرة (مثلاً التي عدد الأيام فيها أكبر من 0)
             if days_key and days_key in group.columns:
                 delayed_group = group[group[days_key] > 0]
             else:
@@ -701,13 +700,13 @@ elif page == "📈 الرسوم البيانية":
 
             delayed_count = len(delayed_group)
             
-            # استخراج أرقام الشحنات كقائمة أو نص مفصول بفواصل
+            # أرقام الشحنات
             if shipment_key and shipment_key in group.columns:
                 shipment_numbers = ", ".join(group[shipment_key].dropna().astype(str).unique().tolist())
             else:
                 shipment_numbers = "-"
 
-            # حساب المبالغ المستحقة (المتبقي الحقيقي)
+            # المبالغ المستحقة (المتبقي الحقيقي)
             if remaining_key and remaining_key in group.columns:
                 total_due = group[remaining_key].sum()
             else:
@@ -723,7 +722,6 @@ elif page == "📈 الرسوم البيانية":
         summary_table_df = pd.DataFrame(summary_rows)
         
         if not summary_table_df.empty:
-            # إضافة صف الإجمالي العام (Grand Total)
             total_delayed_sum = summary_table_df["عدد الشحنات المتأخرة"].sum()
             
             if remaining_key and remaining_key in filtered_df.columns:
@@ -747,7 +745,6 @@ elif page == "📈 الرسوم البيانية":
 
             styled_summary_table = summary_table_df.style.apply(style_bottom_table, axis=1)
             
-            # أزرار تحميل خاصة بهذا الجدول أو عرضه مباشرة
             render_download_buttons(summary_table_df)
             
             table_h = max(300, min(len(summary_table_df) * 35 + 50, 1200))
