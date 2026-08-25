@@ -254,9 +254,9 @@ def style_container_column(df_to_style):
                     is_arrived = True
             
             if is_not_arrived:
-                styles[col_idx] = 'background-color: #fef08a; color: #713f12; font-weight: bold;'
+                styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold;'
             elif is_arrived:
-                styles[col_idx] = 'background-color: #bbf7d0; color: #14532d; font-weight: bold;'
+                styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
                 
         return styles
 
@@ -396,11 +396,11 @@ elif page == "💰 كشف اجور الكمارك":
             is_not_arr = is_not_arrived_list[idx]
 
             if is_not_arr:
-                return ['background-color: #fee2e2; color: #991b1b; font-weight: bold;'] * len(row)
+                return ['background-color: #fee2e2; color: #000000; font-weight: bold;'] * len(row)
             elif label.startswith("➖") or label == "Grand Total":
-                return ['background-color: #f1f5f9; color: #0f172a; font-weight: bold;'] * len(row)
+                return ['background-color: #f1f5f9; color: #000000; font-weight: bold;'] * len(row)
             
-            return ['color: #1e293b; background-color: #ffffff;'] * len(row)
+            return ['color: #000000; font-weight: bold; background-color: #ffffff;'] * len(row)
 
         styled_pivot = display_df.style.apply(apply_row_styles, axis=1)
         render_download_buttons(display_df)
@@ -444,12 +444,12 @@ elif page == "📈 واجهة التقارير":
             
             st.markdown(f"""
                 <div style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px;">👤 الكفيل: {sponsor_name}</h3>
-                    <div style="display: flex; justify-content: space-between; font-size: 15px; text-align: center;">
-                        <div>📦 الطلبات: <b>{s_orders:,}</b></div>
-                        <div>💰 الجمرك: <b>${s_customs:,.2f}</b></div>
-                        <div>✅ المسدد: <b>${s_collected:,.2f}</b></div>
-                        <div>⏳ المتبقي: <b>${s_remaining:,.2f}</b></div>
+                    <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; color: #ffffff !important;">👤 الكفيل: {sponsor_name}</h3>
+                    <div style="display: flex; justify-content: space-between; font-size: 15px; text-align: center; color: #ffffff !important;">
+                        <div>📦 الطلبات: <b style="color: #ffffff;">{s_orders:,}</b></div>
+                        <div>💰 الجمرك: <b style="color: #ffffff;">${s_customs:,.2f}</b></div>
+                        <div>✅ المسدد: <b style="color: #ffffff;">${s_collected:,.2f}</b></div>
+                        <div>⏳ المتبقي: <b style="color: #ffffff;">${s_remaining:,.2f}</b></div>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
@@ -479,7 +479,7 @@ elif page == "📈 واجهة التقارير":
             def style_pivot_cells(val):
                 if val == "" or val == "$0":
                     return 'background-color: #f1f5f9; color: #f1f5f9;' # خلفية رصاصي فاتح للخلايا الفارغة
-                return 'background-color: #fce7f3; color: #9d174d; font-weight: bold;' # خلفية وردي فاتح ونص وردي داكن للمبالغ
+                return 'background-color: #fce7f3; color: #000000; font-weight: bold;' # خلفية وردي فاتح ونصوص سوداء عريضة للمبالغ
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
             
