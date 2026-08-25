@@ -300,6 +300,37 @@ def style_container_column(df_to_style):
 if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
     st.markdown("---")
+    
+    # حساب المؤشرات للمربعات في لوحة التحكم
+    total_orders = len(filtered_df)
+    total_weight = filtered_df["الوزن"].sum() if "الوزن" in filtered_df.columns else 0
+    total_ctns = filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in filtered_df.columns else 0
+    total_volume = filtered_df["حجم"].sum() if "حجم" in filtered_df.columns else 0
+    
+    office_paid_col = next((c for c in ["Office Paid", "المكتب دفع"] if c in filtered_df.columns), None)
+    client_paid_col = next((c for c in ["Client Paid", "الزبون دفع"] if c in filtered_df.columns), None)
+    
+    total_office_paid = filtered_df[office_paid_col].sum() if office_paid_col else 0
+    total_client_paid = filtered_df[client_paid_col].sum() if client_paid_col else 0
+
+    # عرض 6 مربعات مؤشرات في لوحة التحكم
+    row1_c1, row1_c2, row1_c3 = st.columns(3)
+    with row1_c1:
+        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات / الطرود</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
+    with row1_c2:
+        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
+    with row1_c3:
+        st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.0f}</div></div>', unsafe_allow_html=True)
+
+    row2_c1, row2_c2, row2_c3 = st.columns(3)
+    with row2_c1:
+        st.markdown(f'<div class="metric-card" style="background-color: #7c2d12;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.3f}</div></div>', unsafe_allow_html=True)
+    with row2_c2:
+        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">💰 مبالغ دفعت من المكتب (Office Paid)</div><div class="metric-value">${total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
+    with row2_c3:
+        st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون (Client Paid)</div><div class="metric-value">${total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
+
+    st.markdown("---")
     render_download_buttons(filtered_df)
     
     styled_filtered_df = style_container_column(filtered_df)
@@ -575,7 +606,6 @@ elif page == "collections":
         for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
             formatted_agg[col] = formatted_agg[col].apply(lambda x: f"${x:,.0f}" if x > 0 else "")
 
-        # دالة تلوين خلية رقم الحاوية فقط بناءً على حالة الكفيل في الشحنات الأصلية
         def style_summary_cells(row):
             styles = [''] * len(row)
             container_val = str(row["رقم الحاوية"])
