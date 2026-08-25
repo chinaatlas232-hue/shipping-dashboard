@@ -225,7 +225,6 @@ def style_container_column(df_to_style):
         if target_container_col in df_to_style.columns:
             col_idx = df_to_style.columns.get_loc(target_container_col)
             
-            # التحقق من حالة الكفيل
             is_arrived = False
             is_not_arrived = False
             
@@ -237,9 +236,9 @@ def style_container_column(df_to_style):
                     is_arrived = True
             
             if is_not_arrived:
-                styles[col_idx] = 'background-color: #fef08a; color: #713f12; font-weight: bold;'  # أصفر
+                styles[col_idx] = 'background-color: #fef08a; color: #713f12; font-weight: bold;'
             elif is_arrived:
-                styles[col_idx] = 'background-color: #bbf7d0; color: #14532d; font-weight: bold;'  # أخضر
+                styles[col_idx] = 'background-color: #bbf7d0; color: #14532d; font-weight: bold;'
                 
         return styles
 
@@ -395,12 +394,18 @@ elif page == "📈 واجهة التقارير":
     st.markdown("---")
     
     if "الكفيل" in filtered_df.columns and not filtered_df.empty:
-        # تجميع البيانات لكل كفيل استناداً للجدول
+        # التحقق الآمن من أسماء الأعمدة لتجنب أخطاء KeyError
+        col_customs = "مبلغ الجمرك" if "مبلغ الجمرك" in filtered_df.columns else filtered_df.columns[0]
+        col_collected = "قيمة الاستحصالات" if "قيمة الاستحصالات" in filtered_df.columns else filtered_df.columns[0]
+        col_remaining = "متبقي حقيقي" if "متبقي حقيقي" in filtered_df.columns else filtered_df.columns[0]
+        col_count = "No" if "No" in filtered_df.columns else filtered_df.columns[0]
+
+        # تجميع البيانات لكل كفيل استناداً للأسماء المتحقق منها
         sponsor_summary = filtered_df.groupby("الكفيل").agg(
-            total_customs=("مبلغ الجمرك", "sum"),
-            total_collected=("قيمة الاستحصالات", "sum"),
-            total_remaining=("متبقي حقيقي", "sum"),
-            total_orders=("No", "count")
+            total_customs=(col_customs, "sum"),
+            total_collected=(col_collected, "sum"),
+            total_remaining=(col_remaining, "sum"),
+            total_orders=(col_count, "count")
         ).reset_index()
 
         st.markdown("### 📋 ملخص المبالغ لكل كفيل")
@@ -413,7 +418,6 @@ elif page == "📈 واجهة التقارير":
             s_remaining = row["total_remaining"]
             s_orders = row["total_orders"]
             
-            # اختيار لون مميز للمربع بناءً على حالة الكفيل
             card_bg = "#1e3a8a" # أزرق افتراضي
             if "لم تصل بعد" in str(sponsor_name):
                 card_bg = "#b45309" # برتقالي/أصفر داكن للحالات التي لم تصل
