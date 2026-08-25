@@ -460,7 +460,7 @@ elif page == "📈 واجهة التقارير":
             main_pivot["Grand Total"] = main_pivot.sum(axis=1)
             main_pivot.loc["Grand Total"] = main_pivot.sum(axis=0)
 
-            # استخدام .map بدلاً من applymap للتوافق مع الإصدارات الحديثة من مكتبة pandas
+            # استخدام .map للتنسيق بدلاً من applymap
             formatted_pivot = main_pivot.map(lambda val: f"${val:,.0f}" if val > 0 else "")
             
             def style_pivot_cells(val):
@@ -470,12 +470,7 @@ elif page == "📈 واجهة التقارير":
 
             styled_matrix = formatted_pivot.map(style_pivot_cells)
             
-            styled_matrix = styled_matrix.set_table_styles([
-                {"selector": "th.row_heading", "props": [("color", "#000000"), ("font-weight", "bold"), ("background-color", "#f1f5f9")]},
-                {"selector": "th.col_heading", "props": [("color", "#000000"), ("font-weight", "bold"), ("background-color", "#f1f5f9")]},
-                {"selector": "td", "props": [("color", "#000000"), ("text-align", "center")]}
-            ])
-            
+            # إزالة استدعاء set_table_styles غير المتوافق، وتم الاعتماد على العرض المباشر للجدول
             matrix_height = max(300, min(len(main_pivot) * 35 + 50, 1200))
             st.dataframe(styled_matrix, use_container_width=True, height=matrix_height)
         else:
