@@ -83,24 +83,26 @@ def load_data(uploaded_file):
 
   if df is None:
     df = pd.DataFrame({
-        "code": ["BS79", "BS79"],
+        "code": ["B12-102", "B12-90"],
         "الكفيل": ["مرتضى", "لم تصل بعد"],
-        "Shipping mark": ["BS79-C23", "BS79-C03"],
-        "رقم دخول المخزن": ["RS2607223184", "RS2607202745"],
-        "المكتب دفع": [0, 0],
-        "الزبون دفع": [100, 690],
-        "المجموع": [3465, 5600],
-        "عدد الكارتون": [1, 2],
-        "الوزن": [40, 98],
+        "Shipping mark": ["B12-102", "B12-90"],
+        "رقم دخول المخزن": ["RS26040898317", "RS26040898304"],
+        "نوع البضاعة": ["Ladys Dress", "Ladys Dress"],
+        "عدد الكارتون": [3, 1],
+        "الوزن": [128.00, 20.00],
         "حجم": [0.13, 0.53],
-        "رقم الحاوية": ["RQ6029", "RQ6034"],
+        "رقم الحاوية": ["RQ6025", "RQ6025"],
+        "Staff": ["Joyce", "Joyce"],
+        "المجموع": [12500.00, 4400.00],
+        "الزبون دفع": [100.00, 690.00],
+        "المكتب دفع": [12400.00, 3710.00],
         "مبلغ الجمرك": [3768.30, 94.80],
         "قيمة الاستحصالات": [0.0, 0.0],
     })
 
   df.columns = df.columns.astype(str).str.strip()
 
-  # حذف عمود No. لتجنب وجود عمودين للأرقام المكررة
+  # حذف عمود No المتكرر فقط وتأكيد إبقاء عمود code
   if "No." in df.columns:
     df = df.drop(columns=["No."])
   if "No" in df.columns:
@@ -262,47 +264,86 @@ def render_dashboard_metrics(data_df):
     st.markdown(
         f'<div class="metric-card" style="background-color: #16a34a;"><div'
         ' class="metric-title">دفع الشركة</div><div'
-        f' class="metric-value">${office_paid:,.2f}</div></div>',
+        f' class="metric-value">¥{office_paid:,.2f}</div></div>',
         unsafe_allow_html=True,
     )
   with c6:
     st.markdown(
         f'<div class="metric-card" style="background-color: #9333ea;"><div'
         ' class="metric-title">دفع الزبون</div><div'
-        f' class="metric-value">${client_paid:,.2f}</div></div>',
+        f' class="metric-value">¥{client_paid:,.2f}</div></div>',
         unsafe_allow_html=True,
     )
 
 
-# دالة عرض الجدول بتنسيق الأرقام الصحيحة والأرقام العشرية بشكل دقيق
+# دالة موحدة لعرض الجدول المنسق وتطبيق رمز ¥ وإظهار الكود
 def render_formatted_dataframe(df_to_render, height=700):
-  column_config = {}
-  for col in df_to_render.columns:
-    if pd.api.types.is_numeric_dtype(df_to_render[col]):
-      # إذا كان العمود يمثل أعداداً صحيحة كـ عدد الكارتون يظهر بدون أصفار عشريّة
-      if col in ["عدد الكارتون"]:
-        column_config[col] = st.column_config.NumberColumn(format="%d")
-      else:
-        column_config[col] = st.column_config.NumberColumn(format="%.2f")
+  display_df = df_to_render.copy()
 
-  # تطبيق تلوين الأعمدة المحددة
+  # ضمان وجود الكود في أول الأعمدة في حال وجوده
+  if "code" in display_df.columns:
+    cols = ["code"] + [c for c in display_df.columns if c != "code"]
+    display_df = display_df[cols]
+
+  # تحويل القيم المالية إلى نص يحوي علامة ¥ مباشرة لمنع مشاكل التحديث
+  money_cols = [
+      "المجموع",
+      "الزبون دفع",
+      "المكتب دفع",
+      "Client Paid",
+      "Office Paid",
+      "مبلغ الجمرك",
+      "قيمة الاستحصالات",
+      "متبقي حقيقي",
+  ]
+  formatted_df = display_df.copy()
+
+  for col in money_cols:
+    if col in formatted_df.columns:
+      formatted_df[col] = formatted_df[col].apply(lambda x: f"¥{x:,.2f}")
+
+  if "عدد الكارتون" in formatted_df.columns:
+    formatted_df["عدد الكارتون"] = formatted_df["عدد الكارتون"].apply(
+        lambda x: f"{int(x)}" if pd.notna(x) else "0"
+    )
+
+  # تطبيق الألوان والتنسيق الصيني
   def style_columns(data):
     styles = pd.DataFrame("", index=data.index, columns=data.columns)
+
+    # اللون الصيني لأعمدة المبالغ (وردي فاتح وكتابة حمراء غامقة)
+    chinese_style = (
+        "background-color: #ffe4e6 !important; color: #9f1239 !important;"
+        " font-weight: bold;"
+    )
+    for target_col in [
+        "المجموع",
+        "الزبون دفع",
+        "المكتب دفع",
+        "Client Paid",
+        "Office Paid",
+    ]:
+      if target_col in data.columns:
+        styles[target_col] = chinese_style
+
+    # تمييز الكود باللون الأصفر
     if "code" in data.columns:
       styles["code"] = (
           "background-color: #fef9c3 !important; color: #854d0e !important;"
           " font-weight: bold;"
       )
+
+    # تمييز الحجم باللون الأحمر الخفيف
     if "حجم" in data.columns:
       styles["حجم"] = (
           "background-color: #fef2f2 !important; color: #dc2626 !important;"
           " font-weight: bold;"
       )
+
     return styles
 
   st.dataframe(
-      df_to_render.style.apply(style_columns, axis=None),
-      column_config=column_config,
+      formatted_df.style.apply(style_columns, axis=None),
       use_container_width=True,
       height=height,
   )
@@ -394,28 +435,28 @@ elif page == "💰 كشف الكمارك المستحصلة":
     st.markdown(
         f'<div class="metric-card" style="background-color: #1e3a8a;"><div'
         ' class="metric-title">أجور الجمرك الكلي</div><div'
-        f' class="metric-value">${total_customs:,.2f}</div></div>',
+        f' class="metric-value">¥{total_customs:,.2f}</div></div>',
         unsafe_allow_html=True,
     )
   with m2:
     st.markdown(
         f'<div class="metric-card" style="background-color: #0f766e;"><div'
         f' class="metric-title">متبقي ({sponsor_name})</div><div'
-        f' class="metric-value">${sponsor_remaining:,.2f}</div></div>',
+        f' class="metric-value">¥{sponsor_remaining:,.2f}</div></div>',
         unsafe_allow_html=True,
     )
   with m3:
     st.markdown(
         f'<div class="metric-card" style="background-color: #16a34a;"><div'
         ' class="metric-title">مسدد ({sponsor_name})</div><div'
-        f' class="metric-value">${sponsor_collected:,.2f}</div></div>',
+        f' class="metric-value">¥{sponsor_collected:,.2f}</div></div>',
         unsafe_allow_html=True,
     )
   with m4:
     st.markdown(
         f'<div class="metric-card" style="background-color: #dc2626;"><div'
         ' class="metric-title">متبقي (لم تصل بعد)</div><div'
-        f' class="metric-value">${not_arrived_remaining:,.2f}</div></div>',
+        f' class="metric-value">¥{not_arrived_remaining:,.2f}</div></div>',
         unsafe_allow_html=True,
     )
 
@@ -484,9 +525,9 @@ elif page == "💰 كشف الكمارك المستحصلة":
 
         tree_rows.append({
             "Row Labels": label_text,
-            "Sum of مبلغ الجمرك": f"${sum_customs:,.2f}",
-            "Sum of قيمة الاستحصالات": f"${sum_collections:,.2f}",
-            "Sum of متبقي حقيقي": f"${sum_remaining:,.2f}",
+            "Sum of مبلغ الجمرك": f"¥{sum_customs:,.2f}",
+            "Sum of قيمة الاستحصالات": f"¥{sum_collections:,.2f}",
+            "Sum of متبقي حقيقي": f"¥{sum_remaining:,.2f}",
             "is_not_arrived": is_not_arrived,
         })
 
@@ -512,17 +553,17 @@ elif page == "💰 كشف الكمارك المستحصلة":
 
             tree_rows.append({
                 "Row Labels": f"    ↳ {container}",
-                "Sum of مبلغ الجمرك": f"${c_customs:,.2f}",
-                "Sum of قيمة الاستحصالات": f"${c_collections:,.2f}",
-                "Sum of متبقي حقيقي": f"${c_remaining:,.2f}",
+                "Sum of مبلغ الجمرك": f"¥{c_customs:,.2f}",
+                "Sum of قيمة الاستحصالات": f"¥{c_collections:,.2f}",
+                "Sum of متبقي حقيقي": f"¥{c_remaining:,.2f}",
                 "is_not_arrived": is_not_arrived,
             })
 
     tree_rows.append({
         "Row Labels": "Grand Total",
-        "Sum of مبلغ الجمرك": f"${grand_customs:,.2f}",
-        "Sum of قيمة الاستحصالات": f"${grand_collections:,.2f}",
-        "Sum of متبقي حقيقي": f"${grand_remaining:,.2f}",
+        "Sum of مبلغ الجمرك": f"¥{grand_customs:,.2f}",
+        "Sum of قيمة الاستحصالات": f"¥{grand_collections:,.2f}",
+        "Sum of متبقي حقيقي": f"¥{grand_remaining:,.2f}",
         "is_not_arrived": False,
     })
 
