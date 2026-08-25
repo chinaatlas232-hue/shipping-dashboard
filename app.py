@@ -26,6 +26,12 @@ st.markdown(
         font-weight: bold !important;
         color: #1f2937 !important;
     }
+
+    /* تعديل لون نص رأس الجدول إلى اللون الأسود */
+    [data-testid="stDataFrame"] table th {
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -306,7 +312,6 @@ elif page == "💰 كشف الكمارك المستحصلة":
       else 0.0
   )
 
-  # --- استخراج الكفيل الرئيسي وحساب المتبقي + المسدد من الزبون ---
   sponsor_name = "الكفيل"
   sponsor_remaining = 0.0
   sponsor_collected = 0.0
@@ -333,7 +338,6 @@ elif page == "💰 كشف الكمارك المستحصلة":
         .str.contains("لم تصل بعد", na=False)
     ]["متبقي حقيقي"].sum()
 
-  # 4 مربعات إحصائية بدلاً من 3
   m1, m2, m3, m4 = st.columns(4)
   with m1:
     st.markdown(
@@ -477,6 +481,7 @@ elif page == "💰 كشف الكمارك المستحصلة":
     is_not_arrived_list = pivot_display_df["is_not_arrived"].tolist()
     display_df = pivot_display_df.drop(columns=["is_not_arrived"])
 
+    # دالة تطبيق الألوان والتنسيق على صفوف الجدول
     def apply_row_styles(row):
       idx = row.name
       label = str(row["Row Labels"])
@@ -486,7 +491,20 @@ elif page == "💰 كشف الكمارك المستحصلة":
         return [
             "background-color: #fee2e2; color: #991b1b; font-weight: bold;"
         ] * len(row)
-      elif label.startswith("➖") or label == "Grand Total":
+
+      # 1. تمييز أسطر الحاويات باللون الأحمر
+      elif "↳" in label:
+        return [
+            "background-color: #fef2f2; color: #dc2626; font-weight: bold;"
+        ] * len(row)
+
+      # 2. تمييز أسطر الكود/الكفيل باللون الأصفر
+      elif label.startswith("➖"):
+        return [
+            "background-color: #fef9c3; color: #854d0e; font-weight: bold;"
+        ] * len(row)
+
+      elif label == "Grand Total":
         return [
             "background-color: #f1f5f9; color: #0f172a; font-weight: bold;"
         ] * len(row)
