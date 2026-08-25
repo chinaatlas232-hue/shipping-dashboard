@@ -153,39 +153,28 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 
-# --- شريط البحث التفاعلي الذكي في كود الشحنة والجدول ---
+# --- شريط البحث المفلتر الذكي حصرياً لعمود الكود ---
 def apply_text_search(data_frame):
   search_term = st.text_input(
-      "🔍 اكتب الكود أو الاسم أو رقم الشحنة للفلترة اللحظية السريعة:",
+      "🔍 اكتب الكود للفلترة الفورية:",
       value="",
-      placeholder="...اكتب الكود هنا (مثال: B12 أو B1020)",
+      placeholder="...اكتب الكود هنا (مثال: B4344 أو 4344)",
       key="smart_search_input",
   ).strip()
 
-  if search_term:
-    # فلترة سريعة تعتمد على مطابقة أي جزء من النص في كود الشحنة أو الأعمدة الرئيسية
-    search_columns = [
-        col
-        for col in [
-            "code",
-            "Shipping mark",
-            "رقم دخول المخزن",
-            "الكفيل",
-            "نوع البضاعة",
-        ]
-        if col in data_frame.columns
-    ]
+  if search_term and "code" in data_frame.columns:
+    clean_search = search_term.upper().replace(" ", "")
 
-    if search_columns:
-      # إنشاء قناع للبحث الفوري بدون إبطاء
-      mask = pd.concat([
-          data_frame[col]
-          .astype(str)
-          .str.contains(search_term, case=False, na=False)
-          for col in search_columns
-      ], axis=1).any(axis=1)
+    # مطابقة الحروف والأرقام حصرياً مع عمود الكود code
+    mask_code = (
+        data_frame["code"]
+        .astype(str)
+        .str.upper()
+        .str.replace(" ", "")
+        .str.contains(clean_search, na=False)
+    )
 
-      return data_frame[mask]
+    return data_frame[mask_code]
 
   return data_frame
 
