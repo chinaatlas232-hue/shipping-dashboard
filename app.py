@@ -169,7 +169,8 @@ page = st.sidebar.radio(
     [
         "📊 لوحة التحكم (Dashboard)",
         "💰 كشف اجور الكمارك",
-        "📈 واجهة التقارير"
+        "📈 واجهة التقارير",
+        "🛃 كمرك الشحنات والاستحصالات"
     ]
 )
 st.sidebar.markdown("---")
@@ -474,7 +475,6 @@ elif page == "📈 واجهة التقارير":
             grand_total_row = pivot_table_df.sum(axis=0)
             pivot_table_df.loc["Grand Total"] = grand_total_row
 
-            # فحص حالة الحاويات (هل الكفيل واصل أم لم تصل بعد) وتعديل أسماء الأعمدة بإضافة كود الـ HTML لتلوين رأس الجدول بشكل مباشر
             new_columns = []
             for col in pivot_table_df.columns:
                 if col == "Grand Total":
@@ -488,7 +488,6 @@ elif page == "📈 واجهة التقارير":
                     if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
                         is_not_arrived = True
                 
-                # تلوين الخلفية لرأس العمود (أصفر إن لم تصل بعد، وأخضر إن كانت واصلة)
                 bg_color = "#fef08a" if is_not_arrived else "#bbf7d0"
                 html_col_name = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{col}</div>'
                 new_columns.append(html_col_name)
@@ -513,4 +512,34 @@ elif page == "📈 واجهة التقارير":
     else:
         st.warning("لا توجد بيانات متاحة لعرض التقارير حالياً.")
     
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
+elif page == "🛃 كمرك الشحنات والاستحصالات":
+    st.title("🛃 نافذة كمرك الشحنات والاستحصالات")
+    st.markdown("---")
+    st.markdown("### 📋 استعراض تفصيلي للبيانات المرتبطة بالكمرك والاستحصالات والمتبقي")
+
+    # عرض إحصائيات سريعة خاصة بهذه النافذة
+    if not filtered_df.empty:
+        total_c = filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in filtered_df.columns else 0
+        total_coll = filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in filtered_df.columns else 0
+        total_rem = filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in filtered_df.columns else 0
+
+        mc1, mc2, mc3 = st.columns(3)
+        with mc1:
+            st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">إجمالي مبالغ الجمرك</div><div class="metric-value">${total_c:,.2f}</div></div>', unsafe_allow_html=True)
+        with mc2:
+            st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">إجمالي الاستحصالات</div><div class="metric-value">${total_coll:,.2f}</div></div>', unsafe_allow_html=True)
+        with mc3:
+            st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">${total_rem:,.2f}</div></div>', unsafe_allow_html=True)
+
+    st.markdown("---")
+    render_download_buttons(filtered_df)
+
+    # اختيار الأعمدة الخاصة بالكمرك والاستحصالات لعرضها بشكل مركز إن وجدت
+    target_columns = [c for c in ["No", "code", "الكفيل", "رقم الحاوية", "رقم الحاويات", "مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"] if c in filtered_df.columns]
+    display_subset = filtered_df[target_columns] if target_columns else filtered_df
+
+    customs_table_height = max(300, min(len(display_subset) * 35 + 50, 1200))
+    st.dataframe(display_subset, use_container_width=True, height=customs_table_height)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
