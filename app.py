@@ -51,23 +51,21 @@ st.markdown(
         width: 100% !important;
     }
     
-    /* تثبيت لون خلفية الشريط الجانبي وتحديد لون النصوص بداخل الراديو لتكون واضحة */
+    /* تثبيت لون خلفية الشريط الجانبي */
     [data-testid="stSidebar"] {
         background-color: #07151a !important;
     }
     
-    /* إصلاح ظهور أسماء صفحات القائمة الجانبية (Radio buttons) باللون الأبيض الواضح */
-    [data-testid="stSidebar"] [data-testid="stRadio"] label,
-    [data-testid="stSidebar"] [data-testid="stRadio"] span {
+    /* إصلاح جذري لإظهار أسماء القائمة الجانبية (Radio) والنصوص والرموز باللون الأبيض الواضح */
+    [data-testid="stSidebar"] section div.stRadio label,
+    [data-testid="stSidebar"] section div.stRadio p,
+    [data-testid="stSidebar"] section div.stRadio span,
+    [data-testid="stSidebar"] .element-container label,
+    [data-testid="stSidebar"] .element-container span,
+    [data-testid="stSidebar"] .stMarkdown p,
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
         color: #ffffff !important;
         font-weight: 600 !important;
-    }
-
-    /* تثبيت ألوان النصوص الأخرى والعناصر داخل الشريط الجانبي */
-    [data-testid="stSidebar"] .element-container span, 
-    [data-testid="stSidebar"] .stMarkdown p,
-    [data-testid="stSidebar"] label {
-        color: #f1f5f9 !important;
     }
 
     /* تعديل عناصر الصناديق والمربعات داخل الشريط الجانبي لتكون الكتابة بداخلها ملائمة */
