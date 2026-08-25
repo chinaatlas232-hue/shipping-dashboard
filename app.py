@@ -8,7 +8,6 @@ st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
 )
 
-# CSS مخصص للجدول بقواعد ألوان واضحة (الرأس أحمر والأسناد بالنص الأبيض)
 st.markdown(
     """
     <style>
@@ -27,19 +26,21 @@ st.markdown(
         border: 2px solid #3b82f6 !important;
     }
 
-    /* --- تنسيق جدول HTML الثابت --- */
+    /* --- جدول HTML يشمل جميع الأعمدة ويتيح التمرير الأفقي --- */
     .custom-table-container {
         width: 100%;
         max-height: 700px;
+        overflow-x: auto; /* السماح بالتمرير الأفقي لعرض كل الأعمدة */
         overflow-y: auto;
         border: 1px solid #444;
         border-radius: 8px;
     }
     .custom-table {
         width: 100%;
+        white-space: nowrap; /* منع تكدس النصوص لإظهار كامل البيانات بشكل مريح */
         border-collapse: collapse;
         font-family: Arial, sans-serif;
-        font-size: 14px;
+        font-size: 13px;
         direction: rtl;
     }
     .custom-table th {
@@ -47,16 +48,16 @@ st.markdown(
         color: #ffffff !important;
         position: sticky;
         top: 0;
-        padding: 10px;
+        padding: 10px 14px;
         text-align: center;
         border: 1px solid #dc2626;
         z-index: 10;
     }
     .custom-table td {
-        padding: 8px;
+        padding: 8px 12px;
         text-align: center;
         border: 1px solid #333;
-        color: #ffffff !important; /* لون الكتابة داخل الجدول باللون الأبيض */
+        color: #ffffff !important;
         background-color: #1e293b;
     }
     .custom-table tr:nth-child(even) td {
@@ -84,7 +85,7 @@ def clean_numeric(series):
   )
 
 
-# 2. تحميل البيانات
+# 2. تحميل البيانات كاملة دون حجب أي عمود
 def load_data(uploaded_file):
   df = None
   if uploaded_file is not None:
@@ -108,13 +109,15 @@ def load_data(uploaded_file):
         "الكفيل": ["مرتضى", "لم تصل بعد"],
         "Shipping mark": ["BS79-C23", "BS79-C03"],
         "رقم دخول المخزن": ["RS2607223184", "RS2607202745"],
-        "المكتب دفع": [0, 0],
-        "الزبون دفع": [100, 690],
-        "المجموع": [3465, 5600],
+        "نوع البضاعة": ["Ladies dress", "Ladies dress"],
         "عدد الكارتون": [1, 2],
         "الوزن": [40, 98],
         "حجم": [0.132, 0.525],
         "رقم الحاوية": ["RQ6029", "RQ6034"],
+        "Staff": ["JOYCE", "JOYCE"],
+        "المجموع": [3465, 5600],
+        "الزبون دفع": [100, 690],
+        "المكتب دفع": [0, 0],
         "مبلغ الجمرك": [3768.30, 94.80],
         "قيمة الاستحصالات": [0.0, 0.0],
     })
@@ -301,6 +304,7 @@ def render_dashboard_metrics(data_df):
     )
 
 
+# دالة عرض جميع الأعمدة بدون استثناء
 def render_red_header_table(data_df):
   html_table = (
       '<div class="custom-table-container"><table class="custom-table"><thead><tr>'
@@ -335,6 +339,7 @@ if page in [
   render_dashboard_metrics(display_df)
   render_download_buttons(display_df)
 
+  # عرض كافة الأعمدة مع التمرير الأفقي
   render_red_header_table(display_df)
 
 elif page == "💰 كشف الكمارك المستحصلة":
