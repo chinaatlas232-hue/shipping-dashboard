@@ -21,12 +21,22 @@ st.markdown(
     .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
     .metric-value { font-size: 20px; font-weight: bold; }
     
+    /* تمديد حاوية الصفحة لعرض الشاشة بالكامل */
     .block-container { 
         padding-top: 3.5rem !important; 
         padding-bottom: 3rem !important; 
         padding-left: 1rem !important; 
         padding-right: 1rem !important; 
         max-width: 100% !important; 
+    }
+
+    /* تمديد الجداول وعناصر العرض لتغطي المساحة بنسبة 100% */
+    [data-testid="stDataFrame"], [data-testid="stTable"], table {
+        width: 100% !important;
+    }
+    
+    [data-testid="stDataFrame"] div[data-baseweb="block"] {
+        width: 100% !important;
     }
 
     h1 {
@@ -44,11 +54,6 @@ st.markdown(
         color: #1f2937 !important;
     }
 
-    [data-testid="stDataFrame"] {
-        margin-bottom: 35px !important;
-        width: 100% !important;
-    }
-    
     [data-testid="stSidebar"] {
         background-color: #07151a !important;
     }
@@ -396,7 +401,6 @@ elif page == "sponsors":
                 fill_value=0
             )
 
-            # استبعاد الصفوف التي إجماليها صفر تماماً
             pivot_table_df = pivot_table_df[(pivot_table_df > 0).any(axis=1)]
 
             pivot_table_df["Grand Total"] = pivot_table_df.sum(axis=1)
@@ -432,11 +436,10 @@ elif page == "sponsors":
                 return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
-
-            matrix_height = max(300, min(len(pivot_table_df) * 35 + 50, 1200))
             
-            # تعديل الحاوية لتغطية كامل عرض الشاشة
-            st.markdown(f'<div style="width: 100%; overflow-x: auto;">{styled_matrix.to_html(escape=False)}</div>', unsafe_allow_html=True)
+            # تعديل الجدول ليعمل بنسبة عرض 100% بدون فراغات جانبية
+            matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
+            st.markdown(f'<div style="width: 100%; overflow-x: auto;">{matrix_html}</div>', unsafe_allow_html=True)
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
 
@@ -453,8 +456,6 @@ elif page == "aging":
     if not aging_df.empty and "رقم الحاوية" in aging_df.columns and "عدد الايام" in aging_df.columns and "متبقي حقيقي" in aging_df.columns:
         
         aging_df["عدد الايام"] = pd.to_numeric(aging_df["عدد الايام"], errors="coerce").fillna(0).astype(int)
-        
-        # استبعاد الصفوف التي عدد أيامها 0 تماماً من الأساس
         aging_df = aging_df[aging_df["عدد الايام"] > 0]
         
         index_cols = [code_field, "رقم الحاوية"] if code_field else ["رقم الحاوية"]
@@ -467,7 +468,6 @@ elif page == "aging":
             fill_value=0
         )
 
-        # حذف واستبعاد الصفوف (الكود والحاوية) التي كل قيمها أصفار
         aging_pivot = aging_pivot[(aging_pivot > 0).any(axis=1)]
 
         aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
@@ -501,10 +501,9 @@ elif page == "aging":
         styled_aging_matrix = formatted_aging.style.apply(style_aging_cells, axis=1)
         render_download_buttons(aging_pivot.reset_index())
         
-        aging_height = max(300, min(len(aging_pivot) * 35 + 50, 1200))
-        
-        # تعديل الحاوية لتغطية كامل عرض الشاشة وتوسيع الجدول بالكامل
-        st.markdown(f'<div style="width: 100%; overflow-x: auto;">{styled_aging_matrix.to_html(escape=False)}</div>', unsafe_allow_html=True)
+        # تمديد الجدول بالكامل ليغطي عرض 100% للشاشة
+        aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
+        st.markdown(f'<div style="width: 100%; overflow-x: auto;">{aging_html}</div>', unsafe_allow_html=True)
     else:
         st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
 
