@@ -5,14 +5,17 @@ st.set_page_config(page_title="شركة أطلس المحيط - اعمار ال�
 
 st.title("⏳ اعمار الديون للعملاء (Aging Report)")
 
-# قراءة ملف البيانات الفعلي الموجود في المشروع
-try:
-  df = pd.read_excel("ذكاء.xlsx")
-except Exception as e:
-  st.error(f"خطأ في قراءة ملف البيانات: {e}")
-  df = pd.DataFrame()
+# إضافة زر لرفع ملف Excel مباشرة من جهازك لتجنب مشاكل المسار
+uploaded_file = st.file_uploader(
+    "الرجاء رفع ملف البيانات (ذكاء.xlsx)", type=["xlsx", "csv"]
+)
 
-if not df.empty:
+if uploaded_file is not None:
+  try:
+    df = pd.read_excel(uploaded_file)
+  except Exception as e:
+    df = pd.read_csv(uploaded_file)
+
   # تصفية الصفوف بحيث يتم إبقاء القيم التي أكبر من 0 في عمود المتبقي أو الإجمالي
   if "المتبقي" in df.columns:
     df_filtered = df[df["المتبقي"] > 0]
@@ -26,7 +29,6 @@ if not df.empty:
   )
   st.dataframe(df_filtered, use_container_width=True)
 
-  # زر تحميل البيانات المصفاة
   csv = df_filtered.to_csv(index=False).encode("utf-8")
   st.download_button(
       label="Download as CSV",
@@ -34,3 +36,5 @@ if not df.empty:
       file_name="filtered_aging_report.csv",
       mime="text/csv",
   )
+else:
+  st.info("الرجاء رفع ملف 'ذكاء.xlsx' عبر الزر أعلاه لعرض الجدول وتصفيته.")
