@@ -434,7 +434,9 @@ elif page == "sponsors":
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
 
             matrix_height = max(300, min(len(pivot_table_df) * 35 + 50, 1200))
-            st.markdown(styled_matrix.to_html(escape=False), unsafe_allow_html=True)
+            
+            # تعديل الحاوية لتغطية كامل عرض الشاشة
+            st.markdown(f'<div style="width: 100%; overflow-x: auto;">{styled_matrix.to_html(escape=False)}</div>', unsafe_allow_html=True)
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
 
@@ -500,7 +502,9 @@ elif page == "aging":
         render_download_buttons(aging_pivot.reset_index())
         
         aging_height = max(300, min(len(aging_pivot) * 35 + 50, 1200))
-        st.markdown(styled_aging_matrix.to_html(escape=False), unsafe_allow_html=True)
+        
+        # تعديل الحاوية لتغطية كامل عرض الشاشة وتوسيع الجدول بالكامل
+        st.markdown(f'<div style="width: 100%; overflow-x: auto;">{styled_aging_matrix.to_html(escape=False)}</div>', unsafe_allow_html=True)
     else:
         st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
 
