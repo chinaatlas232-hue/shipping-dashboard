@@ -67,6 +67,7 @@ st.markdown(
     [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
         color: #ffffff !important;
         font-weight: 600 !important;
+        font-size: 18px !important;
     }
 
     [data-testid="stSidebar"] [data-testid="stFileUploader"] *, 
