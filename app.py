@@ -61,7 +61,7 @@ def clean_numeric(series):
       )
       .fillna(0)
       .round(2)
-  )  # تقريب كافة القيم إلى مرتبتين عشريتين
+  )
 
 
 # 2. تحميل البيانات
@@ -83,7 +83,6 @@ def load_data(uploaded_file):
 
   if df is None:
     df = pd.DataFrame({
-        "No": [1324, 1352],
         "code": ["BS79", "BS79"],
         "الكفيل": ["مرتضى", "لم تصل بعد"],
         "Shipping mark": ["BS79-C23", "BS79-C03"],
@@ -100,6 +99,12 @@ def load_data(uploaded_file):
     })
 
   df.columns = df.columns.astype(str).str.strip()
+
+  # حذف عمود No. لتجنب وجود عمودين للأرقام المكررة
+  if "No." in df.columns:
+    df = df.drop(columns=["No."])
+  if "No" in df.columns:
+    df = df.drop(columns=["No"])
 
   if "الزبون دفع" in df.columns and "Client Paid" not in df.columns:
     df["Client Paid"] = df["الزبون دفع"]
@@ -269,12 +274,16 @@ def render_dashboard_metrics(data_df):
     )
 
 
-# دالة عرض الجدول بتنسيق رقمين عشريين عالمياً
+# دالة عرض الجدول بتنسيق الأرقام الصحيحة والأرقام العشرية بشكل دقيق
 def render_formatted_dataframe(df_to_render, height=700):
   column_config = {}
   for col in df_to_render.columns:
     if pd.api.types.is_numeric_dtype(df_to_render[col]):
-      column_config[col] = st.column_config.NumberColumn(format="%.2f")
+      # إذا كان العمود يمثل أعداداً صحيحة كـ عدد الكارتون يظهر بدون أصفار عشريّة
+      if col in ["عدد الكارتون"]:
+        column_config[col] = st.column_config.NumberColumn(format="%d")
+      else:
+        column_config[col] = st.column_config.NumberColumn(format="%.2f")
 
   # تطبيق تلوين الأعمدة المحددة
   def style_columns(data):
