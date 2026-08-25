@@ -30,6 +30,15 @@ st.markdown(
         max-width: 100% !important; 
     }
 
+    /* تخصيص هيدر الصفحة (العنوان الرئيسي) بخلفية رصاصي فاتح وهوامش مناسبة */
+    h1 {
+        background-color: #e2e8f0 !important;
+        color: #0f172a !important;
+        padding: 15px 20px !important;
+        border-radius: 8px !important;
+        margin-bottom: 20px !important;
+    }
+
     [data-testid="stTextInput"] label {
         font-size: 18px !important;
         font-weight: bold !important;
