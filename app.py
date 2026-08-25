@@ -21,10 +21,9 @@ st.markdown(
     .metric-value { font-size: 20px; font-weight: bold; }
     .block-container { padding-top: 1.5rem !important; padding-bottom: 2rem; max-width: 99% !important; }
 
-    [data-testid="stSelectbox"] label {
-        font-size: 18px !important;
-        font-weight: bold !important;
-        color: #1f2937 !important;
+    div[data-baseweb="input"] {
+        border-radius: 8px !important;
+        border: 2px solid #3b82f6 !important;
     }
     </style>
 """,
@@ -154,29 +153,39 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 
-# --- دالة استخراج الأكواد الذكية الفورية ---
-@st.cache_data
-def get_unique_codes(dataframe):
-  if "code" in dataframe.columns:
-    return ["الكل"] + sorted(
-        dataframe["code"].dropna().astype(str).unique().tolist()
-    )
-  return ["الكل"]
-
-
-# --- شريط البحث الذكي المفلتر ---
+# --- شريط البحث التفاعلي الذكي في كود الشحنة والجدول ---
 def apply_text_search(data_frame):
-  code_options = get_unique_codes(data_frame)
+  search_term = st.text_input(
+      "🔍 اكتب الكود أو الاسم أو رقم الشحنة للفلترة اللحظية السريعة:",
+      value="",
+      placeholder="...اكتب الكود هنا (مثال: B12 أو B1020)",
+      key="smart_search_input",
+  ).strip()
 
-  selected_code = st.selectbox(
-      "🔍 بحث ذكي ومفلتر (اكتب الكود للفلترة الفورية):",
-      options=code_options,
-      index=0,
-      help="اكتب جزءاً من الكود لتصفيته مباشرة",
-  )
+  if search_term:
+    # فلترة سريعة تعتمد على مطابقة أي جزء من النص في كود الشحنة أو الأعمدة الرئيسية
+    search_columns = [
+        col
+        for col in [
+            "code",
+            "Shipping mark",
+            "رقم دخول المخزن",
+            "الكفيل",
+            "نوع البضاعة",
+        ]
+        if col in data_frame.columns
+    ]
 
-  if selected_code != "الكل" and "code" in data_frame.columns:
-    return data_frame[data_frame["code"].astype(str) == selected_code]
+    if search_columns:
+      # إنشاء قناع للبحث الفوري بدون إبطاء
+      mask = pd.concat([
+          data_frame[col]
+          .astype(str)
+          .str.contains(search_term, case=False, na=False)
+          for col in search_columns
+      ], axis=1).any(axis=1)
+
+      return data_frame[mask]
 
   return data_frame
 
