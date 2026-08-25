@@ -26,6 +26,21 @@ st.markdown(
         font-weight: bold !important;
         color: #1f2937 !important;
     }
+    
+    /* تصغير أبعاد الجدول ليتناسب مع النص */
+    div[data-testid="stDataFrame"] div[role="columnheader"],
+    div[data-testid="stDataFrame"] div[role="gridcell"] {
+        padding: 2px 6px !important;
+        font-size: 13px !important;
+        line-height: 1.2 !important;
+        min-height: 28px !important;
+    }
+    
+    /* جعل رأس الجدول باللون الأسود */
+    div[data-testid="stDataFrame"] div[role="columnheader"] {
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -45,7 +60,8 @@ def clean_numeric(series):
           errors="coerce",
       )
       .fillna(0)
-  )
+      .round(2)
+  )  # تقريب كافة القيم إلى مرتبتين عشريتين
 
 
 # 2. تحميل البيانات
@@ -77,7 +93,7 @@ def load_data(uploaded_file):
         "المجموع": [3465, 5600],
         "عدد الكارتون": [1, 2],
         "الوزن": [40, 98],
-        "حجم": [0.132, 0.525],
+        "حجم": [0.13, 0.53],
         "رقم الحاوية": ["RQ6029", "RQ6034"],
         "مبلغ الجمرك": [3768.30, 94.80],
         "قيمة الاستحصالات": [0.0, 0.0],
@@ -108,7 +124,9 @@ def load_data(uploaded_file):
       df[col] = clean_numeric(df[col])
 
   if "مبلغ الجمرك" in df.columns and "قيمة الاستحصالات" in df.columns:
-    df["متبقي حقيقي"] = df["مبلغ الجمرك"] - df["قيمة الاستحصالات"]
+    df["متبقي حقيقي"] = (
+        df["مبلغ الجمرك"] - df["قيمة الاستحصالات"]
+    ).round(2)
 
   return df
 
@@ -232,7 +250,7 @@ def render_dashboard_metrics(data_df):
     st.markdown(
         f'<div class="metric-card" style="background-color: #d97706;"><div'
         ' class="metric-title">إجمالي الحجم</div><div'
-        f' class="metric-value">{total_volume:,.3f} m³</div></div>',
+        f' class="metric-value">{total_volume:,.2f} m³</div></div>',
         unsafe_allow_html=True,
     )
   with c5:
@@ -251,47 +269,22 @@ def render_dashboard_metrics(data_df):
     )
 
 
-# 4. التنقل بين الصفحات
-if page == "📊 لوحة التحكم (Dashboard)":
+# دالة عرض الجدول بتنسيق رقمين عشريين عالمياً
+def render_formatted_dataframe(df_to_render, height=700):
+  column_config = {}
+  for col in df_to_render.columns:
+    if pd.api.types.is_numeric_dtype(df_to_render[col]):
+      column_config[col] = st.column_config.NumberColumn(format="%.2f")
 
-  # تنسيقات لتصغير أبعاد الجدول ورأسه ليتناسب مع النص تماماً في هذه الصفحة
-  st.markdown(
-      """
-    <style>
-    /* تصغير المسافات وارتفاع الصفوف والعرض لرأس الخلايا والخلايا */
-    div[data-testid="stDataFrame"] div[role="columnheader"],
-    div[data-testid="stDataFrame"] div[role="gridcell"] {
-        padding: 2px 6px !important;
-        font-size: 13px !important;
-        line-height: 1.2 !important;
-        min-height: 28px !important;
-    }
-    
-    /* جعل ألوان رأس الجدول بلون أسود وخط عريض */
-    div[data-testid="stDataFrame"] div[role="columnheader"] {
-        color: #000000 !important;
-        font-weight: bold !important;
-    }
-    </style>
-    """,
-      unsafe_allow_html=True,
-  )
-
-  st.title("📊 لوحة التحكم الرئيسية")
-  st.markdown("---")
-  filtered_df = apply_text_search(filtered_df)
-  render_dashboard_metrics(filtered_df)
-  render_download_buttons(filtered_df)
-
-  # دالة تلوين الأعمدة (الكود بالأصفر والحجم بالأحمر)
-  def style_columns(df_data):
-    styles = pd.DataFrame("", index=df_data.index, columns=df_data.columns)
-    if "code" in df_data.columns:
+  # تطبيق تلوين الأعمدة المحددة
+  def style_columns(data):
+    styles = pd.DataFrame("", index=data.index, columns=data.columns)
+    if "code" in data.columns:
       styles["code"] = (
           "background-color: #fef9c3 !important; color: #854d0e !important;"
           " font-weight: bold;"
       )
-    if "حجم" in df_data.columns:
+    if "حجم" in data.columns:
       styles["حجم"] = (
           "background-color: #fef2f2 !important; color: #dc2626 !important;"
           " font-weight: bold;"
@@ -299,10 +292,21 @@ if page == "📊 لوحة التحكم (Dashboard)":
     return styles
 
   st.dataframe(
-      filtered_df.style.apply(style_columns, axis=None),
+      df_to_render.style.apply(style_columns, axis=None),
+      column_config=column_config,
       use_container_width=True,
-      height=700,
+      height=height,
   )
+
+
+# 4. التنقل بين الصفحات
+if page == "📊 لوحة التحكم (Dashboard)":
+  st.title("📊 لوحة التحكم الرئيسية")
+  st.markdown("---")
+  filtered_df = apply_text_search(filtered_df)
+  render_dashboard_metrics(filtered_df)
+  render_download_buttons(filtered_df)
+  render_formatted_dataframe(filtered_df, height=700)
 
 elif page == "🚢 الشحنات والحاويات":
   st.title("🚢 إدارة الشحنات والحاويات")
@@ -310,7 +314,7 @@ elif page == "🚢 الشحنات والحاويات":
   filtered_df = apply_text_search(filtered_df)
   render_dashboard_metrics(filtered_df)
   render_download_buttons(filtered_df)
-  st.dataframe(filtered_df, use_container_width=True, height=700)
+  render_formatted_dataframe(filtered_df, height=700)
 
 elif page == "📦 الطلبات":
   st.title("📦 جميع الطلبات المسجلة")
@@ -318,7 +322,7 @@ elif page == "📦 الطلبات":
   filtered_df = apply_text_search(filtered_df)
   render_dashboard_metrics(filtered_df)
   render_download_buttons(filtered_df)
-  st.dataframe(filtered_df, use_container_width=True, height=700)
+  render_formatted_dataframe(filtered_df, height=700)
 
 elif page == "💰 كشف الكمارك المستحصلة":
   st.title("💰 كشف الكمارك المستحصلة من العميل (Pivot Report)")
@@ -473,7 +477,7 @@ elif page == "💰 كشف الكمارك المستحصلة":
             "Row Labels": label_text,
             "Sum of مبلغ الجمرك": f"${sum_customs:,.2f}",
             "Sum of قيمة الاستحصالات": f"${sum_collections:,.2f}",
-            "Sum of متبقي حقيقي": f"${sum_remaining:,.0f}",
+            "Sum of متبقي حقيقي": f"${sum_remaining:,.2f}",
             "is_not_arrived": is_not_arrived,
         })
 
@@ -501,7 +505,7 @@ elif page == "💰 كشف الكمارك المستحصلة":
                 "Row Labels": f"    ↳ {container}",
                 "Sum of مبلغ الجمرك": f"${c_customs:,.2f}",
                 "Sum of قيمة الاستحصالات": f"${c_collections:,.2f}",
-                "Sum of متبقي حقيقي": f"${c_remaining:,.0f}",
+                "Sum of متبقي حقيقي": f"${c_remaining:,.2f}",
                 "is_not_arrived": is_not_arrived,
             })
 
@@ -509,7 +513,7 @@ elif page == "💰 كشف الكمارك المستحصلة":
         "Row Labels": "Grand Total",
         "Sum of مبلغ الجمرك": f"${grand_customs:,.2f}",
         "Sum of قيمة الاستحصالات": f"${grand_collections:,.2f}",
-        "Sum of متبقي حقيقي": f"${grand_remaining:,.0f}",
+        "Sum of متبقي حقيقي": f"${grand_remaining:,.2f}",
         "is_not_arrived": False,
     })
 
@@ -527,4 +531,4 @@ elif page == "📈 واجهة التقارير":
   st.markdown("---")
   render_dashboard_metrics(filtered_df)
   render_download_buttons(filtered_df)
-  st.dataframe(filtered_df, use_container_width=True, height=500)
+  render_formatted_dataframe(filtered_df, height=500)
