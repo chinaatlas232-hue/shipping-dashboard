@@ -170,7 +170,8 @@ page = st.sidebar.radio(
         "📊 لوحة التحكم (Dashboard)",
         "💰 كشف اجور الكمارك",
         "👥 الديون على الكفلاء",
-        "🛃 كمرك الشحنات والاستحصالات"
+        "🛃 كمرك الشحنات والاستحصالات",
+        "📦 تفاصيل الحاويات"
     ]
 )
 st.sidebar.markdown("---")
@@ -519,7 +520,6 @@ elif page == "🛃 كمرك الشحنات والاستحصالات":
     st.markdown("---")
     st.markdown("### 📋 ملخص الحاويات حسب مبالغ الجمرك والاستحصالات والمتبقي الحقيقي")
 
-    # إحصائيات سريعة
     if not filtered_df.empty:
         total_c = filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in filtered_df.columns else 0
         total_coll = filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in filtered_df.columns else 0
@@ -536,7 +536,6 @@ elif page == "🛃 كمرك الشحنات والاستحصالات":
     st.markdown("---")
     render_download_buttons(filtered_df)
 
-    # إنشاء جدول مجمع (Group By) حسب رقم الحاوية تماماً مثل الشكل المطلوب (3 أعمدة أساسية بالإضافة لرقم الحاوية)
     container_field = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
     
     if container_field and not filtered_df.empty:
@@ -548,7 +547,6 @@ elif page == "🛃 كمرك الشحنات والاستحصالات":
             }
         ).reset_index()
 
-        # إضافة صف الإجمالي الكلي (Grand Total)
         grand_totals = pd.DataFrame({
             container_field: ["Grand Total"],
             "مبلغ الجمرك": [agg_df["مبلغ الجمرك"].sum()],
@@ -558,7 +556,6 @@ elif page == "🛃 كمرك الشحنات والاستحصالات":
         
         agg_df = pd.concat([agg_df, grand_totals], ignore_index=True)
 
-        # إعادة تسمية الأعمدة لتطابق التنسيق المطلوب تماماً
         agg_df = agg_df.rename(columns={
             container_field: "رقم الحاوية",
             "مبلغ الجمرك": "Sum of مبلغ الجمرك",
@@ -566,12 +563,10 @@ elif page == "🛃 كمرك الشحنات والاستحصالات":
             "متبقي حقيقي": "Sum of متبقي حقيقي"
         })
 
-        # تنسيق الأرقام لتظهر بصيغة العملة ($)
         formatted_agg = agg_df.copy()
         for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
             formatted_agg[col] = formatted_agg[col].apply(lambda x: f"${x:,.0f}")
 
-        # تطبيق تنسيق مميز للصف الأخير (Grand Total)
         def style_summary_rows(row):
             if row["رقم الحاوية"] == "Grand Total":
                 return ['background-color: #f1f5f9; color: #000000; font-weight: bold;'] * len(row)
@@ -583,5 +578,49 @@ elif page == "🛃 كمرك الشحنات والاستحصالات":
         st.dataframe(styled_summary, use_container_width=True, height=summary_height)
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
+
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
+elif page == "📦 تفاصيل الحاويات":
+    st.title("📦 تفاصيل الحاويات الشاملة")
+    st.markdown("---")
+    
+    # حقل بحث مخصص ضمن هذه الصفحة
+    container_search = st.text_input("🔍 ابحث برقم حاوية محدد:", "").strip()
+    page_data = filtered_df.copy()
+    
+    target_cont_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in page_data.columns), None)
+    
+    if container_search and target_cont_col and not page_data.empty:
+        page_data = page_data[page_data[target_cont_col].astype(str).str.contains(container_search, case=False, na=False)]
+
+    if not page_data.empty:
+        # عرض إحصائيات سريعة للحاويات المعروضة
+        t_orders = len(page_data)
+        t_cartons = page_data["عدد الكارتون"].sum() if "عدد الكارتون" in page_data.columns else 0
+        t_weight = page_data["الوزن"].sum() if "الوزن" in page_data.columns else 0
+        t_customs = page_data["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in page_data.columns else 0
+        t_remaining = page_data["متبقي حقيقي"].sum() if "متبقي حقيقي" in page_data.columns else 0
+
+        dc1, dc2, dc3, dc4, dc5 = st.columns(5)
+        with dc1:
+            st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">عدد السجلات</div><div class="metric-value">{t_orders:,}</div></div>', unsafe_allow_html=True)
+        with dc2:
+            st.markdown(f'<div class="metric-card" style="background-color: #0284c7;"><div class="metric-title">مجموع الكارتون</div><div class="metric-value">{t_cartons:,.0f}</div></div>', unsafe_allow_html=True)
+        with dc3:
+            st.markdown(f'<div class="metric-card" style="background-color: #0d9488;"><div class="metric-title">مجموع الوزن</div><div class="metric-value">{t_weight:,.2f} kg</div></div>', unsafe_allow_html=True)
+        with dc4:
+            st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">إجمالي الجمرك</div><div class="metric-value">${t_customs:,.2f}</div></div>', unsafe_allow_html=True)
+        with dc5:
+            st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">إجمالي المتبقي</div><div class="metric-value">${t_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+
+        st.markdown("---")
+        render_download_buttons(page_data)
+
+        styled_page_data = style_container_column(page_data)
+        table_height = max(300, min(len(page_data) * 35 + 50, 1200))
+        st.dataframe(styled_page_data, use_container_width=True, height=table_height)
+    else:
+        st.warning("لا توجد بيانات مطابقة للحاويات الحالية.")
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
