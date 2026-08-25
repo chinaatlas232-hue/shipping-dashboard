@@ -1,4 +1,4 @@
-import io
+\import io
 import os
 import pandas as pd
 import streamlit as st
@@ -169,7 +169,7 @@ page = st.sidebar.radio(
     [
         "📊 لوحة التحكم (Dashboard)",
         "💰 كشف اجور الكمارك",
-        "📈 واجهة التقارير",
+        "👥 الديون على الكفلاء",
         "🛃 كمرك الشحنات والاستحصالات"
     ]
 )
@@ -406,8 +406,8 @@ elif page == "💰 كشف اجور الكمارك":
     else:
         st.warning("لا توجد نتائج مطابقة.")
 
-elif page == "📈 واجهة التقارير":
-    st.title("📈 واجهة التقارير الشاملة حسب الكفيل")
+elif page == "👥 الديون على الكفلاء":
+    st.title("👥 الديون على الكفلاء")
     st.markdown("---")
     
     if "الكفيل" in filtered_df.columns and not filtered_df.empty:
@@ -510,7 +510,7 @@ elif page == "📈 واجهة التقارير":
             summary_height = max(300, min(len(sponsor_summary) * 35 + 50, 1200))
             st.dataframe(sponsor_summary, use_container_width=True, height=summary_height)
     else:
-        st.warning("لا توجد بيانات متاحة لعرض التقارير حالياًية.")
+        st.warning("لا توجد بيانات متاحة لعرض التقارير حالياً.")
     
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
