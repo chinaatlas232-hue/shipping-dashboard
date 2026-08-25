@@ -478,8 +478,8 @@ elif page == "📈 واجهة التقارير":
             
             def style_pivot_cells(val):
                 if val == "" or val == "$0":
-                    return 'background-color: #1e3a8a; color: #1e3a8a;'
-                return 'background-color: #ffffff; color: #000000; font-weight: bold;'
+                    return 'background-color: #f1f5f9; color: #f1f5f9;' # خلفية رصاصي فاتح للخلايا الفارغة
+                return 'background-color: #fce7f3; color: #9d174d; font-weight: bold;' # خلفية وردي فاتح ونص وردي داكن للمبالغ
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
             
