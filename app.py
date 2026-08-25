@@ -443,7 +443,7 @@ elif page == "sponsors":
 elif page == "aging":
     st.title("⏳ تقرير أعمار الديون (Aging Report)")
     st.markdown("---")
-    st.markdown("### 📋 جدول تحليلي يوزع المتبقي الحقيقي حسب الكود ورقم الحاوية وأيام التأخير")
+    st.markdown("### 📋 جدول تحليلي يوزع المتبقي الحقيقي حسب الكود ورقم الحاوية وأيام التأخير (بدون 0 يوم)")
 
     aging_df = filtered_df.copy()
     code_field = next((c for c in ["code", "الكود", "كود"] if c in aging_df.columns), None)
@@ -451,6 +451,9 @@ elif page == "aging":
     if not aging_df.empty and "رقم الحاوية" in aging_df.columns and "عدد الايام" in aging_df.columns and "متبقي حقيقي" in aging_df.columns:
         
         aging_df["عدد الايام"] = pd.to_numeric(aging_df["عدد الايام"], errors="coerce").fillna(0).astype(int)
+        
+        # استبعاد الصفوف التي عدد أيامها 0 تماماً من الأساس
+        aging_df = aging_df[aging_df["عدد الايام"] > 0]
         
         index_cols = [code_field, "رقم الحاوية"] if code_field else ["رقم الحاوية"]
         
@@ -462,7 +465,7 @@ elif page == "aging":
             fill_value=0
         )
 
-        # حذف واستبعاد الصفوف (الكوُد والحاوية) التي كل قيمها أصفار ولا تحتوي على أي رصيد حقيقي
+        # حذف واستبعاد الصفوف (الكود والحاوية) التي كل قيمها أصفار
         aging_pivot = aging_pivot[(aging_pivot > 0).any(axis=1)]
 
         aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
