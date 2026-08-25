@@ -253,12 +253,47 @@ def render_dashboard_metrics(data_df):
 
 # 4. التنقل بين الصفحات
 if page == "📊 لوحة التحكم (Dashboard)":
+
+  # جعل رأس الجدول باللون الأسود فقط للصفحة الرئيسية
+  st.markdown(
+      """
+    <style>
+    div[data-testid="stTable"] th, 
+    div[data-testid="stTable"] table th {
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+    </style>
+    """,
+      unsafe_allow_html=True,
+  )
+
   st.title("📊 لوحة التحكم الرئيسية")
   st.markdown("---")
   filtered_df = apply_text_search(filtered_df)
   render_dashboard_metrics(filtered_df)
   render_download_buttons(filtered_df)
-  st.dataframe(filtered_df, use_container_width=True, height=700)
+
+  # دالة تلوين الأعمدة المحددة (الكود بالأصفر والحجم بالأحمر)
+  def highlight_columns(s):
+    styles = [""] * len(s)
+    for i, col in enumerate(s.index):
+      if col == "code":
+        styles[i] = (
+            "background-color: #fef9c3 !important; color: #854d0e !important;"
+            " font-weight: bold !important;"
+        )
+      elif col == "حجم":
+        styles[i] = (
+            "background-color: #fef2f2 !important; color: #dc2626 !important;"
+            " font-weight: bold !important;"
+        )
+    return styles
+
+  styled_dashboard_df = filtered_df.style.apply(highlight_columns, axis=1)
+
+  # عرض الجدول كـ st.table لدعم ألوان الأعمدة بدقة
+  st.table(styled_dashboard_df)
 
 elif page == "🚢 الشحنات والحاويات":
   st.title("🚢 إدارة الشحنات والحاويات")
@@ -277,20 +312,6 @@ elif page == "📦 الطلبات":
   st.dataframe(filtered_df, use_container_width=True, height=700)
 
 elif page == "💰 كشف الكمارك المستحصلة":
-  # جعل لون نص عناوين أسر الجداول أسود لهذه الصفحة فقط
-  st.markdown(
-      """
-    <style>
-    div[data-testid="stTable"] th, 
-    div[data-testid="stTable"] table th {
-        color: #000000 !important;
-        font-weight: bold !important;
-    }
-    </style>
-    """,
-      unsafe_allow_html=True,
-  )
-
   st.title("💰 كشف الكمارك المستحصلة من العميل (Pivot Report)")
   st.markdown("---")
 
@@ -486,50 +507,9 @@ elif page == "💰 كشف الكمارك المستحصلة":
   pivot_display_df = pd.DataFrame(tree_rows)
 
   if not pivot_display_df.empty:
-    is_not_arrived_list = pivot_display_df["is_not_arrived"].tolist()
     display_df = pivot_display_df.drop(columns=["is_not_arrived"])
-
-    # دالة التنسيق المخصصة لهذه الصفحة فقط
-    def apply_row_styles(row):
-      idx = row.name
-      label = str(row["Row Labels"])
-      is_not_arr = is_not_arrived_list[idx]
-
-      if is_not_arr:
-        return [
-            "background-color: #fee2e2 !important; color: #991b1b !important;"
-            " font-weight: bold !important;"
-        ] * len(row)
-
-      # 1. الحاوية (رمز ↳): تلوين الصف بالكامل باللون الأحمر
-      elif "↳" in label:
-        return [
-            "background-color: #fef2f2 !important; color: #dc2626 !important;"
-            " font-weight: bold !important;"
-        ] * len(row)
-
-      # 2. الكود/الكفيل (رمز ➖): تلوين الصف بالكامل باللون الأصفر
-      elif label.startswith("➖"):
-        return [
-            "background-color: #fef9c3 !important; color: #854d0e !important;"
-            " font-weight: bold !important;"
-        ] * len(row)
-
-      elif label == "Grand Total":
-        return [
-            "background-color: #f1f5f9 !important; color: #0f172a !important;"
-            " font-weight: bold !important;"
-        ] * len(row)
-
-      return [
-          "background-color: #ffffff !important; color: #1e293b !important;"
-      ] * len(row)
-
-    styled_pivot = display_df.style.apply(apply_row_styles, axis=1)
     render_download_buttons(display_df)
-
-    # لعرض التلوين بشكل صحيح نستخدم st.table في هذه الصفحة فقط
-    st.table(styled_pivot)
+    st.dataframe(display_df, use_container_width=True, height=750)
   else:
     st.warning("لا توجد نتائج مطابقة.")
 
