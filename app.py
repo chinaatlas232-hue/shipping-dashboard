@@ -374,7 +374,6 @@ elif page == "💰 كشف اجور الكمارك":
         grand_customs = pivot_filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in pivot_filtered_df else 0.0
         grand_collections = pivot_filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in pivot_filtered_df else 0.0
         grand_remaining = pivot_filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in pivot_filtered_df else 0.0
-        # استخدام القيمة القصوى أو المتوسط لعدد الأيام إجمالاً لتجنب التراكم التراكمي الخاطئ
         grand_days = pivot_filtered_df["عدد الايام"].max() if "عدد الايام" in pivot_filtered_df and not pivot_filtered_df["عدد الايام"].empty else 0.0
 
         sponsor_col = "الكفيل" if "الكفيل" in pivot_filtered_df.columns else None
@@ -405,8 +404,6 @@ elif page == "💰 كشف اجور الكمارك":
                 sum_customs = parent_group["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in parent_group else 0.0
                 sum_collections = parent_group["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in parent_group else 0.0
                 sum_remaining = parent_group["متبقي حقيقي"].sum() if "متبقي حقيقي" in parent_group else 0.0
-                
-                # تصحيح حساب عدد الأيام: أخذ القيمة القصوى أو الأولى بدلاً من الجمع التراكمي (.sum) لتعكس التأخير الصحيح للشحنة
                 group_days = parent_group["عدد الايام"].max() if "عدد الايام" in parent_group and not parent_group["عدد الايام"].empty else 0.0
 
                 tree_rows.append({
@@ -423,8 +420,6 @@ elif page == "💰 كشف اجور الكمارك":
                         c_customs = c_group["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in c_group else 0.0
                         c_collections = c_group["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in c_group else 0.0
                         c_remaining = c_group["متبقي حقيقي"].sum() if "متبقي حقيقي" in c_group else 0.0
-                        
-                        # أخذ عدد الأيام الحقيقي الخاص بالحاوية/الشحنة (عبر .max) بدلاً من الجمع
                         c_days = c_group["عدد الايام"].max() if "عدد الايام" in c_group and not c_group["عدد الايام"].empty else 0.0
 
                         tree_rows.append({
@@ -661,9 +656,10 @@ elif page == "📈 الرسوم البيانية":
 
         col_chart1, col_chart2 = st.columns(2)
         with col_chart1:
-            if container_col and "الوزن" in filtered_df.columns:
+            if container_col and " الوزن" in filtered_df.columns or "الوزن" in filtered_df.columns:
                 st.subheader("⚖️ إجمالي الوزن حسب الحاوية (kg)")
-                weight_data = filtered_df.groupby(container_col)["الوزن"].sum()
+                weight_col = "الوزن" if "الوزن" in filtered_df.columns else " الوزن"
+                weight_data = filtered_df.groupby(container_col)[weight_col].sum()
                 st.bar_chart(weight_data)
 
         with col_chart2:
@@ -678,5 +674,87 @@ elif page == "📈 الرسوم البيانية":
             st.subheader("👤 إجمالي مبالغ الجمرك والاستحصالات حسب الكفلاء")
             sponsor_chart_data = filtered_df.groupby("الكفيل")[["مبلغ الجمرك", "قيمة الاستحصالات"]].sum()
             st.bar_chart(sponsor_chart_data)
+
+    # ---------------------------------------------------------
+    # الجدول الإضافي أسفل الرسوم البيانية (اسم الكود، عدد الأسماء المتأخرة، أرقام الشحنات، المبالغ المستحقة)
+    # ---------------------------------------------------------
+    st.markdown("---")
+    st.subheader("📋 ملخص الأكواد والشحنات المتأخرة والمبالغ المستحقة")
+
+    code_key = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
+    shipment_key = next((c for c in ["No", "رقم الشحنة", "رقم دخول المخزن", "Shipping mark"] if c in filtered_df.columns), None)
+    days_key = next((c for c in ["عدد الايام", "عدد الأيام"] if c in filtered_df.columns), None)
+    remaining_key = next((c for c in ["متبقي حقيقي", "المتبقي"] if c in filtered_df.columns), None)
+
+    if code_key and not filtered_df.empty:
+        summary_rows = []
+        
+        # التجميع حسب الكود
+        for code_val, group in filtered_df.groupby(code_key, dropna=False):
+            c_str = str(code_val).strip() if pd.notna(code_val) else "غير محدد"
+            
+            # فلترة الشحنات المتأخرة (مثلاً التي عدد الأيام فيها أكبر من 0، أو حسب رغبتك في تعريف التأخير)
+            if days_key and days_key in group.columns:
+                delayed_group = group[group[days_key] > 0]
+            else:
+                delayed_group = group
+
+            delayed_count = len(delayed_group)
+            
+            # استخراج أرقام الشحنات كقائمة أو نص مفصول بفواصل
+            if shipment_key and shipment_key in group.columns:
+                shipment_numbers = ", ".join(group[shipment_key].dropna().astype(str).unique().tolist())
+            else:
+                shipment_numbers = "-"
+
+            # حساب المبالغ المستحقة (المتبقي الحقيقي)
+            if remaining_key and remaining_key in group.columns:
+                total_due = group[remaining_key].sum()
+            else:
+                total_due = 0.0
+
+            summary_rows.append({
+                "اسم الكود (Code)": c_str,
+                "عدد الشحنات المتأخرة": delayed_count,
+                "أرقام الشحنات": shipment_numbers if shipment_numbers else "-",
+                "المبالغ المستحقة": f"${total_due:,.2f}"
+            })
+
+        summary_table_df = pd.DataFrame(summary_rows)
+        
+        if not summary_table_df.empty:
+            # إضافة صف الإجمالي العام (Grand Total)
+            total_delayed_sum = summary_table_df["عدد الشحنات المتأخرة"].sum()
+            
+            if remaining_key and remaining_key in filtered_df.columns:
+                grand_due_sum = filtered_df[remaining_key].sum()
+            else:
+                grand_due_sum = 0.0
+
+            grand_total_row = pd.DataFrame([{
+                "اسم الكود (Code)": "Grand Total",
+                "عدد الشحنات المتأخرة": total_delayed_sum,
+                "أرقام الشحنات": "-",
+                "المبالغ المستحقة": f"${grand_due_sum:,.2f}"
+            }])
+
+            summary_table_df = pd.concat([summary_table_df, grand_total_row], ignore_index=True)
+
+            def style_bottom_table(row):
+                if row["اسم الكود (Code)"] == "Grand Total":
+                    return ['background-color: #f1f5f9; color: #000000; font-weight: bold;'] * len(row)
+                return ['background-color: #ffffff; color: #000000; font-weight: bold;'] * len(row)
+
+            styled_summary_table = summary_table_df.style.apply(style_bottom_table, axis=1)
+            
+            # أزرار تحميل خاصة بهذا الجدول أو عرضه مباشرة
+            render_download_buttons(summary_table_df)
+            
+            table_h = max(300, min(len(summary_table_df) * 35 + 50, 1200))
+            st.dataframe(styled_summary_table, use_container_width=True, height=table_h)
+        else:
+            st.info("لا توجد بيانات كافية لإنشاء جدول الأكواد المتأخرة.")
+    else:
+        st.warning("عمود الكود غير متوفر في البيانات الحالية.")
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
