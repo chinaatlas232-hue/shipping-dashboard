@@ -114,7 +114,7 @@ def clean_numeric(series):
         errors="coerce"
     ).fillna(0)
 
-# 2. تحميل البيانات
+# 2. تحميل البيانات وتصحيح قراءة الأعمدة
 def load_data(uploaded_file):
     df = None
     if uploaded_file is not None:
@@ -139,6 +139,13 @@ def load_data(uploaded_file):
         ])
 
     df.columns = df.columns.astype(str).str.strip()
+
+    # البحث المرن وتوحيد أسماء أعمدة الدفع في حال اختلاف تسميتها بالملف المرفوع
+    for col in df.columns:
+        if "زبون" in col and "دفع" in col:
+            df["الزبون دفع"] = df[col]
+        if ("مكتب" in col or "شركة" in col) and "دفع" in col:
+            df["المكتب دفع"] = df[col]
 
     if "الزبون دفع" in df.columns and "Client Paid" not in df.columns:
         df["Client Paid"] = df["الزبون دفع"]
@@ -249,8 +256,8 @@ def render_dashboard_metrics(data_df):
     target_customer_col = next((c for c in [code_col, "code", "الكفيل", "الزبون"] if c in data_df.columns), None)
     total_customers = data_df[target_customer_col].nunique() if target_customer_col and not data_df.empty else 0
 
-    office_paid_col = next((c for c in ["المكتب دفع", "Office Paid"] if c in data_df.columns), None)
-    client_paid_col = next((c for c in ["الزبون دفع", "Client Paid"] if c in data_df.columns), None)
+    office_paid_col = next((c for c in data_df.columns if "مكتب" in c or ("دفع" in c and "شركة" in c) or c == "Office Paid"), None)
+    client_paid_col = next((c for c in data_df.columns if "زبون" in c and "دفع" in c or c == "Client Paid"), None)
 
     office_paid = data_df[office_paid_col].sum() if office_paid_col and not data_df.empty else 0.0
     client_paid = data_df[client_paid_col].sum() if client_paid_col and not data_df.empty else 0.0
