@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-# إعدادات صفحة Streamlit لتكون العرض بالكامل (Wide) مثل التطبيق الأصلي
+# إعدادات صفحة Streamlit لتكون العرض بالكامل (Wide)
 st.set_page_config(layout="wide", page_title="Logistics Admin Dashboard")
 
 # --- الشريط الجانبي (Sidebar) ---
@@ -14,16 +14,19 @@ if uploaded_file is not None:
     # قراءة الملف المرفوع
     df = pd.read_excel(uploaded_file)
 
-    # 1. فلتر رقم الحاوية
-    if "رقم الحاوية" in df.columns:
-        container_options = ["الكل"] + list(df["رقم الحاوية"].dropna().unique())
+    # 1. فلتر رقم الحاوية (البحث عن العمود المرن)
+    container_col = next((col for col in df.columns if "حاوية" in str(col)), None)
+    if container_col:
+        container_options = ["الكل"] + list(df[container_col].dropna().unique())
         selected_container = st.sidebar.selectbox("🚢 اختر رقم الحاوية:", container_options)
     else:
         selected_container = "الكل"
+        container_col = None
 
-    # 2. فلتر الكود (المدمج الجديد دون تغيير التصميم)
-    if "code" in df.columns:
-        code_options = ["الكل"] + list(df["code"].dropna().unique())
+    # 2. فلتر الكود (المدمج الجديد)
+    code_col = next((col for col in df.columns if str(col).strip().lower() in ["code", "الكود", "كود"]), "code")
+    if code_col in df.columns:
+        code_options = ["الكل"] + list(df[code_col].dropna().unique())
         selected_code = st.sidebar.selectbox("🏷️ اختر الكود (Code):", code_options)
     else:
         selected_code = "الكل"
@@ -31,24 +34,33 @@ if uploaded_file is not None:
     # --- تطبيق الفلاتر على البيانات ---
     filtered_df = df.copy()
 
-    if selected_container != "الكل" and "رقم الحاوية" in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df["رقم الحاوية"] == selected_container]
+    if selected_container != "الكل" and container_col:
+        filtered_df = filtered_df[filtered_df[container_col] == selected_container]
 
-    if selected_code != "الكل" and "code" in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df["code"] == selected_code]
+    if selected_code != "الكل" and code_col in filtered_df.columns:
+        filtered_df = filtered_df[filtered_df[code_col] == selected_code]
 
-    # --- الحسابات والمعادلات (تعتمد بالكامل على filtered_df للحفاظ على دقة الأرقام) ---
+    # --- التقاط أسماء الأعمدة الخاصة بالحسابات بشكل مرن من الملف ---
+    carton_col = next((col for col in df.columns if "كارتون" in str(col) or "كرتون" in str(col)), None)
+    weight_col = next((col for col in df.columns if "وزن" in str(col)), None)
+    volume_col = next((col for col in df.columns if "حجم" in str(col)), None)
+    
+    # أعمدة الدفع والمجاميع الظاهرة في صورتك الأصلية (المجموع، الزبون دفع)
+    company_pay_col = next((col for col in df.columns if "المجموع" in str(col) or "مجموع" in str(col)), None)
+    customer_pay_col = next((col for col in df.columns if "الزبون دفع" in str(col) or "زبون" in str(col)), None)
+
+    # --- الحسابات والمعادلات الدقيقة ---
     total_orders = len(filtered_df)
-    total_cartons = filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in filtered_df.columns else 0
-    total_weight = filtered_df["الوزن"].sum() if "الوزن" in filtered_df.columns else 0
-    total_volume = filtered_df["حجم"].sum() if "حجم" in filtered_df.columns else 0
-    total_company_pay = filtered_df["المجموع"].sum() if "المجموع" in filtered_df.columns else 0
-    total_customer_pay = filtered_df["الزبون دفع"].sum() if "الزبون دفع" in filtered_df.columns else 0
+    total_cartons = filtered_df[carton_col].sum() if carton_col and carton_col in filtered_df.columns else 0
+    total_weight = filtered_df[weight_col].sum() if weight_col and weight_col in filtered_df.columns else 0
+    total_volume = filtered_df[volume_col].sum() if volume_col and volume_col in filtered_df.columns else 0
+    total_company_pay = filtered_df[company_pay_col].sum() if company_pay_col and company_pay_col in filtered_df.columns else 0
+    total_customer_pay = filtered_df[customer_pay_col].sum() if customer_pay_col and customer_pay_col in filtered_df.columns else 0
 
     # --- واجهة لوحة التحكم الرئيسية ---
     st.title("📊 لوحة التحكم الرئيسية")
 
-    # عرض البطاقات الملونة (Metrics) بنفس التنسيق والألوان
+    # عرض البطاقات الملونة (Metrics)
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
         st.metric("إجمالي الطلبات", f"{total_orders:,}")
