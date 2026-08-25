@@ -133,7 +133,6 @@ page = st.sidebar.radio(
     [
         "📊 لوحة التحكم (Dashboard)",
         "🚢 الشحنات والحاويات",
-        "📦 الطلبات",
         "💰 كشف الكمارك المستحصلة",
         "📈 واجهة التقارير"
     ]
@@ -203,13 +202,6 @@ if page == "📊 لوحة التحكم (Dashboard)":
 
 elif page == "🚢 الشحنات والحاويات":
     st.title("🚢 إدارة الشحنات والحاويات")
-    st.markdown("---")
-    render_dashboard_metrics(filtered_df)
-    render_download_buttons(filtered_df)
-    st.dataframe(filtered_df, use_container_width=True, height=700)
-
-elif page == "📦 الطلبات":
-    st.title("📦 جميع الطلبات المسجلة")
     st.markdown("---")
     render_dashboard_metrics(filtered_df)
     render_download_buttons(filtered_df)
