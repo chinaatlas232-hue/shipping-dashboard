@@ -135,7 +135,7 @@ def load_data(uploaded_file):
         df = pd.DataFrame(columns=[
             "No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن",
             "المكتب دفع", "الزبون دفع", "المجموع", "عدد الكارتون",
-            "الوزن", "حجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات"
+            "الوزن", "حجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"
         ])
 
     df.columns = df.columns.astype(str).str.strip()
@@ -161,7 +161,7 @@ def load_data(uploaded_file):
 
     numeric_cols = [
         "المكتب دفع", "Office Paid", "الزبون دفع", "Client Paid",
-        "عدد الكارتون", "الوزن", "حجم", "المجموع", "مبلغ الجمرك", "قيمة الاستحصالات"
+        "عدد الكارتون", "الوزن", "حجم", "المجموع", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"
     ]
     for col in numeric_cols:
         if col in df.columns:
@@ -375,6 +375,7 @@ elif page == "💰 كشف اجور الكمارك":
         grand_customs = pivot_filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in pivot_filtered_df else 0.0
         grand_collections = pivot_filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in pivot_filtered_df else 0.0
         grand_remaining = pivot_filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in pivot_filtered_df else 0.0
+        grand_days = pivot_filtered_df["عدد الايام"].sum() if "عدد الايام" in pivot_filtered_df else 0.0
 
         sponsor_col = "الكفيل" if "الكفيل" in pivot_filtered_df.columns else None
         
@@ -404,12 +405,14 @@ elif page == "💰 كشف اجور الكمارك":
                 sum_customs = parent_group["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in parent_group else 0.0
                 sum_collections = parent_group["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in parent_group else 0.0
                 sum_remaining = parent_group["متبقي حقيقي"].sum() if "متبقي حقيقي" in parent_group else 0.0
+                sum_days = parent_group["عدد الايام"].sum() if "عدد الايام" in parent_group else 0.0
 
                 tree_rows.append({
                     "Row Labels": label_text,
                     "Sum of مبلغ الجمرك": f"${sum_customs:,.2f}",
                     "Sum of قيمة الاستحصالات": f"${sum_collections:,.2f}",
                     "Sum of متبقي حقيقي": f"${sum_remaining:,.0f}",
+                    "عدد الايام": f"{sum_days:,.0f}",
                     "is_not_arrived": is_not_arrived
                 })
 
@@ -418,12 +421,14 @@ elif page == "💰 كشف اجور الكمارك":
                         c_customs = c_group["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in c_group else 0.0
                         c_collections = c_group["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in c_group else 0.0
                         c_remaining = c_group["متبقي حقيقي"].sum() if "متبقي حقيقي" in c_group else 0.0
+                        c_days = c_group["عدد الايام"].sum() if "عدد الايام" in c_group else 0.0
 
                         tree_rows.append({
                             "RowLabels": f"    ↳ {container}",
                             "Sum of مبلغ الجمرك": f"${c_customs:,.2f}",
                             "Sum of قيمة الاستحصالات": f"${c_collections:,.2f}",
                             "Sum of متبقي حقيقي": f"${c_remaining:,.0f}",
+                            "عدد الايام": f"{c_days:,.0f}",
                             "is_not_arrived": is_not_arrived
                         })
 
@@ -432,6 +437,7 @@ elif page == "💰 كشف اجور الكمارك":
             "Sum of مبلغ الجمرك": f"${grand_customs:,.2f}",
             "Sum of قيمة الاستحصالات": f"${grand_collections:,.2f}",
             "Sum of متبقي حقيقي": f"${grand_remaining:,.0f}",
+            "عدد الايام": f"{grand_days:,.0f}",
             "is_not_arrived": False
         })
 
