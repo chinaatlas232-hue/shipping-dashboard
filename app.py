@@ -254,12 +254,21 @@ def render_dashboard_metrics(data_df):
 # 4. التنقل بين الصفحات
 if page == "📊 لوحة التحكم (Dashboard)":
 
-  # جعل رأس الجدول باللون الأسود فقط للصفحة الرئيسية
+  # تنسيقات لتصغير أبعاد الجدول ورأسه ليتناسب مع النص تماماً في هذه الصفحة
   st.markdown(
       """
     <style>
-    div[data-testid="stTable"] th, 
-    div[data-testid="stTable"] table th {
+    /* تصغير المسافات وارتفاع الصفوف والعرض لرأس الخلايا والخلايا */
+    div[data-testid="stDataFrame"] div[role="columnheader"],
+    div[data-testid="stDataFrame"] div[role="gridcell"] {
+        padding: 2px 6px !important;
+        font-size: 13px !important;
+        line-height: 1.2 !important;
+        min-height: 28px !important;
+    }
+    
+    /* جعل ألوان رأس الجدول بلون أسود وخط عريض */
+    div[data-testid="stDataFrame"] div[role="columnheader"] {
         color: #000000 !important;
         font-weight: bold !important;
     }
@@ -274,26 +283,26 @@ if page == "📊 لوحة التحكم (Dashboard)":
   render_dashboard_metrics(filtered_df)
   render_download_buttons(filtered_df)
 
-  # دالة تلوين الأعمدة المحددة (الكود بالأصفر والحجم بالأحمر)
-  def highlight_columns(s):
-    styles = [""] * len(s)
-    for i, col in enumerate(s.index):
-      if col == "code":
-        styles[i] = (
-            "background-color: #fef9c3 !important; color: #854d0e !important;"
-            " font-weight: bold !important;"
-        )
-      elif col == "حجم":
-        styles[i] = (
-            "background-color: #fef2f2 !important; color: #dc2626 !important;"
-            " font-weight: bold !important;"
-        )
+  # دالة تلوين الأعمدة (الكود بالأصفر والحجم بالأحمر)
+  def style_columns(df_data):
+    styles = pd.DataFrame("", index=df_data.index, columns=df_data.columns)
+    if "code" in df_data.columns:
+      styles["code"] = (
+          "background-color: #fef9c3 !important; color: #854d0e !important;"
+          " font-weight: bold;"
+      )
+    if "حجم" in df_data.columns:
+      styles["حجم"] = (
+          "background-color: #fef2f2 !important; color: #dc2626 !important;"
+          " font-weight: bold;"
+      )
     return styles
 
-  styled_dashboard_df = filtered_df.style.apply(highlight_columns, axis=1)
-
-  # عرض الجدول كـ st.table لدعم ألوان الأعمدة بدقة
-  st.table(styled_dashboard_df)
+  st.dataframe(
+      filtered_df.style.apply(style_columns, axis=None),
+      use_container_width=True,
+      height=700,
+  )
 
 elif page == "🚢 الشحنات والحاويات":
   st.title("🚢 إدارة الشحنات والحاويات")
