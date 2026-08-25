@@ -21,7 +21,7 @@ st.markdown(
     .metric-value { font-size: 20px; font-weight: bold; }
     .block-container { padding-top: 1.5rem !important; padding-bottom: 2rem; max-width: 99% !important; }
 
-    [data-testid="stTextInput"] label {
+    [data-testid="stSelectbox"] label {
         font-size: 18px !important;
         font-weight: bold !important;
         color: #1f2937 !important;
@@ -154,19 +154,29 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 
-# --- شريط البحث النصي الفائق السريع ---
-def apply_text_search(data_frame):
-  search_query = st.text_input(
-      "🔍 بحث سريع في كافة الأعمدة (اخفاء باقي البيانات غير المطبقة):",
-      placeholder="اكتب أي كود، اسم، أو رقم للبحث...",
-  ).strip()
-
-  if search_query:
-    # البحث النصي الحر والمرن في جميع أعمدة الجدول
-    mask = data_frame.astype(str).apply(
-        lambda col: col.str.contains(search_query, case=False, na=False)
+# --- دالة استخراج الأكواد الذكية الفورية ---
+@st.cache_data
+def get_unique_codes(dataframe):
+  if "code" in dataframe.columns:
+    return ["الكل"] + sorted(
+        dataframe["code"].dropna().astype(str).unique().tolist()
     )
-    return data_frame[mask.any(axis=1)]
+  return ["الكل"]
+
+
+# --- شريط البحث الذكي المفلتر ---
+def apply_text_search(data_frame):
+  code_options = get_unique_codes(data_frame)
+
+  selected_code = st.selectbox(
+      "🔍 بحث ذكي ومفلتر (اكتب الكود للفلترة الفورية):",
+      options=code_options,
+      index=0,
+      help="اكتب جزءاً من الكود لتصفيته مباشرة",
+  )
+
+  if selected_code != "الكل" and "code" in data_frame.columns:
+    return data_frame[data_frame["code"].astype(str) == selected_code]
 
   return data_frame
 
