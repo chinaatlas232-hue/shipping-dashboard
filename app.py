@@ -474,7 +474,28 @@ elif page == "📈 واجهة التقارير":
             grand_total_row = pivot_table_df.sum(axis=0)
             pivot_table_df.loc["Grand Total"] = grand_total_row
 
-            formatted_pivot = pivot_table_df.map(lambda val: f"${val:,.0f}" if val > 0 else "")
+            # فحص حالة الحاويات (هل الكفيل واصل أم لم تصل بعد) وتعديل أسماء الأعمدة بإضافة كود الـ HTML لتلوين رأس الجدول بشكل مباشر
+            new_columns = []
+            for col in pivot_table_df.columns:
+                if col == "Grand Total":
+                    new_columns.append(col)
+                    continue
+                
+                sub_df = base_pivot_df[base_pivot_df[pivot_container_col].astype(str) == str(col)]
+                is_not_arrived = False
+                if not sub_df.empty and "الكفيل" in sub_df.columns:
+                    sponsors_in_col = sub_df["الكفيل"].astype(str).unique()
+                    if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
+                        is_not_arrived = True
+                
+                # تلوين الخلفية لرأس العمود (أصفر إن لم تصل بعد، وأخضر إن كانت واصلة)
+                bg_color = "#fef08a" if is_not_arrived else "#bbf7d0"
+                html_col_name = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{col}</div>'
+                new_columns.append(html_col_name)
+
+            pivot_table_df.columns = new_columns
+
+            formatted_pivot = pivot_table_df.map(lambda val: f"${val:,.0f}" if isinstance(val, (int, float)) and val > 0 else ("" if isinstance(val, (int, float)) else val))
             
             def style_pivot_cells(val):
                 if val == "" or val == "$0":
@@ -483,45 +504,10 @@ elif page == "📈 واجهة التقارير":
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
 
-            # تحديد حالة كل عمود (حاوية) بناءً على اسم الكفيل المرتبط بها في البيانات الأصلية
-            container_status_map = {}
-            if "الكفيل" in base_pivot_df.columns:
-                for container_val in pivot_table_df.columns:
-                    if container_val == "Grand Total":
-                        continue
-                    sub_df = base_pivot_df[base_pivot_df[pivot_container_col].astype(str) == str(container_val)]
-                    if not sub_df.empty:
-                        sponsors_in_container = sub_df["الكفيل"].astype(str).unique()
-                        # إذا كان أي كفيل مرتبط بالحاوية يحتوي على "لم تصل بعد"، نعتبرها غير واصلة (أصفر)، وإلا فواصِلة (أخضر)
-                        is_not_arrived_flag = any("لم تصل بعد" in str(s) for s in sponsors_in_container)
-                        container_status_map[container_val] = "yellow" if is_not_arrived_flag else "green"
-                    else:
-                        container_status_map[container_val] = "green"
-
-            # تلوين رؤوس الأعمدة (Column Headers) بناءً على الحالة
-            def style_header_cols(col_name):
-                if col_name in container_status_map:
-                    if container_status_map[col_name] == "green":
-                        return 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
-                    else:
-                        return 'background-color: #fef08a; color: #000000; font-weight: bold;'
-                return ''
-
-            if hasattr(styled_matrix, "set_table_styles"):
-                headers_styles = []
-                for idx, col in enumerate(formatted_pivot.columns):
-                    status = container_status_map.get(col, "green")
-                    bg_color = "#bbf7d0" if status == "green" else "#fef08a"
-                    headers_styles.append({
-                        'selector': f'th.col{idx}',
-                        'props': [('background-color', bg_color), ('color', 'black'), ('font-weight', 'bold')]
-                    })
-                styled_matrix.set_table_styles(headers_styles, overwrite=False)
-
             matrix_height = max(300, min(len(pivot_table_df) * 35 + 50, 1200))
-            st.dataframe(styled_matrix, use_container_width=True, height=matrix_height)
+            st.markdown(styled_matrix.to_html(escape=False), unsafe_allow_html=True)
         else:
-            st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت (الكود، رقم الحاوية، مبلغ الجمرك) غير متوفرة بالكامل.")
+            st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
             summary_height = max(300, min(len(sponsor_summary) * 35 + 50, 1200))
             st.dataframe(sponsor_summary, use_container_width=True, height=summary_height)
     else:
