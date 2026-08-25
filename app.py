@@ -168,24 +168,31 @@ def render_dashboard_metrics(data_df):
     total_weight = data_df["الوزن"].sum() if "الوزن" in data_df.columns else 0
     total_volume = data_df["حجم"].sum() if "حجم" in data_df.columns else 0
 
+    # حساب عدد الزبائن الفريدين بناءً على عمود الكود أو عمود الزبون إذا وجد
+    target_customer_col = next((c for c in [code_col, "code", "الكفيل", "الزبون"] if c in data_df.columns), None)
+    total_customers = data_df[target_customer_col].nunique() if target_customer_col else 0
+
     office_paid_col = next((c for c in ["المكتب دفع", "Office Paid"] if c in data_df.columns), None)
     client_paid_col = next((c for c in ["الزبون دفع", "Client Paid"] if c in data_df.columns), None)
 
     office_paid = data_df[office_paid_col].sum() if office_paid_col else 0.0
     client_paid = data_df[client_paid_col].sum() if client_paid_col else 0.0
 
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    # تقسيم العرض إلى 7 أعمدة بدلاً من 6 لاستيعاب المربع الجديد
+    c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
     with c1:
         st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">إجمالي الطلبات</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
     with c2:
-        st.markdown(f'<div class="metric-card" style="background-color: #0284c7;"><div class="metric-title">إجمالي الكارتون</div><div class="metric-value">{total_cartons:,.0f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #475569;"><div class="metric-title">عدد الزبائن</div><div class="metric-value">{total_customers:,}</div></div>', unsafe_allow_html=True)
     with c3:
-        st.markdown(f'<div class="metric-card" style="background-color: #0d9488;"><div class="metric-title">إجمالي الوزن</div><div class="metric-value">{total_weight:,.2f} kg</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #0284c7;"><div class="metric-title">إجمالي الكارتون</div><div class="metric-value">{total_cartons:,.0f}</div></div>', unsafe_allow_html=True)
     with c4:
-        st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">إجمالي الحجم</div><div class="metric-value">{total_volume:,.3f} m³</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #0d9488;"><div class="metric-title">إجمالي الوزن</div><div class="metric-value">{total_weight:,.2f} kg</div></div>', unsafe_allow_html=True)
     with c5:
-        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">دفع الشركة</div><div class="metric-value">¥{office_paid:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">إجمالي الحجم</div><div class="metric-value">{total_volume:,.3f} m³</div></div>', unsafe_allow_html=True)
     with c6:
+        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">دفع الشركة</div><div class="metric-value">¥{office_paid:,.2f}</div></div>', unsafe_allow_html=True)
+    with c7:
         st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">دفع الزبون</div><div class="metric-value">¥{client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
 # 4. التنقل بين الصفحات
