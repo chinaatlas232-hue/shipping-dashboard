@@ -212,13 +212,48 @@ def render_dashboard_metrics(data_df):
     with c7:
         st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">دفع الزبون</div><div class="metric-value">¥{client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
+# دالة لتلوين عمود رقم الحاوية بناءً على حالة الكفيل
+def style_container_column(df_to_style):
+    target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_style.columns), None)
+    sponsor_col_check = "الكفيل" if "الكفيل" in df_to_style.columns else None
+
+    if not target_container_col:
+        return df_to_style.style
+
+    def highlight_cells(row):
+        styles = [''] * len(row)
+        if target_container_col in df_to_style.columns:
+            col_idx = df_to_style.columns.get_loc(target_container_col)
+            
+            # التحقق من حالة الكفيل
+            is_arrived = False
+            is_not_arrived = False
+            
+            if sponsor_col_check and sponsor_col_check in row:
+                sponsor_val = str(row[sponsor_col_check]).strip()
+                if "لم تصل بعد" in sponsor_val:
+                    is_not_arrived = True
+                elif sponsor_val and sponsor_val != "nan" and sponsor_val != "غير محدد":
+                    is_arrived = True
+            
+            if is_not_arrived:
+                styles[col_idx] = 'background-color: #fef08a; color: #713f12; font-weight: bold;'  # أصفر
+            elif is_arrived:
+                styles[col_idx] = 'background-color: #bbf7d0; color: #14532d; font-weight: bold;'  # أخضر
+                
+        return styles
+
+    return df_to_style.style.apply(highlight_cells, axis=1)
+
 # 4. التنقل بين الصفحات
 if page == "📊 لوحة التحكم (Dashboard)":
     st.title("📊 لوحة التحكم الرئيسية")
     st.markdown("---")
     render_dashboard_metrics(filtered_df)
     render_download_buttons(filtered_df)
-    st.dataframe(filtered_df, use_container_width=True, height=700)
+    
+    styled_filtered_df = style_container_column(filtered_df)
+    st.dataframe(styled_filtered_df, use_container_width=True, height=700)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "💰 كشف الكمارك المستحصلة":
@@ -360,5 +395,7 @@ elif page == "📈 واجهة التقارير":
     st.markdown("---")
     render_dashboard_metrics(filtered_df)
     render_download_buttons(filtered_df)
-    st.dataframe(filtered_df, use_container_width=True, height=500)
+    
+    styled_filtered_df = style_container_column(filtered_df)
+    st.dataframe(styled_filtered_df, use_container_width=True, height=500)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
