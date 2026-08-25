@@ -1,62 +1,46 @@
-# دالة العرض المصلحة بالكامل (استبدل هذه الدالة في كودك)
-def render_formatted_dataframe(df_to_render, height=700):
-  # 1. إعداد التنسيق التلقائي للأرقام ورمز العملة بدون تعديل القيم الأصلية
-  col_config = {}
+import pandas as pd
+import streamlit as st
 
-  for col in df_to_render.columns:
-    if col == "عدد الكارتون":
-      col_config[col] = st.column_config.NumberColumn(format="%d")
-    elif col in [
-        "المجموع",
-        "الزبون دفع",
-        "المكتب دفع",
-        "Client Paid",
-        "Office Paid",
-        "مبلغ الجمرك",
-        "قيمة الاستحصالات",
-        "متبقي حقيقي",
-    ]:
-      col_config[col] = st.column_config.NumberColumn(format="¥%.2f")
-    elif col in ["الوزن", "حجم"]:
-      col_config[col] = st.column_config.NumberColumn(format="%.2f")
+def clean_dataframe_for_streamlit(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    تنظيف كافة الأعمدة وتحويلها إلى أنواع بيانات متوافقة مع PyArrow/Streamlit
+    """
+    df_clean = df.copy()
+    
+    for col in df_clean.columns:
+        # إذا كان العمود نصياً أو يحوي كائنات (object)
+        if df_clean[col].dtype == 'object' or isinstance(df_clean[col].dtype, pd.CategoricalDtype):
+            # 1. تحويل العمود إلى نص وإزالة المساحات الزائدة
+            s = df_clean[col].astype(str).str.strip()
+            
+            # 2. فحص ما إذا كان العمود ينتهي/يبدأ بأرقام أو يحتوي رموز عملات
+            # نحول الخانات الفارغة أو النصوص 'nan' إلى NaN
+            s_cleaned = s.replace(['', 'nan', 'None', 'null'], None)
+            
+            # 3. محاولة تنظيف رموز العملات والأرقام (مثل ¥2,732.74)
+            s_numeric_candidate = s.str.replace(r'[^\d.-]', '', regex=True)
+            
+            # محاولة التحويل إلى أرقام
+            converted_num = pd.to_numeric(s_numeric_candidate, errors='coerce')
+            
+            # إذا نجح تحويل معظم القيم غير الفارغة إلى أرقام، نعتمد التحويل الرقمي
+            non_null_orig = s_cleaned.dropna()
+            if len(non_null_orig) > 0 and converted_num.dropna().count() / len(non_null_orig) > 0.5:
+                df_clean[col] = converted_num
+            else:
+                # وإلا نتركه كنص صافٍ مع استبدال القيم الفارغة بـ None
+                df_clean[col] = s_cleaned
+                
+    return df_clean
 
-  # 2. تطبيق الألوان خلف النص فقط دون تغيير أو مسح القيم
-  def style_columns(data):
-    styles = pd.DataFrame("", index=data.index, columns=data.columns)
+# ---------------------------------------------------------
+# مثال لتطبيق الحل في كودك:
+# ---------------------------------------------------------
+# 1. بعد قراءة الملف (سواء من Excel أو CSV)
+# df = pd.read_excel("data.xlsx")
 
-    # خلفية وردية مخصصة لأعمدة المبالغ المالية
-    chinese_style = (
-        "background-color: #ffe4e6 !important; color: #9f1239 !important;"
-        " font-weight: bold;"
-    )
-    for target_col in [
-        "المجموع",
-        "الزبون دفع",
-        "المكتب دفع",
-        "Client Paid",
-        "Office Paid",
-    ]:
-      if target_col in data.columns:
-        styles[target_col] = chinese_style
+# 2. قم بتمرير البيانات للدالة لتنظيفها
+df = clean_dataframe_for_streamlit(df)
 
-    if "code" in data.columns:
-      styles["code"] = (
-          "background-color: #fef9c3 !important; color: #854d0e !important;"
-          " font-weight: bold;"
-      )
-
-    if "حجم" in data.columns:
-      styles["حجم"] = (
-          "background-color: #fef2f2 !important; color: #dc2626 !important;"
-          " font-weight: bold;"
-      )
-
-    return styles
-
-  # 3. عرض الجدول
-  st.dataframe(
-      df_to_render.style.apply(style_columns, axis=None),
-      column_config=col_config,
-      use_container_width=True,
-      height=height,
-  )
+# 3. الآن يمكنك استخدام st.dataframe بشكل طبيعي دون أخطاء PyArrow
+st.dataframe(df, use_container_width=True)
