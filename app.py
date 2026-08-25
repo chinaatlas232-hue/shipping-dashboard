@@ -8,7 +8,7 @@ st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
 )
 
-# CSS مخصص يتيح التمرير الأفقي ويمنع اخفاء/اقتطاع أي عمود
+# CSS مخصص للجدول المظلم صاحب الهيدر الأحمر الذكي
 st.markdown(
     """
     <style>
@@ -27,7 +27,7 @@ st.markdown(
         border: 2px solid #3b82f6 !important;
     }
 
-    /* --- جدول HTML يعرض كافة الأعمدة ويسمح بالتمرير الأفقي --- */
+    /* --- جدول HTML ذو الهيدر الأحمر والخلفية الداكنة --- */
     .custom-table-container {
         width: 100%;
         max-height: 700px;
@@ -88,7 +88,7 @@ def clean_numeric(series):
   )
 
 
-# 2. تحميل البيانات وتجهيز الحقول
+# 2. تحميل البيانات
 def load_data(uploaded_file):
   df = None
   if uploaded_file is not None:
@@ -181,7 +181,7 @@ def apply_strict_code_search(data_frame, search_term):
   return data_frame[code_series.str.startswith(clean_term)]
 
 
-# 3. تحميل البيانات
+# 3. رفع وتحميل البيانات
 uploaded_file = st.sidebar.file_uploader(
     "📁 رفع ملف Excel جديد", type=["xlsx", "xls"]
 )
@@ -190,7 +190,6 @@ df = load_data(uploaded_file)
 # 4. القائمة الجانبية (Sidebar)
 st.sidebar.title("🚢 إدارة اللوجستيات")
 
-# 🔍 **مربع البحث الجانبي المطلوب بالضبط تحت العنوان**
 sidebar_search_term = st.sidebar.text_input(
     "🔍 بحث ذكي (كود / كفيل / حاوية):",
     value="",
@@ -207,7 +206,6 @@ container_col = next(
 
 filtered_df = df.copy()
 
-# تطبيق الفلتر الجانبي الذكي عند إدخال نص
 if sidebar_search_term:
   search_cols = [
       c
@@ -341,7 +339,6 @@ def render_dashboard_metrics(data_df):
     )
 
 
-# دالة طباعة كافة أعمدة الـ DataFrame في الجدول
 def render_red_header_table(data_df):
   html_table = (
       '<div class="custom-table-container"><table class="custom-table"><thead><tr>'
@@ -383,6 +380,7 @@ elif page == "💰 كشف الكمارك المستحصلة":
   st.title("💰 كشف الكمارك المستحصلة من العميل (Pivot Report)")
   st.markdown("---")
 
+  # نموذج البحث
   with st.form(key="search_form"):
     search_query = (
         st.text_input(
@@ -408,4 +406,5 @@ elif page == "💰 كشف الكمارك المستحصلة":
       )
       pivot_filtered_df = pivot_filtered_df[mask.any(axis=1)]
 
+  # عرض الجدول بنفس التنسيق المظلم ذي الهيدر الأحمر بدون أي تغيير
   render_red_header_table(pivot_filtered_df)
