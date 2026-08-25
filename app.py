@@ -5,17 +5,18 @@ st.set_page_config(page_title="شركة أطلس المحيط - اعمار ال�
 
 st.title("⏳ اعمار الديون للعملاء (Aging Report)")
 
-# استبدل 'data.xlsx' باسم ملف Excel الفعلي الموجود في مشروعك
+# قراءة ملف البيانات الفعلي الموجود في المشروع
 try:
-  df = pd.read_excel("data.xlsx")
+  df = pd.read_excel("ذكاء.xlsx")
 except Exception as e:
-  st.warning("الرجاء تأكد من اسم ملف البيانات الصحيح في مجلد المشروع.")
-  # مثال افتراضي لتجنب التوقف إذا لم يوجد الملف بعد
+  st.error(f"خطأ في قراءة ملف البيانات: {e}")
   df = pd.DataFrame()
 
 if not df.empty:
-  # تصفية الصفوف بحيث يتم إبقاء القيم التي أكبر من 0 في الإجمالي العام
-  if "Grand Total" in df.columns:
+  # تصفية الصفوف بحيث يتم إبقاء القيم التي أكبر من 0 في عمود المتبقي أو الإجمالي
+  if "المتبقي" in df.columns:
+    df_filtered = df[df["المتبقي"] > 0]
+  elif "Grand Total" in df.columns:
     df_filtered = df[df["Grand Total"] > 0]
   else:
     df_filtered = df.copy()
@@ -25,6 +26,7 @@ if not df.empty:
   )
   st.dataframe(df_filtered, use_container_width=True)
 
+  # زر تحميل البيانات المصفاة
   csv = df_filtered.to_csv(index=False).encode("utf-8")
   st.download_button(
       label="Download as CSV",
