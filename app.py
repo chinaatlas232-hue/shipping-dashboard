@@ -105,14 +105,17 @@ st.markdown(
 DATA_FILE = "shipping_data.xlsx"
 
 def clean_numeric(series):
-    return pd.to_numeric(
+    # تحويل القيم إلى نصوص ومعالجة كافة الرموز والمسافات الخفية لضمان قراءة الأرقام بدقة
+    cleaned = (
         series.astype(str)
         .str.replace("¥", "", regex=False)
         .str.replace("$", "", regex=False)
         .str.replace(",", "", regex=False)
-        .str.strip(),
-        errors="coerce"
-    ).fillna(0)
+        .str.replace(" ", "", regex=False)
+        .str.strip()
+    )
+    cleaned = cleaned.replace(["nan", "None", "", "null", "-"], "0")
+    return pd.to_numeric(cleaned, errors="coerce").fillna(0)
 
 # 2. تحميل البيانات
 def load_data(uploaded_file):
@@ -140,12 +143,7 @@ def load_data(uploaded_file):
 
     df.columns = df.columns.astype(str).str.strip()
 
-    if "الزبون دفع" in df.columns and "Client Paid" not in df.columns:
-        df["Client Paid"] = df["الزبون دفع"]
-
-    if "المكتب دفع" in df.columns and "Office Paid" not in df.columns:
-        df["Office Paid"] = df["المكتب دفع"]
-
+    # تنظيف وتجهيز الأعمدة الرقمية لضمان عدم ظهورها كصفر
     numeric_cols = [
         "المكتب دفع", "Office Paid", "الزبون دفع", "Client Paid",
         "عدد الكارتون", "الوزن", "حجم", "المجموع", "مبلغ الجمرك", "قيمة الاستحصالات"
@@ -153,6 +151,16 @@ def load_data(uploaded_file):
     for col in numeric_cols:
         if col in df.columns:
             df[col] = clean_numeric(df[col])
+
+    if "الزبون دفع" in df.columns and "Client Paid" not in df.columns:
+        df["Client Paid"] = df["الزبون دفع"]
+    elif "Client Paid" in df.columns and "الزبون دفع" not in df.columns:
+        df["الزبون دفع"] = df["Client Paid"]
+
+    if "المكتب دفع" in df.columns and "Office Paid" not in df.columns:
+        df["Office Paid"] = df["المكتب دفع"]
+    elif "Office Paid" in df.columns and "المكتب دفع" not in df.columns:
+        df["المكتب دفع"] = df["Office Paid"]
 
     if "مبلغ الجمرك" in df.columns and "قيمة الاستحصالات" in df.columns:
         df["متبقي حقيقي"] = df["مبلغ الجمرك"] - df["قيمة الاستحصالات"]
