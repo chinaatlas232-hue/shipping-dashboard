@@ -43,7 +43,7 @@ def clean_numeric(series):
         errors="coerce"
     ).fillna(0)
 
-# 2. تحميل البيانات
+# 2. تحميل البيانات (بدون بيانات وهمية افتراضية)
 def load_data(uploaded_file):
     df = None
     if uploaded_file is not None:
@@ -60,23 +60,13 @@ def load_data(uploaded_file):
         except Exception:
             df = None
 
+    # إذا لم يتم رفع ملف ولا يوجد ملف مخزن، يتم إنشاء إطار بيانات فارغ بالأعمدة الأساسية
     if df is None:
-        df = pd.DataFrame({
-            "No": [1324, 1352],
-            "code": ["BS79", "BS79"],
-            "الكفيل": ["مرتضى", "لم تصل بعد"],
-            "Shipping mark": ["BS79-C23", "BS79-C03"],
-            "رقم دخول المخزن": ["RS2607223184", "RS2607202745"],
-            "المكتب دفع": [0, 0],
-            "الزبون دفع": [100, 690],
-            "المجموع": [3465, 5600],
-            "عدد الكارتون": [1, 2],
-            "الوزن": [40, 98],
-            "حجم": [0.132, 0.525],
-            "رقم الحاوية": ["RQ6029", "RQ6034"],
-            "مبلغ الجمرك": [3768.30, 94.80],
-            "قيمة الاستحصالات": [0.0, 0.0]
-        })
+        df = pd.DataFrame(columns=[
+            "No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن",
+            "المكتب دفع", "الزبون دفع", "المجموع", "عدد الكارتون",
+            "الوزن", "حجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات"
+        ])
 
     df.columns = df.columns.astype(str).str.strip()
 
@@ -105,7 +95,6 @@ st.sidebar.markdown("---")
 
 uploaded_file = st.sidebar.file_uploader("📁 رفع ملف Excel جديد", type=["xlsx", "xls"])
 
-# زر مسح بيانات شيت الطلبات فقط (حذف ملف البيانات المحفوظ وإعادة تحميل الصفحة)
 if st.sidebar.button("🗑️ مسح بيانات الملف الحالي"):
     if os.path.exists(DATA_FILE):
         try:
@@ -122,19 +111,17 @@ filtered_df = df.copy()
 
 st.sidebar.markdown("### 🔍 الفلاتر الجانبية")
 
-# فلتر رقم الحاوية
 container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df.columns), None)
 selected_container = "الكل"
-if container_col:
+if container_col and not df.empty:
     containers = ["الكل"] + sorted(df[container_col].dropna().astype(str).unique().tolist())
     selected_container = st.sidebar.selectbox("🚢 اختر رقم الحاوية:", containers)
     if selected_container != "الكل":
         filtered_df = filtered_df[filtered_df[container_col].astype(str) == selected_container]
 
-# فلتر الكود (المدمج الجديد بدقة)
 code_col = next((c for c in ["code", "الكود", "كود"] if c in df.columns), "code")
 selected_code = "الكل"
-if code_col in df.columns:
+if code_col in df.columns and not df.empty:
     codes = ["الكل"] + sorted(df[code_col].dropna().astype(str).unique().tolist())
     selected_code = st.sidebar.selectbox("🏷️ اختر الكود (Code):", codes)
     if selected_code != "الكل":
@@ -182,13 +169,13 @@ def render_dashboard_metrics(data_df):
     total_volume = data_df["حجم"].sum() if "حجم" in data_df.columns else 0
 
     target_customer_col = next((c for c in [code_col, "code", "الكفيل", "الزبون"] if c in data_df.columns), None)
-    total_customers = data_df[target_customer_col].nunique() if target_customer_col else 0
+    total_customers = data_df[target_customer_col].nunique() if target_customer_col and not data_df.empty else 0
 
     office_paid_col = next((c for c in ["المكتب دفع", "Office Paid"] if c in data_df.columns), None)
     client_paid_col = next((c for c in ["الزبون دفع", "Client Paid"] if c in data_df.columns), None)
 
-    office_paid = data_df[office_paid_col].sum() if office_paid_col else 0.0
-    client_paid = data_df[client_paid_col].sum() if client_paid_col else 0.0
+    office_paid = data_df[office_paid_col].sum() if office_paid_col and not data_df.empty else 0.0
+    client_paid = data_df[client_paid_col].sum() if client_paid_col and not data_df.empty else 0.0
 
     c1, c2, c3, c4, c5, c6, c7 = st.columns(7)
     with c1:
@@ -236,13 +223,13 @@ elif page == "💰 كشف الكمارك المستحصلة":
     
     pivot_filtered_df = filtered_df.copy()
     
-    if search_query:
+    if search_query and not pivot_filtered_df.empty:
         search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات"] if c in pivot_filtered_df.columns]
         if search_cols:
             mask = pivot_filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
             pivot_filtered_df = pivot_filtered_df[mask.any(axis=1)]
 
-    total_customs = pivot_filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in pivot_filtered_df else 0.0
+    total_customs = pivot_filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in pivot_filtered_df and not pivot_filtered_df.empty else 0.0
     
     sponsor_name = "الكفيل"
     sponsor_remaining = 0.0
