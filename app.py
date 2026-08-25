@@ -306,11 +306,8 @@ if page == "dashboard":
     total_ctns = filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in filtered_df.columns else 0
     total_volume = filtered_df["حجم"].sum() if "حجم" in filtered_df.columns else 0
     
-    # حساب إجمالي عدد العملاء (الزبائن) الفريدين بناءً على حقل الكود أو اسم الزبون إذا وجد
     client_field_candidates = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in filtered_df.columns]
     total_clients = filtered_df[client_field_candidates[0]].nunique() if client_field_candidates and not filtered_df.empty else 0
-
-    # حساب إجمالي عدد الحاويات الكلي الفريدة
     total_containers_count = filtered_df[container_col].nunique() if container_col and container_col in filtered_df.columns and not filtered_df.empty else 0
 
     office_paid_col = next((c for c in ["Office Paid", "المكتب دفع"] if c in filtered_df.columns), None)
@@ -319,7 +316,6 @@ if page == "dashboard":
     total_office_paid = filtered_df[office_paid_col].sum() if office_paid_col else 0
     total_client_paid = filtered_df[client_paid_col].sum() if client_paid_col else 0
 
-    # الصف الأول من المربعات (4 مربعات)
     row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
     with row1_c1:
         st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات / الطرود</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
@@ -330,7 +326,6 @@ if page == "dashboard":
     with row1_c4:
         st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.0f}</div></div>', unsafe_allow_html=True)
 
-    # الصف الثاني من المربعات (4 مربعات)
     row2_c1, row2_c2, row2_c3, row2_c4 = st.columns(4)
     with row2_c1:
         st.markdown(f'<div class="metric-card" style="background-color: #047857;"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
@@ -391,6 +386,15 @@ elif page == "customs":
         st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">¥{not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
+    
+    # إضافة زر التنزيل وعرض الجدول التفصيلي هنا
+    st.markdown("### 📋 جدول تفصيلي للشحنات")
+    render_download_buttons(pivot_filtered_df)
+    
+    styled_pivot_df = style_container_column(pivot_filtered_df)
+    customs_table_height = max(300, min(len(pivot_filtered_df) * 35 + 50, 1200))
+    st.dataframe(styled_pivot_df, use_container_width=True, height=customs_table_height)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "sponsors":
     st.title("👥 الديون على الكفلاء")
