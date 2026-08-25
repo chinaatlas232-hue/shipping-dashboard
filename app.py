@@ -27,7 +27,6 @@ st.markdown(
         color: #1f2937 !important;
     }
     
-    /* تصغير أبعاد الجدول ليتناسب مع النص */
     div[data-testid="stDataFrame"] div[role="columnheader"],
     div[data-testid="stDataFrame"] div[role="gridcell"] {
         padding: 2px 6px !important;
@@ -36,7 +35,6 @@ st.markdown(
         min-height: 28px !important;
     }
     
-    /* جعل رأس الجدول باللون الأسود */
     div[data-testid="stDataFrame"] div[role="columnheader"] {
         color: #000000 !important;
         font-weight: bold !important;
@@ -50,17 +48,13 @@ DATA_FILE = "shipping_data.xlsx"
 
 
 def clean_numeric(series):
-  return (
-      pd.to_numeric(
-          series.astype(str)
-          .str.replace("¥", "", regex=False)
-          .str.replace("$", "", regex=False)
-          .str.replace(",", "", regex=False)
-          .str.strip(),
-          errors="coerce",
-      )
-      .fillna(0)
-      .round(2)
+  return pd.to_numeric(
+      series.astype(str)
+      .str.replace("¥", "", regex=False)
+      .str.replace("$", "", regex=False)
+      .str.replace(",", "", regex=False)
+      .str.strip(),
+      errors="coerce",
   )
 
 
@@ -102,7 +96,6 @@ def load_data(uploaded_file):
 
   df.columns = df.columns.astype(str).str.strip()
 
-  # حذف عمود No المتكرر فقط وتأكيد إبقاء عمود code
   if "No." in df.columns:
     df = df.drop(columns=["No."])
   if "No" in df.columns:
@@ -132,7 +125,7 @@ def load_data(uploaded_file):
 
   if "مبلغ الجمرك" in df.columns and "قيمة الاستحصالات" in df.columns:
     df["متبقي حقيقي"] = (
-        df["مبلغ الجمرك"] - df["قيمة الاستحصالات"]
+        df["مبلغ الجمرك"].fillna(0) - df["قيمة الاستحصالات"].fillna(0)
     ).round(2)
 
   return df
@@ -276,42 +269,31 @@ def render_dashboard_metrics(data_df):
     )
 
 
-# دالة موحدة لعرض الجدول المنسق وتطبيق رمز ¥ وإظهار الكود
+# دالة العرض بدون إتلاف البيانات الأصلية
 def render_formatted_dataframe(df_to_render, height=700):
-  display_df = df_to_render.copy()
+  col_config = {}
 
-  # ضمان وجود الكود في أول الأعمدة في حال وجوده
-  if "code" in display_df.columns:
-    cols = ["code"] + [c for c in display_df.columns if c != "code"]
-    display_df = display_df[cols]
+  for col in df_to_render.columns:
+    if col == "عدد الكارتون":
+      col_config[col] = st.column_config.NumberColumn(format="%d")
+    elif col in [
+        "المجموع",
+        "الزبون دفع",
+        "المكتب دفع",
+        "Client Paid",
+        "Office Paid",
+        "مبلغ الجمرك",
+        "قيمة الاستحصالات",
+        "متبقي حقيقي",
+    ]:
+      col_config[col] = st.column_config.NumberColumn(format="¥%.2f")
+    elif col in ["الوزن", "حجم"]:
+      col_config[col] = st.column_config.NumberColumn(format="%.2f")
 
-  # تحويل القيم المالية إلى نص يحوي علامة ¥ مباشرة لمنع مشاكل التحديث
-  money_cols = [
-      "المجموع",
-      "الزبون دفع",
-      "المكتب دفع",
-      "Client Paid",
-      "Office Paid",
-      "مبلغ الجمرك",
-      "قيمة الاستحصالات",
-      "متبقي حقيقي",
-  ]
-  formatted_df = display_df.copy()
-
-  for col in money_cols:
-    if col in formatted_df.columns:
-      formatted_df[col] = formatted_df[col].apply(lambda x: f"¥{x:,.2f}")
-
-  if "عدد الكارتون" in formatted_df.columns:
-    formatted_df["عدد الكارتون"] = formatted_df["عدد الكارتون"].apply(
-        lambda x: f"{int(x)}" if pd.notna(x) else "0"
-    )
-
-  # تطبيق الألوان والتنسيق الصيني
   def style_columns(data):
     styles = pd.DataFrame("", index=data.index, columns=data.columns)
 
-    # اللون الصيني لأعمدة المبالغ (وردي فاتح وكتابة حمراء غامقة)
+    # التنسيق الوردي الصيني لأعمدة المبالغ
     chinese_style = (
         "background-color: #ffe4e6 !important; color: #9f1239 !important;"
         " font-weight: bold;"
@@ -326,14 +308,12 @@ def render_formatted_dataframe(df_to_render, height=700):
       if target_col in data.columns:
         styles[target_col] = chinese_style
 
-    # تمييز الكود باللون الأصفر
     if "code" in data.columns:
       styles["code"] = (
           "background-color: #fef9c3 !important; color: #854d0e !important;"
           " font-weight: bold;"
       )
 
-    # تمييز الحجم باللون الأحمر الخفيف
     if "حجم" in data.columns:
       styles["حجم"] = (
           "background-color: #fef2f2 !important; color: #dc2626 !important;"
@@ -343,7 +323,8 @@ def render_formatted_dataframe(df_to_render, height=700):
     return styles
 
   st.dataframe(
-      formatted_df.style.apply(style_columns, axis=None),
+      df_to_render.style.apply(style_columns, axis=None),
+      column_config=col_config,
       use_container_width=True,
       height=height,
   )
