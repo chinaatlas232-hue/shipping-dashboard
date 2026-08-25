@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import streamlit as st
 
-# 1. إعداد الصفحة والتنسيقات (تم تعديل العرض ليملأ الشاشة بالكامل)
+# 1. إعداد الصفحة والتنسيقات (عرض الشاشة بالكامل وبدون قيود)
 st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
 )
@@ -270,8 +270,9 @@ if page == "📊 لوحة التحكم (Dashboard)":
     render_download_buttons(filtered_df)
     
     styled_filtered_df = style_container_column(filtered_df)
-    # تم تكبير الجدول ليملأ الشاشة بعرض كامل وارتفاع 800 بكسل
-    st.dataframe(styled_filtered_df, use_container_width=True, height=800)
+    # عرض الجدول بالكامل بدون سكرول داخلي (تم احتساب الارتفاع بناءً على عدد الصفوف تلقائياً)
+    table_height = max(300, min(len(filtered_df) * 35 + 50, 1200))
+    st.dataframe(styled_filtered_df, use_container_width=True, height=table_height)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "💰 كشف اجور الكمارك":
@@ -403,8 +404,10 @@ elif page == "💰 كشف اجور الكمارك":
 
         styled_pivot = display_df.style.apply(apply_row_styles, axis=1)
         render_download_buttons(display_df)
-        # تكبير جدول الكمارك ليمتلئ بعرض الشاشة وارتفاع 800 بكسل
-        st.dataframe(styled_pivot, use_container_width=True, height=800)
+        
+        # عرض جدول الكمارك بالكامل بدون سكرول داخلي
+        pivot_table_height = max(300, min(len(display_df) * 35 + 50, 1200))
+        st.dataframe(styled_pivot, use_container_width=True, height=pivot_table_height)
         st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
     else:
         st.warning("لا توجد نتائج مطابقة.")
@@ -479,11 +482,14 @@ elif page == "📈 واجهة التقارير":
                 return 'background-color: #ffffff; color: #000000; font-weight: bold;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
-            # تكبير جدول التقارير البايفت ليمتلئ بعرض الشاشة وارتفاع 800 بكسل
-            st.dataframe(styled_matrix, use_container_width=True, height=800)
+            
+            # عرض جدول التقارير بالكامل بدون سكرول داخلي
+            matrix_height = max(300, min(len(pivot_table_df) * 35 + 50, 1200))
+            st.dataframe(styled_matrix, use_container_width=True, height=matrix_height)
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت (الكود، رقم الحاوية، مبلغ الجمرك) غير متوفرة بالكامل.")
-            st.dataframe(sponsor_summary, use_container_width=True, height=800)
+            summary_height = max(300, min(len(sponsor_summary) * 35 + 50, 1200))
+            st.dataframe(sponsor_summary, use_container_width=True, height=summary_height)
     else:
         st.warning("لا توجد بيانات متاحة لعرض التقارير حالياً.")
     
