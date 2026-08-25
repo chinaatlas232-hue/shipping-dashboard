@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import streamlit as st
 
-# 1. إعداد الصفحة والتنسيقات
+# 1. إعداد الصفحة والتنسيقات (تم تعديل العرض ليملأ الشاشة بالكامل)
 st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
 )
@@ -19,7 +19,15 @@ st.markdown(
     }
     .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
     .metric-value { font-size: 20px; font-weight: bold; }
-    .block-container { padding-top: 1.5rem !important; padding-bottom: 4rem; max-width: 99% !important; }
+    
+    /* جعل الحاوية وتخطيط الصفحة يمتد على كامل الشاشة وبدون هوامش جانبية مقيدة */
+    .block-container { 
+        padding-top: 1rem !important; 
+        padding-bottom: 3rem !important; 
+        padding-left: 1rem !important; 
+        padding-right: 1rem !important; 
+        max-width: 100% !important; 
+    }
 
     [data-testid="stTextInput"] label {
         font-size: 18px !important;
@@ -29,6 +37,7 @@ st.markdown(
 
     [data-testid="stDataFrame"] {
         margin-bottom: 35px !important;
+        width: 100% !important;
     }
     
     /* تخصيص شريط التمرير ليصبح على شكل مربع صغير ومرتب بلون أحمر فاتح */
@@ -261,7 +270,8 @@ if page == "📊 لوحة التحكم (Dashboard)":
     render_download_buttons(filtered_df)
     
     styled_filtered_df = style_container_column(filtered_df)
-    st.dataframe(styled_filtered_df, use_container_width=True, height=700)
+    # تم تكبير الجدول ليملأ الشاشة بعرض كامل وارتفاع 800 بكسل
+    st.dataframe(styled_filtered_df, use_container_width=True, height=800)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "💰 كشف اجور الكمارك":
@@ -393,7 +403,8 @@ elif page == "💰 كشف اجور الكمارك":
 
         styled_pivot = display_df.style.apply(apply_row_styles, axis=1)
         render_download_buttons(display_df)
-        st.dataframe(styled_pivot, use_container_width=True, height=750)
+        # تكبير جدول الكمارك ليمتلئ بعرض الشاشة وارتفاع 800 بكسل
+        st.dataframe(styled_pivot, use_container_width=True, height=800)
         st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
     else:
         st.warning("لا توجد نتائج مطابقة.")
@@ -460,7 +471,6 @@ elif page == "📈 واجهة التقارير":
             grand_total_row = pivot_table_df.sum(axis=0)
             pivot_table_df.loc["Grand Total"] = grand_total_row
 
-            # استخدام map بدلاً من applymap لضمان التوافق مع الإصدارات الحديثة
             formatted_pivot = pivot_table_df.map(lambda val: f"${val:,.0f}" if val > 0 else "")
             
             def style_pivot_cells(val):
@@ -469,10 +479,11 @@ elif page == "📈 واجهة التقارير":
                 return 'background-color: #ffffff; color: #000000; font-weight: bold;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
-            st.dataframe(styled_matrix, use_container_width=True)
+            # تكبير جدول التقارير البايفت ليمتلئ بعرض الشاشة وارتفاع 800 بكسل
+            st.dataframe(styled_matrix, use_container_width=True, height=800)
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت (الكود، رقم الحاوية، مبلغ الجمرك) غير متوفرة بالكامل.")
-            st.dataframe(sponsor_summary, use_container_width=True)
+            st.dataframe(sponsor_summary, use_container_width=True, height=800)
     else:
         st.warning("لا توجد بيانات متاحة لعرض التقارير حالياً.")
     
