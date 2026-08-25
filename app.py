@@ -387,13 +387,68 @@ elif page == "customs":
 
     st.markdown("---")
     
-    # إضافة زر التنزيل وعرض الجدول التفصيلي هنا
-    st.markdown("### 📋 جدول تفصيلي للشحنات")
-    render_download_buttons(pivot_filtered_df)
+    # جدول البايفت الخاص بكشف أجور الكمارك (الاستحصالات والمتبقي حسب الكود والحاوية)
+    st.markdown("### 📊 جدول الاستحصالات والمتبقي للشحنات (Pivot Table)")
     
-    styled_pivot_df = style_container_column(pivot_filtered_df)
-    customs_table_height = max(300, min(len(pivot_filtered_df) * 35 + 50, 1200))
-    st.dataframe(styled_pivot_df, use_container_width=True, height=customs_table_height)
+    pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
+    pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
+    
+    # اختيار القيمة المراد عرضها في جدول البايفت (المتبقي حقيقي أو قيمة الاستحصالات)
+    metric_choice = st.radio("اختر نوع البيانات لعرضها في الجدول:", ["المتبقي حقيقي", "قيمة الاستحصالات", "مبلغ الجمرك"], horizontal=True)
+
+    if pivot_code_col and pivot_container_col and metric_choice in pivot_filtered_df.columns:
+        base_pivot_df = pivot_filtered_df.copy()
+
+        pivot_table_df = base_pivot_df.pivot_table(
+            index=pivot_code_col,
+            columns=pivot_container_col,
+            values=metric_choice,
+            aggfunc="sum",
+            fill_value=0
+        )
+
+        pivot_table_df = pivot_table_df[(pivot_table_df != 0).any(axis=1)]
+
+        pivot_table_df["Grand Total"] = pivot_table_df.sum(axis=1)
+        grand_total_row = pivot_table_df.sum(axis=0)
+        pivot_table_df.loc["Grand Total"] = grand_total_row
+
+        new_columns = []
+        for col in pivot_table_df.columns:
+            if col == "Grand Total":
+                new_columns.append(col)
+                continue
+            
+            sub_df = base_pivot_df[base_pivot_df[pivot_container_col].astype(str) == str(col)]
+            is_not_arrived = False
+            if not sub_df.empty and "الكفيل" in sub_df.columns:
+                sponsors_in_col = sub_df["الكفيل"].astype(str).unique()
+                if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
+                    is_not_arrived = True
+            
+            bg_color = "#fef08a" if is_not_arrived else "#bbf7d0"
+            html_col_name = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{col}</div>'
+            new_columns.append(html_col_name)
+
+        pivot_table_df.columns = new_columns
+
+        formatted_pivot = pivot_table_df.map(
+            lambda val: f"¥{val:,.0f}" if isinstance(val, (int, float)) and val != 0 else ""
+        )
+        
+        def style_pivot_cells(val):
+            if val == "":
+                return 'background-color: #f8fafc; color: transparent;'
+            return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
+
+        styled_matrix = formatted_pivot.style.map(style_pivot_cells)
+        
+        render_download_buttons(pivot_table_df.reset_index())
+        matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
+        st.markdown(f'<div style="width: 100%; overflow-x: auto;">{matrix_html}</div>', unsafe_allow_html=True)
+    else:
+        st.warning("الأعمدة المطلوبة لإنشاء الجدول المحوري غير متوفرة أو البيانات فارغة.")
+
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "sponsors":
