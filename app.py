@@ -391,10 +391,49 @@ elif page == "💰 كشف اجور الكمارك":
         st.warning("لا توجد نتائج مطابقة.")
 
 elif page == "📈 واجهة التقارير":
-    st.title("📈 واجهة التقارير الشاملة")
+    st.title("📈 واجهة التقارير الشاملة حسب الكفيل")
     st.markdown("---")
     
-    # تم إفراغ هذه الصفحة تماماً لتتمكن من بناء محتواها وابتكار أشكال تقارير جديدة من الصفر حسب رغبتك!
-    st.info("هذه الصفحة جاهزة الآن لبناء واجهة التقارير الجديدة من الصفر.")
+    if "الكفيل" in filtered_df.columns and not filtered_df.empty:
+        # تجميع البيانات لكل كفيل استناداً للجدول
+        sponsor_summary = filtered_df.groupby("الكفيل").agg(
+            total_customs=("مبلغ الجمرك", "sum"),
+            total_collected=("قيمة الاستحصالات", "sum"),
+            total_remaining=("متبقي حقيقي", "sum"),
+            total_orders=("No", "count")
+        ).reset_index()
+
+        st.markdown("### 📋 ملخص المبالغ لكل كفيل")
+        
+        # عرض المربعات (Cards) لكل كفيل بشكل ديناميكي
+        for index, row in sponsor_summary.iterrows():
+            sponsor_name = row["الكفيل"]
+            s_customs = row["total_customs"]
+            s_collected = row["total_collected"]
+            s_remaining = row["total_remaining"]
+            s_orders = row["total_orders"]
+            
+            # اختيار لون مميز للمربع بناءً على حالة الكفيل
+            card_bg = "#1e3a8a" # أزرق افتراضي
+            if "لم تصل بعد" in str(sponsor_name):
+                card_bg = "#b45309" # برتقالي/أصفر داكن للحالات التي لم تصل
+            
+            st.markdown(f"""
+                <div style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px;">👤 الكفيل: {sponsor_name}</h3>
+                    <div style="display: flex; justify-content: space-between; font-size: 15px; text-align: center;">
+                        <div>📦 الطلبات: <b>{s_orders:,}</b></div>
+                        <div>💰 الجمرك: <b>${s_customs:,.2f}</b></div>
+                        <div>✅ المسدد: <b>${s_collected:,.2f}</b></div>
+                        <div>⏳ المتبقي: <b>${s_remaining:,.2f}</b></div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+        st.markdown("---")
+        st.markdown("### 📊 جدول تفصيلي بملخص الكفلاء")
+        st.dataframe(sponsor_summary, use_container_width=True)
+    else:
+        st.warning("لا توجد بيانات متاحة لعرض التقارير حالياً.")
     
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
