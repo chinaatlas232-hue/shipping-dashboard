@@ -170,8 +170,7 @@ page = st.sidebar.radio(
         "📊 لوحة التحكم (Dashboard)",
         "💰 كشف اجور الكمارك",
         "👥 الديون على الكفلاء",
-        "🛃 كمرك الشحنات والاستحصالات",
-        "📦 تفاصيل الحاويات"
+        "🛃 كمرك الشحنات والاستحصالات"
     ]
 )
 st.sidebar.markdown("---")
@@ -578,47 +577,5 @@ elif page == "🛃 كمرك الشحنات والاستحصالات":
         st.dataframe(styled_summary, use_container_width=True, height=summary_height)
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
-
-    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
-
-elif page == "📦 تفاصيل الحاويات":
-    st.title("📦 تفاصيل الحاويات الشاملة")
-    st.markdown("---")
-    
-    container_search = st.text_input("🔍 ابحث برقم حاوية محدد:", "").strip()
-    page_data = filtered_df.copy()
-    
-    target_cont_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in page_data.columns), None)
-    
-    if container_search and target_cont_col and not page_data.empty:
-        page_data = page_data[page_data[target_cont_col].astype(str).str.contains(container_search, case=False, na=False)]
-
-    if not page_data.empty:
-        t_orders = len(page_data)
-        t_cartons = page_data["عدد الكارتون"].sum() if "عدد الكارتون" in page_data.columns else 0
-        t_weight = page_data["الوزن"].sum() if "الوزن" in page_data.columns else 0
-        t_customs = page_data["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in page_data.columns else 0
-        t_remaining = page_data["متبقي حقيقي"].sum() if "متبقي حقيقي" in page_data.columns else 0
-
-        dc1, dc2, dc3, dc4, dc5 = st.columns(5)
-        with dc1:
-            st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">عدد السجلات</div><div class="metric-value">{t_orders:,}</div></div>', unsafe_allow_html=True)
-        with dc2:
-            st.markdown(f'<div class="metric-card" style="background-color: #0284c7;"><div class="metric-title">مجموع الكارتون</div><div class="metric-value">{t_cartons:,.0f}</div></div>', unsafe_allow_html=True)
-        with dc3:
-            st.markdown(f'<div class="metric-card" style="background-color: #0d9488;"><div class="metric-title">مجموع الوزن</div><div class="metric-value">{t_weight:,.2f} kg</div></div>', unsafe_allow_html=True)
-        with dc4:
-            st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">إجمالي الجمرك</div><div class="metric-value">${t_customs:,.2f}</div></div>', unsafe_allow_html=True)
-        with dc5:
-            st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">إجمالي المتبقي</div><div class="metric-value">${t_remaining:,.2f}</div></div>', unsafe_allow_html=True)
-
-        st.markdown("---")
-        render_download_buttons(page_data)
-
-        styled_page_data = style_container_column(page_data)
-        table_height = max(300, min(len(page_data) * 35 + 50, 1200))
-        st.dataframe(styled_page_data, use_container_width=True, height=table_height)
-    else:
-        st.warning("لا توجد بيانات مطابقة للحاويات الحالية.")
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
