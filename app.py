@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-# إعدادات صفحة Streamlit لتكون العرض بالكامل (Wide)
+# إعدادات صفحة Streamlit لتكون العرض بالكامل (Wide) مثل التطبيق الأصلي
 st.set_page_config(layout="wide", page_title="Logistics Admin Dashboard")
 
 # --- الشريط الجانبي (Sidebar) ---
@@ -14,7 +14,7 @@ if uploaded_file is not None:
     # قراءة الملف المرفوع
     df = pd.read_excel(uploaded_file)
 
-    # 1. فلتر رقم الحاوية (البحث عن العمود المرن)
+    # 1. فلتر رقم الحاوية
     container_col = next((col for col in df.columns if "حاوية" in str(col)), None)
     if container_col:
         container_options = ["الكل"] + list(df[container_col].dropna().unique())
@@ -23,7 +23,7 @@ if uploaded_file is not None:
         selected_container = "الكل"
         container_col = None
 
-    # 2. فلتر الكود (المدمج الجديد)
+    # 2. فلتر الكود (المدمج الجديد دون تغيير التصميم)
     code_col = next((col for col in df.columns if str(col).strip().lower() in ["code", "الكود", "كود"]), "code")
     if code_col in df.columns:
         code_options = ["الكل"] + list(df[code_col].dropna().unique())
@@ -40,32 +40,34 @@ if uploaded_file is not None:
     if selected_code != "الكل" and code_col in filtered_df.columns:
         filtered_df = filtered_df[filtered_df[code_col] == selected_code]
 
-    # --- التقاط أسماء الأعمدة الخاصة بالحسابات بشكل مرن من الملف ---
+    # --- التعرف المرن على الأعمدة في ملف الإكسل الخاص بك ---
     carton_col = next((col for col in df.columns if "كارتون" in str(col) or "كرتون" in str(col)), None)
     weight_col = next((col for col in df.columns if "وزن" in str(col)), None)
     volume_col = next((col for col in df.columns if "حجم" in str(col)), None)
     
-    # أعمدة الدفع والمجاميع الظاهرة في صورتك الأصلية (المجموع، الزبون دفع)
-    company_pay_col = next((col for col in df.columns if "المجموع" in str(col) or "مجموع" in str(col)), None)
+    # البحث عن أعمدة المجموع أو دفع الشركة والزبون بالأسماء المحتملة
+    company_pay_col = next((col for col in df.columns if "المجموع" in str(col) or "مجموع" in str(col) or "دفع الشركة" in str(col)), None)
     customer_pay_col = next((col for col in df.columns if "الزبون دفع" in str(col) or "زبون" in str(col)), None)
 
-    # --- الحسابات والمعادلات الدقيقة ---
+    # --- الحسابات والمعادلات (مع معالجة النصوص والمسافات لتجنب الأخطاء) ---
     total_orders = len(filtered_df)
-    total_cartons = filtered_df[carton_col].sum() if carton_col and carton_col in filtered_df.columns else 0
-    total_weight = filtered_df[weight_col].sum() if weight_col and weight_col in filtered_df.columns else 0
-    total_volume = filtered_df[volume_col].sum() if volume_col and volume_col in filtered_df.columns else 0
-    total_company_pay = filtered_df[company_pay_col].sum() if company_pay_col and company_pay_col in filtered_df.columns else 0
-    total_customer_pay = filtered_df[customer_pay_col].sum() if customer_pay_col and customer_pay_col in filtered_df.columns else 0
+    
+    total_cartons = pd.to_numeric(filtered_df[carton_col], errors='coerce').sum() if carton_col and carton_col in filtered_df.columns else 0
+    total_weight = pd.to_numeric(filtered_df[weight_col], errors='coerce').sum() if weight_col and weight_col in filtered_df.columns else 0
+    total_volume = pd.to_numeric(filtered_df[volume_col], errors='coerce').sum() if volume_col and volume_col in filtered_df.columns else 0
+    
+    total_company_pay = pd.to_numeric(filtered_df[company_pay_col], errors='coerce').sum() if company_pay_col and company_pay_col in filtered_df.columns else 0
+    total_customer_pay = pd.to_numeric(filtered_df[customer_pay_col], errors='coerce').sum() if customer_pay_col and customer_pay_col in filtered_df.columns else 0
 
     # --- واجهة لوحة التحكم الرئيسية ---
     st.title("📊 لوحة التحكم الرئيسية")
 
-    # عرض البطاقات الملونة (Metrics)
+    # عرض البطاقات الملونة (Metrics) بنفس التنسيق والألوان
     col1, col2, col3, col4, col5, col6 = st.columns(6)
     with col1:
         st.metric("إجمالي الطلبات", f"{total_orders:,}")
     with col2:
-        st.metric("إجمالي الكارتون", f"{total_cartons:,}")
+        st.metric("إجمالي الكارتون", f"{int(total_cartons):,}")
     with col3:
         st.metric("إجمالي الوزن", f"{total_weight:,.2f} kg")
     with col4:
