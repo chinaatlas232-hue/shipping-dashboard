@@ -26,11 +26,17 @@ st.markdown(
         border: 2px solid #3b82f6 !important;
     }
 
-    /* --- توسيط محتويات ورؤوس الجدول --- */
+    /* --- توسيط محتويات ومحاذاة ورؤوس الجدول --- */
     div[data-testid="stDataFrame"] div[role="gridcell"],
     div[data-testid="stDataFrame"] div[role="columnheader"] {
         text-align: center !important;
         justify-content: center !important;
+    }
+
+    /* --- تغيير لون شريط رؤوس الجدول (Header) إلى اللون الأحمـر --- */
+    div[data-testid="stDataFrame"] div[role="columnheader"] {
+        background-color: #dc2626 !important;
+        color: #ffffff !important;
     }
     </style>
 """,
