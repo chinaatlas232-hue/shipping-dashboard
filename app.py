@@ -5,7 +5,7 @@ import streamlit as st
 
 # 1. إعداد الصفحة والتنسيقات (عرض الشاشة بالكامل وبدون قيود)
 st.set_page_config(
-    page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
+    page_title="شركة أطلس المحيط", page_icon="📦", layout="wide"
 )
 
 st.markdown(
@@ -128,7 +128,7 @@ def load_data(uploaded_file):
     return df
 
 # 3. القائمة الجانبية (Sidebar)
-st.sidebar.title("🚢 إدارة اللوجستيات")
+st.sidebar.title("🚢 شركة أطلس المحيط")
 st.sidebar.markdown("---")
 
 uploaded_file = st.sidebar.file_uploader("📁 رفع ملف Excel جديد", type=["xlsx", "xls"])
