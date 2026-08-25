@@ -224,6 +224,7 @@ page = st.sidebar.radio(
         "📊 لوحة التحكم (Dashboard)",
         "💰 كشف اجور الكمارك",
         "👥 الديون على الكفلاء",
+        "⏳ أعمار الديون (Aging Report)",
         "🛃 كمرك الشحنات والاستحصالات",
         "📈 الرسوم البيانية"
     ]
@@ -374,7 +375,6 @@ elif page == "💰 كشف اجور الكمارك":
         grand_customs = pivot_filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in pivot_filtered_df else 0.0
         grand_collections = pivot_filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in pivot_filtered_df else 0.0
         grand_remaining = pivot_filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in pivot_filtered_df else 0.0
-        # استخدام القيمة القصوى أو المتوسط لعدد الأيام إجمالاً لتجنب التراكم التراكمي الخاطئ
         grand_days = pivot_filtered_df["عدد الايام"].max() if "عدد الايام" in pivot_filtered_df and not pivot_filtered_df["عدد الايام"].empty else 0.0
 
         sponsor_col = "الكفيل" if "الكفيل" in pivot_filtered_df.columns else None
@@ -405,8 +405,6 @@ elif page == "💰 كشف اجور الكمارك":
                 sum_customs = parent_group["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in parent_group else 0.0
                 sum_collections = parent_group["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in parent_group else 0.0
                 sum_remaining = parent_group["متبقي حقيقي"].sum() if "متبقي حقيقي" in parent_group else 0.0
-                
-                # تصحيح حساب عدد الأيام: أخذ القيمة القصوى أو الأولى بدلاً من الجمع التراكمي (.sum) لتعكس التأخير الصحيح للشحنة
                 group_days = parent_group["عدد الايام"].max() if "عدد الايام" in parent_group and not parent_group["عدد الايام"].empty else 0.0
 
                 tree_rows.append({
@@ -423,8 +421,6 @@ elif page == "💰 كشف اجور الكمارك":
                         c_customs = c_group["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in c_group else 0.0
                         c_collections = c_group["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in c_group else 0.0
                         c_remaining = c_group["متبقي حقيقي"].sum() if "متبقي حقيقي" in c_group else 0.0
-                        
-                        # أخذ عدد الأيام الحقيقي الخاص بالحاوية/الشحنة (عبر .max) بدلاً من الجمع
                         c_days = c_group["عدد الايام"].max() if "عدد الايام" in c_group and not c_group["عدد الايام"].empty else 0.0
 
                         tree_rows.append({
@@ -580,6 +576,50 @@ elif page == "👥 الديون على الكفلاء":
     
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
+elif page == "⏳ أعمار الديون (Aging Report)":
+    st.title("⏳ تقرير أعمار الديون (Aging Report)")
+    st.markdown("---")
+    st.markdown("### 📋 جدول تحليلي يوزع المتبقي الحقيقي حسب أرقام الحاويات أو الشحنات وأيام التأخير (مماثل لجدول الإكسيل المطلوب)")
+
+    aging_df = filtered_df.copy()
+    
+    if not aging_df.empty and "رقم الحاوية" in aging_df.columns and "عدد الايام" in aging_df.columns and "متبقي حقيقي" in aging_df.columns:
+        # إنشاء جدول محوري (Pivot Table) تكون صفوفه عبارة عن رقم الحاوية (أو تفريع الحاويات/الأكواد) وأعمدته عدد الأيام، والقيم هي مجموع المتبقي الحقيقي
+        aging_pivot = aging_df.pivot_table(
+            index="رقم الحاوية",
+            columns="عدد الايام",
+            values="متبقي حقيقي",
+            aggfunc="sum",
+            fill_value=0
+        )
+
+        # إضافة عمود المجموع الكلي (Grand Total)
+        aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
+        
+        # إضافة صف المجموع الكلي (Grand Total) في نهاية الجدول
+        aging_grand_total = aging_pivot.sum(axis=0)
+        aging_pivot.loc["Grand Total"] = aging_grand_total
+
+        # تنسيق القيم المالية لتظهر كدولارات وبدون كسور مطابقة للصورة المطلوبة
+        formatted_aging = aging_pivot.map(lambda val: f"${val:,.0f}" if isinstance(val, (int, float)) and val > 0 else ("" if isinstance(val, (int, float)) else val))
+
+        # إعطاء تنسيق مظهري أنيق يتطابق مع الإكسيل
+        def style_aging_cells(val):
+            if val == "" or val == "$0":
+                return 'background-color: #f8fafc; color: #cbd5e1; text-align: center;'
+            return 'background-color: #ffffff; color: #000000; font-weight: bold; text-align: center;'
+
+        styled_aging_matrix = formatted_aging.style.map(style_aging_cells)
+        
+        render_download_buttons(aging_pivot.reset_index())
+        
+        aging_height = max(300, min(len(aging_pivot) * 35 + 50, 1200))
+        st.markdown(styled_aging_matrix.to_html(escape=False), unsafe_allow_html=True)
+    else:
+        st.warning("عذراً، الأعمدة الأساسية المطلوبة (رقم الحاوية، عدد الايام، متبقي حقيقي) غير متوفرة بالكامل في البيانات الحالية.")
+
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
 elif page == "🛃 كمرك الشحنات والاستحصالات":
     st.title("🛃 نافذة كمرك الشحنات والاستحصالات")
     st.markdown("---")
@@ -680,4 +720,3 @@ elif page == "📈 الرسوم البيانية":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
-
