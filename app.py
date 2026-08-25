@@ -8,7 +8,7 @@ st.set_page_config(
     page_title="Logistics Admin Dashboard", page_icon="📦", layout="wide"
 )
 
-# CSS مخصص لتغيير ألوان رأس الجدول بشكل مضمون وإلغاء خلفية الـ Canvas
+# CSS مخصص للجدول بقواعد ألوان واضحة (الرأس أحمر والأسناد بالنص الأبيض)
 st.markdown(
     """
     <style>
@@ -27,7 +27,7 @@ st.markdown(
         border: 2px solid #3b82f6 !important;
     }
 
-    /* --- تنسيق جدول HTML الثابت ليكون باللون الأحمر للرأس --- */
+    /* --- تنسيق جدول HTML الثابت --- */
     .custom-table-container {
         width: 100%;
         max-height: 700px;
@@ -56,7 +56,7 @@ st.markdown(
         padding: 8px;
         text-align: center;
         border: 1px solid #333;
-        color: #e2e8f0;
+        color: #ffffff !important; /* لون الكتابة داخل الجدول باللون الأبيض */
         background-color: #1e293b;
     }
     .custom-table tr:nth-child(even) td {
@@ -301,7 +301,6 @@ def render_dashboard_metrics(data_df):
     )
 
 
-# دالة جديدة لعرض الجدول بـ HTML المباشر باللون الأحمر للرأس
 def render_red_header_table(data_df):
   html_table = (
       '<div class="custom-table-container"><table class="custom-table"><thead><tr>'
@@ -336,7 +335,6 @@ if page in [
   render_dashboard_metrics(display_df)
   render_download_buttons(display_df)
 
-  # عرض الجدول المخصص برأس أحمر فاقع مضاعف
   render_red_header_table(display_df)
 
 elif page == "💰 كشف الكمارك المستحصلة":
@@ -457,20 +455,14 @@ elif page == "💰 كشف الكمارك المستحصلة":
       grouped_parents = pivot_filtered_df.groupby(group_cols, dropna=False)
 
       for group_keys, parent_group in grouped_parents:
-        is_not_arrived = False
         if isinstance(group_keys, tuple):
           s_val, c_val = group_keys[0], group_keys[1]
           sponsor_str = str(s_val).strip() if pd.notna(s_val) else "غير محدد"
           code_str = str(c_val).strip() if pd.notna(c_val) else ""
-
           label_text = f"➖ الكفيل: {sponsor_str} ({code_str})"
-          if "لم تصل بعد" in sponsor_str:
-            is_not_arrived = True
         else:
           val_str = str(group_keys).strip()
           label_text = f"➖ الكفيل: {val_str}"
-          if "لم تصل بعد" in val_str:
-            is_not_arrived = True
 
         sum_customs = (
             parent_group["مبلغ الجمرك"].sum()
