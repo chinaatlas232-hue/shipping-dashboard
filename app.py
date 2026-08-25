@@ -27,27 +27,26 @@ st.markdown(
         color: #1f2937 !important;
     }
 
-    /* تعديل شريط التمرير الأفقي والعمودي للجداول (عريض، واضح، وترك مسافة كافية لمنع التداخل) */
     [data-testid="stDataFrame"] {
         margin-bottom: 35px !important;
     }
     
+    /* تخصيص شريط التمرير ليصبح على شكل مربع صغير ومرتب بلون أحمر فاتح */
     ::-webkit-scrollbar {
-        width: 14px !important;
-        height: 14px !important;
+        width: 10px !important;
+        height: 10px !important;
     }
     ::-webkit-scrollbar-track {
         background: #f1f5f9 !important;
-        border-radius: 8px !important;
+        border-radius: 5px !important;
         margin: 5px !important;
     }
     ::-webkit-scrollbar-thumb {
-        background: #94a3b8 !important;
-        border-radius: 8px !important;
-        border: 3px solid #f1f5f9 !important;
+        background: #f87171 !important; /* لون أحمر فاتح */
+        border-radius: 4px !important; /* شكل يشبه المربع الصغير */
     }
     ::-webkit-scrollbar-thumb:hover {
-        background: #64748b !important;
+        background: #ef4444 !important; /* أحمر داكن قليلاً عند التمرير عليها */
     }
     </style>
 """,
@@ -66,7 +65,7 @@ def clean_numeric(series):
         errors="coerce"
     ).fillna(0)
 
-# 2. تحميل البيانات (بدون بيانات وهمية افتراضية)
+# 2. تحميل البيانات
 def load_data(uploaded_file):
     df = None
     if uploaded_file is not None:
