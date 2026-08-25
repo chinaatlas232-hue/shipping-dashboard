@@ -11,11 +11,19 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    .main { background-color: #0e1117; }
+    /* تغيير لون الخلفية العامة إلى رصاي طوخ (Deep Slate / Dark Petrol) */
+    .stApp { 
+        background-color: #0b1f26 !important; 
+        color: #f1f5f9 !important;
+    }
+    
+    /* تنسيق الحاويات والعناصر */
+    .main { background-color: #0b1f26; }
+    
     .metric-card {
         padding: 16px; border-radius: 12px; color: white;
         text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
     .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
     .metric-value { font-size: 20px; font-weight: bold; }
@@ -31,7 +39,7 @@ st.markdown(
     [data-testid="stTextInput"] label {
         font-size: 18px !important;
         font-weight: bold !important;
-        color: #1f2937 !important;
+        color: #f1f5f9 !important;
     }
 
     [data-testid="stDataFrame"] {
@@ -39,21 +47,32 @@ st.markdown(
         width: 100% !important;
     }
     
+    /* تخصيص الشريط الجانبي ليتناسب مع اللون الرصاي الغامق */
+    [data-testid="stSidebar"] {
+        background-color: #07151a !important;
+        color: #f1f5f9 !important;
+    }
+
+    /* تحسين ألوان العناوين والنصوص العامة داخل التطبيق */
+    h1, h2, h3, h4, h5, h6, span, p, label {
+        color: #f1f5f9 !important;
+    }
+    
     ::-webkit-scrollbar {
         width: 10px !important;
         height: 10px !important;
     }
     ::-webkit-scrollbar-track {
-        background: #f1f5f9 !important;
+        background: #07151a !important;
         border-radius: 5px !important;
         margin: 5px !important;
     }
     ::-webkit-scrollbar-thumb {
-        background: #f87171 !important;
+        background: #14b8a6 !important;
         border-radius: 4px !important;
     }
     ::-webkit-scrollbar-thumb:hover {
-        background: #ef4444 !important;
+        background: #0d9488 !important;
     }
     </style>
 """,
@@ -499,8 +518,8 @@ elif page == "👥 الديون على الكفلاء":
             
             def style_pivot_cells(val):
                 if val == "" or val == "$0":
-                    return 'background-color: #f8fafc; color: #cbd5e1;'
-                return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
+                    return 'background-color: #07151a; color: #475569;'
+                return 'background-color: #11252c; color: #ffffff; font-weight: bold;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
 
@@ -569,8 +588,8 @@ elif page == "🛃 كمرك الشحنات والاستحصالات":
 
         def style_summary_rows(row):
             if row["رقم الحاوية"] == "Grand Total":
-                return ['background-color: #f1f5f9; color: #000000; font-weight: bold;'] * len(row)
-            return ['background-color: #ffffff; color: #000000; font-weight: bold;'] * len(row)
+                return ['background-color: #11252c; color: #ffffff; font-weight: bold;'] * len(row)
+            return ['background-color: #0b1f26; color: #ffffff; font-weight: bold;'] * len(row)
 
         styled_summary = formatted_agg.style.apply(style_summary_rows, axis=1)
 
