@@ -138,18 +138,20 @@ df.columns = df.columns.astype(str).str.strip()
 def safe_to_numeric(series):
     if series is None:
         return 0
-    return pd.to_numeric(
+    # إزالة الفواصل، علامات الدولار، والمسافات وتحويل القيم إلى أرقام
+    cleaned = (
         series.astype(str)
         .str.replace(",", "", regex=False)
         .str.replace("$", "", regex=False)
-        .str.strip(),
-        errors="coerce"
-    ).fillna(0)
+        .str.strip()
+    )
+    return pd.to_numeric(cleaned, errors="coerce").fillna(0)
 
-# بحث ذكي ومرن عن أعمدة الدفع بغض النظر عن المسافات المخفية
+# بحث ذكي ومرن عن أعمدة الدفع بغض النظر عن المسافات المخفية أو التسميات المختلفة
 office_col_name = next((c for c in df.columns if "المكتب" in c and "دفع" in c), None)
 client_col_name = next((c for c in df.columns if "الزبون" in c and "دفع" in c), None)
 
+# استخراج القيم بشكل صحيح وإجبارها على القراءة الرقمية
 if office_col_name:
     df["Office Paid"] = safe_to_numeric(df[office_col_name])
 else:
@@ -159,6 +161,16 @@ if client_col_name:
     df["Client Paid"] = safe_to_numeric(df[client_col_name])
 else:
     df["Client Paid"] = 0
+
+# قسم تشخيصي في القائمة الجانبية للتأكد من حالة الأعمدة والبيانات
+st.sidebar.markdown("---")
+st.sidebar.markdown("🛠️ **تشخيص حالة الأعمدة:**")
+st.sidebar.write(f"عمود المكتب المكتشف: `{office_col_name if office_col_name else 'غير موجود'}`")
+st.sidebar.write(f"عمود الزبون المكتشف: `{client_col_name if client_col_name else 'غير موجود'}`")
+if office_col_name:
+    st.sidebar.write(f"مجموع قيم المكتب: {df['Office Paid'].sum():,.2f}")
+if client_col_name:
+    st.sidebar.write(f"مجموع قيم الزبون: {df['Client Paid'].sum():,.2f}")
 
 # تنظيف الأعمدة الرقمية الأخرى
 numeric_cols = ["عدد الكارتون", "الوزن", "حجم", "المجموع", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"]
