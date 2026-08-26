@@ -21,7 +21,6 @@ st.markdown(
     .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
     .metric-value { font-size: 20px; font-weight: bold; }
     
-    /* تمديد حاوية الصفحة لعرض الشاشة بالكامل */
     .block-container { 
         padding-top: 3.5rem !important; 
         padding-bottom: 3rem !important; 
@@ -30,7 +29,6 @@ st.markdown(
         max-width: 100% !important; 
     }
 
-    /* تمديد الجداول وعناصر العرض لتغطي المساحة بنسبة 100% */
     [data-testid="stDataFrame"], [data-testid="stTable"], table {
         width: 100% !important;
     }
@@ -82,7 +80,6 @@ st.markdown(
         color: #ffffff !important;
     }
 
-    /* تنسيق زر مسح الملف بخلفية حمراء */
     [data-testid="stSidebar"] button[kind="secondary"] {
         background-color: #dc2626 !important;
         color: #ffffff !important;
@@ -357,43 +354,81 @@ elif page == "customs":
             mask = pivot_filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
             pivot_filtered_df = pivot_filtered_df[mask.any(axis=1)]
 
+    # حساب إجمالي البيانات الموجودة بالجدول الحالي بدقة تامة لتتوافق مع الـ Grand Total
     total_customs = pivot_filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in pivot_filtered_df and not pivot_filtered_df.empty else 0.0
-    
-    sponsor_name = "الكفيل"
-    sponsor_remaining = 0.0
-    sponsor_collected = 0.0
-    
-    if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
-        valid_sponsors = [s for s in pivot_filtered_df["الكفيل"].dropna().unique() if "لم تصل بعد" not in str(s)]
-        if valid_sponsors:
-            sponsor_name = str(valid_sponsors[0]).strip()
-            sponsor_df = pivot_filtered_df[pivot_filtered_df["الكفيل"] == valid_sponsors[0]]
-            sponsor_remaining = sponsor_df["متبقي حقيقي"].sum()
-            sponsor_collected = sponsor_df["قيمة الاستحصالات"].sum()
-            
+    total_collected = pivot_filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in pivot_filtered_df and not pivot_filtered_df.empty else 0.0
+    total_remaining = pivot_filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in pivot_filtered_df and not pivot_filtered_df.empty else 0.0
+
+    # حساب متبقي (لم تصل بعد) من البيانات المفلترة الحالية
     not_arrived_remaining = 0.0
     if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
         not_arrived_remaining = pivot_filtered_df[pivot_filtered_df["الكفيل"].astype(str).str.contains("لم تصل بعد", na=False)]["متبقي حقيقي"].sum()
 
+    # حساب متبقي الكفلاء الحاضرين أو الباقين
+    arrived_remaining = total_remaining - not_arrived_remaining
+
     m1, m2, m3, m4 = st.columns(4)
     with m1:
-        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">¥{total_customs:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">${total_customs:,.2f}</div></div>', unsafe_allow_html=True)
     with m2:
-        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">متبقي ({sponsor_name})</div><div class="metric-value">¥{sponsor_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">${total_remaining:,.2f}</div></div>', unsafe_allow_html=True)
     with m3:
-        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">مسدد ({sponsor_name})</div><div class="metric-value">¥{sponsor_collected:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">إجمالي الاستحصالات (المسدد)</div><div class="metric-value">${total_collected:,.2f}</div></div>', unsafe_allow_html=True)
     with m4:
-        st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">¥{not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">${not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     
-    # إضافة زر التنزيل وعرض الجدول التفصيلي هنا
-    st.markdown("### 📋 جدول تفصيلي للشحنات")
-    render_download_buttons(pivot_filtered_df)
+    st.markdown("### 📊 جدول ملخص أجور الكمارك والاستحصالات حسب الكود")
     
-    styled_pivot_df = style_container_column(pivot_filtered_df)
-    customs_table_height = max(300, min(len(pivot_filtered_df) * 35 + 50, 1200))
-    st.dataframe(styled_pivot_df, use_container_width=True, height=customs_table_height)
+    pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
+    
+    if pivot_code_col and not pivot_filtered_df.empty:
+        base_pivot_df = pivot_filtered_df.copy()
+
+        customs_summary = base_pivot_df.groupby(pivot_code_col, dropna=False).agg({
+            "عدد الكارتون": "sum",
+            "مبلغ الجمرك": "sum",
+            "قيمة الاستحصالات": "sum",
+            "متبقي حقيقي": "sum"
+        }).reset_index()
+
+        grand_total_row = pd.DataFrame({
+            pivot_code_col: ["Grand Total"],
+            "عدد الكارتون": [customs_summary["عدد الكارتون"].sum()],
+            "مبلغ الجمرك": [customs_summary["مبلغ الجمرك"].sum()],
+            "قيمة الاستحصالات": [customs_summary["قيمة الاستحصالات"].sum()],
+            "متبقي حقيقي": [customs_summary["متبقي حقيقي"].sum()]
+        })
+
+        customs_summary = pd.concat([customs_summary, grand_total_row], ignore_index=True)
+
+        customs_summary = customs_summary.rename(columns={
+            pivot_code_col: "Row Labels",
+            "عدد الكارتون": "Sum of عدد الكارتون",
+            "مبلغ الجمرك": "Sum of مبلغ الجمرك",
+            "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
+            "متبقي حقيقي": "Sum of متبقي حقيقي"
+        })
+
+        formatted_customs = customs_summary.copy()
+        for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
+            formatted_customs[col] = formatted_customs[col].apply(lambda x: f"${x:,.2f}" if isinstance(x, (int, float)) else x)
+
+        def style_customs_table(row):
+            styles = [''] * len(row)
+            if str(row["Row Labels"]) == "Grand Total":
+                return ['background-color: #e2e8f0; color: #000000; font-weight: bold;'] * len(row)
+            return styles
+
+        styled_customs_table = formatted_customs.style.apply(style_customs_table, axis=1)
+
+        render_download_buttons(customs_summary)
+        table_height = max(300, min(len(formatted_customs) * 35 + 50, 1200))
+        st.dataframe(styled_customs_table, use_container_width=True, height=table_height)
+    else:
+        st.warning("الأعمدة المطلوبة لإنشاء الجدول غير متوفرة أو البيانات فارغة.")
+
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "sponsors":
@@ -692,3 +727,4 @@ elif page == "charts":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
