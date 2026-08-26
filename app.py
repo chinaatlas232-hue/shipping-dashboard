@@ -155,16 +155,21 @@ if df is None:
 
 df.columns = df.columns.astype(str).str.strip()
 
-# معالجة الأعمدة وتوحيد أسمائها
-office_col_candidate = next((c for c in df.columns if any(k in c for k in ["المكتب دفع", "Office Paid"])), None)
-client_col_candidate = next((c for c in df.columns if any(k in c for k in ["الزبون دفع", "Client Paid"])), None)
+# البحث الشامل والذكي عن أعمدة الدفع بغض النظر عن المسافات أو التسمية
+office_col_candidate = next((c for c in df.columns if any(k in c for k in ["المكتب دفع", "Office Paid", "مكتب", "Office"])), None)
+client_col_candidate = next((c for c in df.columns if any(k in c for k in ["الزبون دفع", "Client Paid", "الزبون", "Client"])), None)
 
-if office_col_candidate and "Office Paid" not in df.columns:
-    df["Office Paid"] = df[office_col_candidate]
-if client_col_candidate and "Client Paid" not in df.columns:
-    df["Client Paid"] = df[client_col_candidate]
+if office_col_candidate:
+    df["Office Paid"] = clean_numeric(df[office_col_candidate])
+else:
+    df["Office Paid"] = 0
 
-numeric_cols = ["Office Paid", "Client Paid", "عدد الكارتون", "الوزن", "حجم", "المجموع", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"]
+if client_col_candidate:
+    df["Client Paid"] = clean_numeric(df[client_col_candidate])
+else:
+    df["Client Paid"] = 0
+
+numeric_cols = ["عدد الكارتون", "الوزن", "حجم", "المجموع", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"]
 for col in numeric_cols:
     if col in df.columns:
         df[col] = clean_numeric(df[col])
@@ -204,7 +209,7 @@ if sponsor_filter_col and not df.empty:
 
 st.sidebar.markdown("---")
 
-# القائمة الرئيسية المحدثة مع إضافة حركة المخازن (WMS)
+# القائمة الرئيسية
 page_options = {
     "لوحة التحكم (Dashboard)": "dashboard",
     "حركة المخازن (WMS)": "wms_movement",
@@ -279,11 +284,8 @@ if page == "dashboard":
     total_clients = filtered_df[client_field_candidates[0]].nunique() if client_field_candidates and not filtered_df.empty else 0
     total_containers_count = filtered_df[container_col].nunique() if container_col and container_col in filtered_df.columns and not filtered_df.empty else 0
     
-    office_paid_col = next((c for c in ["Office Paid", "المكتب دفع"] if c in filtered_df.columns), None)
-    client_paid_col = next((c for c in ["Client Paid", "الزبون دفع"] if c in filtered_df.columns), None)
-    
-    total_office_paid = filtered_df[office_paid_col].sum() if office_paid_col else 0
-    total_client_paid = filtered_df[client_paid_col].sum() if client_paid_col else 0
+    total_office_paid = filtered_df["Office Paid"].sum() if "Office Paid" in filtered_df.columns else 0
+    total_client_paid = filtered_df["Client Paid"].sum() if "Client Paid" in filtered_df.columns else 0
     
     row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
     with row1_c1:
@@ -312,11 +314,11 @@ if page == "dashboard":
     st.dataframe(styled_filtered_df, use_container_width=True, height=table_height)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
-# صفحة حركة المخازن الجديدة (WMS) لرفع الملف الثاني
+# صفحة حركة المخازن (WMS)
 elif page == "wms_movement":
     st.title("📦 إدارة حركة المخازن والتقرير اليومي (WMS)")
     st.markdown("---")
-    st.write("قم برفع ملف الحسابات أو التقرير اليومي الخاص بحركة المخازن (WMS) لمعرفة الطلبات الحقيقية وما تم شحنه وما هو بالطريق وخطة الشحن وما لم يدخل المخزن بعد.")
+    st.write("قم برفع ملف الحسابات أو التقرير اليومي الخاص بحركة المخازن (WMS).")
 
     daily_file = st.file_uploader("رفع ملف حركة المخازن اليومي (Excel)", type=["xlsx", "xls"], key="wms_uploader")
     wms_df = load_data(daily_file, WMS_FILE)
@@ -351,10 +353,10 @@ elif page == "wms_movement":
             st.dataframe(filtered_wms, use_container_width=True)
             render_download_buttons(filtered_wms)
         else:
-            st.warning("لم يتم العثور على عمود يمثل (حالة الطلب) تلقائياً في الملف المرفق. إليك معاينة للبيانات:")
+            st.warning("لم يتم العثور على عمود يمثل (حالة الطلب) تلقائياً في الملف المرفق.")
             st.dataframe(wms_df)
     else:
-            st.info("يرجى رفع ملف حركة المخازن اليومي من الزر أعلاه لعرض المؤشرات وتحليل البيانات.")
+        st.info("يرجى رفع ملف حركة المخازن اليومي من الزر أعلاه لعرض المؤشرات وتحليل البيانات.")
 
 # صفحة كشف أجور الكمارك
 elif page == "customs":
