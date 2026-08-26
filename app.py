@@ -146,16 +146,16 @@ def safe_to_numeric(series):
         errors="coerce"
     ).fillna(0)
 
-# ربط أعمدة الدفع بدقة مطابقة تماماً
-office_col_name = "المكتب دفع"
-client_col_name = "الزبون دفع"
+# بحث ذكي ومرن عن أعمدة الدفع بغض النظر عن المسافات المخفية
+office_col_name = next((c for c in df.columns if "المكتب" in c and "دفع" in c), None)
+client_col_name = next((c for c in df.columns if "الزبون" in c and "دفع" in c), None)
 
-if office_col_name in df.columns:
+if office_col_name:
     df["Office Paid"] = safe_to_numeric(df[office_col_name])
 else:
     df["Office Paid"] = 0
 
-if client_col_name in df.columns:
+if client_col_name:
     df["Client Paid"] = safe_to_numeric(df[client_col_name])
 else:
     df["Client Paid"] = 0
