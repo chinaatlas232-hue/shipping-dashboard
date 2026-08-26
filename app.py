@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import streamlit as st
 
-# 1. إعداد الصفحة والتنسيقات
+# 1. إعداد الصفحة والتنسيقات الكاملة
 st.set_page_config(page_title="شركة أطلس المحيط", page_icon="", layout="wide")
 
 st.markdown(
@@ -27,6 +27,9 @@ st.markdown(
 [data-testid="stDataFrame"], [data-testid="stTable"], table {
     width: 100% !important;
 }
+[data-testid="stDataFrame"] div[data-baseweb="block"] {
+    width: 100% !important;
+}
 h1 {
     background-color: #e2e8f0 !important;
     color: #0f172a !important;
@@ -35,6 +38,12 @@ h1 {
     margin-bottom: 20px !important;
     margin-top: 10px !important;
 }
+[data-testid="stTextInput"] label {
+    font-size: 18px !important;
+    font-weight: bold !important;
+    color: #1f2937 !important;
+}
+/* تنسيق القائمة الجانبية باللون المطلوب */
 [data-testid="stSidebar"] {
     background-color: #07151a !important;
 }
@@ -43,10 +52,34 @@ h1 {
 [data-testid="stSidebar"] section div.stRadio span,
 [data-testid="stSidebar"] .element-container label,
 [data-testid="stSidebar"] .element-container span,
-[data-testid="stSidebar"] .stMarkdown p {
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
     color: #ffffff !important;
     font-weight: 600 !important;
     font-size: 18px !important;
+}
+[data-testid="stSidebar"] button[kind="secondary"] {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+    border-color: #dc2626 !important;
+}
+[data-testid="stSidebar"] button[kind="secondary"]:hover {
+    background-color: #b91c1c !important;
+    color: #ffffff !important;
+    border-color: #b91c1c !important;
+}
+::-webkit-scrollbar {
+    width: 10px !important;
+    height: 10px !important;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+    border-radius: 5px !important;
+    margin: 5px !important;
+}
+::-webkit-scrollbar-thumb {
+    background: #f87171 !important;
+    border-radius: 4px !important;
 }
 </style>
 """,
@@ -102,7 +135,6 @@ if df is None:
 # تنظيف أسماء الأعمدة لإزالة المسافات الزائدة
 df.columns = df.columns.astype(str).str.strip()
 
-# دالة ذكية لتحويل الأعمدة الرقمية وتجنب الأخطاء
 def safe_to_numeric(series):
     if series is None:
         return 0
@@ -114,15 +146,9 @@ def safe_to_numeric(series):
         errors="coerce"
     ).fillna(0)
 
-# البحث عن أعمدة الدفع بالأسماء العربية أو الإنجليزية المتاحة بدقة
-office_col = None
-client_col = None
-
-for col in df.columns:
-    if "المكتب" in col or "Office" in col:
-        office_col = col
-    if "الزبون" in col or "Client" in col:
-        client_col = col
+# بحث دقيق وشامل عن أعمدة الدفع لتفادي الأخطاء أو القيم الصفرية
+office_col = next((c for c in df.columns if "المكتب" in c or "Office" in c or "مكتب" in c), None)
+client_col = next((c for c in df.columns if "الزبون" in c or "Client" in c or "زبون" in c), None)
 
 if office_col:
     df["Office Paid"] = safe_to_numeric(df[office_col])
@@ -134,7 +160,7 @@ if client_col:
 else:
     df["Client Paid"] = 0
 
-# تنظيف باقي الأعمدة الرقمية الأساسية
+# تنظيف الأعمدة الرقمية الأخرى
 numeric_cols = ["عدد الكارتون", "الوزن", "حجم", "المجموع", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"]
 for col in numeric_cols:
     if col in df.columns:
@@ -212,6 +238,31 @@ def render_download_buttons(data_to_download):
             mime="text/csv"
         )
 
+# دالة لتلوين أعمدة الحاويات والوصول في الجداول
+def style_container_column(df_to_style):
+    target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_style.columns), None)
+    sponsor_col_check = "الكفيل" if "الكفيل" in df_to_style.columns else None
+    if not target_container_col:
+        return df_to_style.style
+        
+    def highlight_cells(row):
+        styles = [''] * len(row)
+        col_idx = df_to_style.columns.get_loc(target_container_col)
+        is_arrived = False
+        is_not_arrived = False
+        if sponsor_col_check and sponsor_col_check in row:
+            sponsor_val = str(row[sponsor_col_check]).strip()
+            if "لم تصل بعد" in sponsor_val:
+                is_not_arrived = True
+            elif sponsor_val and sponsor_val != "nan" and sponsor_val != "غير محدد":
+                is_arrived = True
+        if is_not_arrived:
+            styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold;'
+        elif is_arrived:
+            styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
+        return styles
+    return df_to_style.style.apply(highlight_cells, axis=1)
+
 # صفحة لوحة التحكم
 if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
@@ -251,9 +302,12 @@ if page == "dashboard":
         
     st.markdown("---")
     render_download_buttons(filtered_df)
-    st.dataframe(filtered_df, use_container_width=True)
+    styled_filtered_df = style_container_column(filtered_df)
+    table_height = max(300, min(len(filtered_df) * 35 + 50, 1200))
+    st.dataframe(styled_filtered_df, use_container_width=True, height=table_height)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
-# بقية الصفحات تعمل بشكل متكامل بناءً على نفس المتغيرات
+# صفحة حركة المخازن (WMS)
 elif page == "wms_movement":
     st.title("📦 إدارة حركة المخازن والتقرير اليومي (WMS)")
     st.markdown("---")
@@ -268,12 +322,12 @@ elif page == "wms_movement":
 elif page == "customs":
     st.title("كشف اجور الكمارك")
     st.markdown("---")
-    st.dataframe(filtered_df, use_container_width=True)
+    st.dataframe(style_container_column(filtered_df), use_container_width=True)
 
 elif page == "sponsors":
     st.title("الديون على الكفلاء")
     st.markdown("---")
-    st.dataframe(filtered_df, use_container_width=True)
+    st.dataframe(style_container_column(filtered_df), use_container_width=True)
 
 elif page == "aging":
     st.title("تقرير أعمار الديون (Aging Report)")
