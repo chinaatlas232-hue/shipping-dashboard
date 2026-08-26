@@ -146,7 +146,7 @@ def safe_to_numeric(series):
         errors="coerce"
     ).fillna(0)
 
-# ربط أعمدة الدفع بدقة مطابقة تماماً لما أرسلته
+# ربط أعمدة الدفع بدقة مطابقة تماماً
 office_col_name = "المكتب دفع"
 client_col_name = "الزبون دفع"
 
