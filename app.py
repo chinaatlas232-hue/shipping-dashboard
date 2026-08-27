@@ -7,7 +7,6 @@ import streamlit as st
 
 st.set_page_config(page_title="وصل تسليم بضاعة - أطلس", layout="wide")
 
-# --- تنسيق الألوان العام وتغيير لون الشريط الجانبي وزر المسح ---
 st.markdown(
     """
     <style>
@@ -88,7 +87,8 @@ with st.sidebar:
   if os.path.exists(shipment_path):
     try:
       temp_df = pd.read_excel(shipment_path)
-      temp_df.columns = temp_df.columns.str.strip()
+      # تنظيف أسماء الأعمدة من المسافات المخفية
+      temp_df.columns = temp_df.columns.astype(str).str.strip()
       if "الشحنة" in temp_df.columns:
         shipment_list = ["الكل"] + sorted(
             temp_df["الشحنة"]
@@ -101,7 +101,7 @@ with st.sidebar:
         selected_shipment_filter = st.selectbox(
             "اختر الشحنة للعرض:", shipment_list
         )
-        
+
       filtered_temp_df = temp_df.copy()
       if selected_shipment_filter != "الكل" and "الشحنة" in filtered_temp_df.columns:
         filtered_temp_df = filtered_temp_df[
@@ -124,21 +124,15 @@ with st.sidebar:
     except Exception:
       pass
 
-active_data_file = (
-    shipment_path if os.path.exists(shipment_path) else None
-)
-active_template_file = (
-    template_path if os.path.exists(template_path) else None
-)
+active_data_file = shipment_path if os.path.exists(shipment_path) else None
+active_template_file = template_path if os.path.exists(template_path) else None
 active_logo = logo_path if os.path.exists(logo_path) else None
 
 if active_data_file is not None and active_template_file is not None:
   try:
     df = pd.read_excel(active_data_file)
-    df.columns = df.columns.str.strip()
-
-    # طباعة الأعمدة المتاحة في ملف الإكسل لمعرفة اسم عمود الحجم لديك بدقة
-    st.info(f"📌 الأعمدة المكتشفة في ملف الإكسل الخاص بك: {list(df.columns)}")
+    # تنظيف أسماء الأعمدة تماماً من أي مسافات
+    df.columns = df.columns.astype(str).str.strip()
 
     if selected_shipment_filter != "الكل" and "الشحنة" in df.columns:
       df = df[
@@ -164,11 +158,13 @@ if active_data_file is not None and active_template_file is not None:
     )
     st.markdown("---")
 
-    # تحديد اسم عمود الحجم بشكل ذكي وشامل جداً
+    # تحديد عمود الحجم بدقة فائقة بعد تنظيف الأسماء
     volume_col_name = None
     for col in df.columns:
-      clean_col = str(col).lower().strip()
-      if any(keyword in clean_col for keyword in ["حجم", "حج", "cbm", "vol", "volume"]):
+      clean_col = col.lower().strip()
+      if any(
+          kw in clean_col for kw in ["حجم", "حج", "cbm", "vol", "volume"]
+      ):
         volume_col_name = col
         break
 
@@ -190,7 +186,7 @@ if active_data_file is not None and active_template_file is not None:
       if code.endswith(".0"):
         code = code[:-2]
 
-      name = str(row.get("الاسم", row.get("الاسم ", ""))).strip()
+      name = str(row.get("الاسم", "")).strip()
 
       file_name_id = (
           f"Shipment_{shipment}_Client_{name}"
@@ -201,7 +197,6 @@ if active_data_file is not None and active_template_file is not None:
       weight = float(row.get("الوزن", 0) or 0)
       total_weight_sum += weight
 
-      # استخراج الحجم بناءً على العمود المكتشف ديناميكياً
       volume = 0.0
       if volume_col_name:
         val = row.get(volume_col_name, 0)
@@ -220,7 +215,7 @@ if active_data_file is not None and active_template_file is not None:
       total_packages_count += packages
 
       price_per_kg = 0
-      for col in ["سعر الكيلو", "سعر الكيلو ", "السعر"]:
+      for col in ["سعر الكيلو", "السعر"]:
         if col in df.columns:
           val = row.get(col, 0)
           if pd.notna(val):
@@ -228,7 +223,7 @@ if active_data_file is not None and active_template_file is not None:
             break
 
       total_sales = 0
-      for col in ["اجمالي مبيعات", "اجمالي مبيعات ", "الاجمالي", "المبلغ"]:
+      for col in ["اجمالي مبيعات", "الاجمالي", "المبلغ"]:
         if col in df.columns:
           val = row.get(col, 0)
           if pd.notna(val):
@@ -239,28 +234,19 @@ if active_data_file is not None and active_template_file is not None:
 
       total_sales_sum += total_sales
 
-      phone_raw = row.get("رقم الهاتف", row.get("رقم الهاتف ", ""))
+      phone_raw = row.get("رقم الهاتف", "")
       phone = str(phone_raw).strip()
       if phone.endswith(".0"):
         phone = phone[:-2]
-
       phone = phone.replace("+", "").strip()
       if phone.startswith("964"):
         phone = phone[3:]
-
       formatted_phone = f"+964 {phone}" if phone else ""
 
-      address = ""
-      for col in ["عنوان استلام البظاعة", "العنوان", "عنوان"]:
-        if col in df.columns:
-          address = str(row.get(col, "")).strip()
-          break
-
-      shipment_type = ""
-      for col in ["نوع الشحنة", "النوع"]:
-        if col in df.columns:
-          shipment_type = str(row.get(col, "")).strip()
-          break
+      address = str(
+          row.get("عنوان استلام البظاعة", row.get("العنوان", ""))
+      ).strip()
+      shipment_type = str(row.get("نوع الشحنة", "")).strip()
 
       wb = openpyxl.load_workbook(active_template_file)
       ws = wb.active
@@ -435,12 +421,11 @@ if active_data_file is not None and active_template_file is not None:
       )
 
     st.markdown("<br>", unsafe_allow_html=True)
-
     st.subheader(f"📋 جدول تفاصيل الشحنة المعروضة: [{selected_shipment_filter}]")
 
     display_table_df = df.copy()
-    
-    # توحيد اسم العمود المعروض ليصبح "الحجم" إن وجد بأي مسمى آخر
+
+    # إعادة تسمية عمود الحجم لضمان ظهوره بالاسم الموحد بالجدول
     if volume_col_name and volume_col_name != "الحجم":
       display_table_df.rename(columns={volume_col_name: "الحجم"}, inplace=True)
 
@@ -583,7 +568,6 @@ if active_data_file is not None and active_template_file is not None:
       index = item["index"]
       shipment = item["shipment"]
       file_name_id = item["file_name_id"]
-      single_html_content = item["single_html"]
 
       expander_label = f"📄 وصل العميل: {item['name']}  |  كود: {item['code']}  |  الشحنة: {shipment}  |  الإجمالي: {item['total_sales']:,.2f} دولار"
 
@@ -600,6 +584,7 @@ if active_data_file is not None and active_template_file is not None:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
+        single_html_content = item["single_html"]
         safe_html_payload = f"""
             <!DOCTYPE html>
             <html lang="ar" dir="rtl">
