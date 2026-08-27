@@ -87,7 +87,6 @@ with st.sidebar:
   if os.path.exists(shipment_path):
     try:
       temp_df = pd.read_excel(shipment_path)
-      # تنظيف أسماء الأعمدة من المسافات المخفية
       temp_df.columns = temp_df.columns.astype(str).str.strip()
       if "الشحنة" in temp_df.columns:
         shipment_list = ["الكل"] + sorted(
@@ -131,7 +130,6 @@ active_logo = logo_path if os.path.exists(logo_path) else None
 if active_data_file is not None and active_template_file is not None:
   try:
     df = pd.read_excel(active_data_file)
-    # تنظيف أسماء الأعمدة تماماً من أي مسافات
     df.columns = df.columns.astype(str).str.strip()
 
     if selected_shipment_filter != "الكل" and "الشحنة" in df.columns:
@@ -158,7 +156,7 @@ if active_data_file is not None and active_template_file is not None:
     )
     st.markdown("---")
 
-    # تحديد عمود الحجم بدقة فائقة بعد تنظيف الأسماء
+    # تحديد عمود الحجم بدقة فائقة
     volume_col_name = None
     for col in df.columns:
       clean_col = col.lower().strip()
@@ -425,7 +423,7 @@ if active_data_file is not None and active_template_file is not None:
 
     display_table_df = df.copy()
 
-    # إعادة تسمية عمود الحجم لضمان ظهوره بالاسم الموحد بالجدول
+    # توحيد اسم عمود الحجم بالجدول لضمان ظهوره بشكل واضح
     if volume_col_name and volume_col_name != "الحجم":
       display_table_df.rename(columns={volume_col_name: "الحجم"}, inplace=True)
 
@@ -433,14 +431,18 @@ if active_data_file is not None and active_template_file is not None:
         0, "التسلسل", range(1, len(display_table_df) + 1)
     )
 
+    # ترتيب الأعمدة لضمان ظهور الحجم بجانب الوزن والطرود مباشرة وعدم اختفائه
     preferred_cols = [
         "التسلسل",
+        "الشحنة",
         "الكود",
         "الاسم",
         "رقم الهاتف",
         "عدد الطرود",
         "الوزن",
         "الحجم",
+        "سعر الكيلو",
+        "اجمالي مبيعات",
         "عنوان استلام البظاعة",
         "نوع الشحنة",
     ]
@@ -459,6 +461,7 @@ if active_data_file is not None and active_template_file is not None:
     <style>
         .custom-table-container {{
             max-height: 450px;
+            overflow-x: auto;
             overflow-y: auto;
             border: 1px solid #bcccdc;
             border-radius: 8px;
@@ -473,6 +476,7 @@ if active_data_file is not None and active_template_file is not None:
             direction: rtl;
             background-color: #ffffff;
             color: #102a43;
+            white-space: nowrap;
         }}
         .custom-table th {{
             background-color: #102a43 !important;
