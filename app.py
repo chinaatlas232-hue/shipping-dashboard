@@ -156,7 +156,7 @@ if active_data_file is not None and active_template_file is not None:
     )
     st.markdown("---")
 
-    # تحديد عمود الحجم بدقة فائقة
+    # تحديد عمود الحجم بدقة أو إنشاؤه افتراضياً إن لم يوجد بالملف
     volume_col_name = None
     for col in df.columns:
       clean_col = col.lower().strip()
@@ -165,6 +165,10 @@ if active_data_file is not None and active_template_file is not None:
       ):
         volume_col_name = col
         break
+
+    if not volume_col_name:
+      df["الحجم"] = 0.0
+      volume_col_name = "الحجم"
 
     total_clients_count = len(df)
     total_packages_count = 0
@@ -423,7 +427,6 @@ if active_data_file is not None and active_template_file is not None:
 
     display_table_df = df.copy()
 
-    # توحيد اسم عمود الحجم بالجدول لضمان ظهوره بشكل واضح
     if volume_col_name and volume_col_name != "الحجم":
       display_table_df.rename(columns={volume_col_name: "الحجم"}, inplace=True)
 
@@ -431,7 +434,6 @@ if active_data_file is not None and active_template_file is not None:
         0, "التسلسل", range(1, len(display_table_df) + 1)
     )
 
-    # ترتيب الأعمدة لضمان ظهور الحجم بجانب الوزن والطرود مباشرة وعدم اختفائه
     preferred_cols = [
         "التسلسل",
         "الشحنة",
