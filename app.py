@@ -339,10 +339,8 @@ if page == "dashboard":
     st.markdown("---")
     render_download_buttons(filtered_df)
     
-    # التأكد من تضمين عمود "حجم" في جدول العرض إن وجد بالبيانات
-    display_df = filtered_df.copy()
-    styled_filtered_df = style_container_column(display_df)
-    table_height = max(300, min(len(display_df) * 35 + 50, 1200))
+    styled_filtered_df = style_container_column(filtered_df)
+    table_height = max(300, min(len(filtered_df) * 35 + 50, 1200))
     st.dataframe(styled_filtered_df, use_container_width=True, height=table_height)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
@@ -693,3 +691,95 @@ elif page == "charts":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# قالب وصل تسليم البضاعة (أطلس)
+# ---------------------------------------------------------
+st.markdown("---")
+st.title("📄 طباعة وصل تسليم البضاعة")
+
+# البحث المخصص لاختيار الطرد أو الزبون للوصول السريع للوصل
+receipt_search = st.text_input("🔍 البحث برقم الكود أو اسم الزبون لعرض الوصل:", "").strip()
+receipt_df = filtered_df.copy()
+if receipt_search:
+    search_cols_r = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in receipt_df.columns]
+    if search_cols_r:
+        mask_r = receipt_df[search_cols_r].apply(lambda col: col.astype(str).str.contains(receipt_search, case=False, na=False))
+        receipt_df = receipt_df[mask_r.any(axis=1)]
+
+if not receipt_df.empty:
+    selected_row_idx = st.selectbox(
+        "اختر السطر المطلوب طباعة وصله:",
+        options=receipt_df.index,
+        format_func=lambda idx: f"كود: {receipt_df.loc[idx, 'code'] if 'code' in receipt_df.columns else ''} | الشحنة: {receipt_df.loc[idx, 'رقم الحاوية'] if 'رقم الحاوية' in receipt_df.columns else ''} | الزبون: {receipt_df.loc[idx, 'Shipping mark'] if 'Shipping mark' in receipt_df.columns else ''}"
+    )
+    
+    r_row = receipt_df.loc[selected_row_idx]
+    
+    # استخراج البيانات للوصل
+    r_code = r_row.get("code", r_row.get("الكود", ""))
+    r_mark = r_row.get("Shipping mark", "")
+    r_weight = r_row.get("الوزن", 0)
+    r_volume = r_row.get("حجم", 0)  # تضمين الحجم
+    r_ctns = r_row.get("عدد الكارتون", 0)
+    r_container = r_row.get("رقم الحاوية", r_row.get("رقم الحاويات", ""))
+    r_customs = r_row.get("مبلغ الجمرك", 0)
+    r_collected = r_row.get("قيمة الاستحصالات", 0)
+    r_remaining = r_row.get("متبقي حقيقي", 0)
+    r_client_paid = r_row.get("الزبون دفع", r_row.get("Client Paid", 0))
+    r_office_paid = r_row.get("المكتب دفع", r_row.get("Office Paid", 0))
+
+    # تصميم وصل التسليم مع إضافة حقل وحجم التصميم للجدول بدقة واحترافية
+    st.markdown(f"""
+    <div style="background-color: #ffffff; color: #000000; padding: 25px; border-radius: 12px; border: 2px solid #cbd5e1; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+        <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px;">
+            <h2 style="color: #0f172a; margin: 0; font-size: 24px;">شركة أطلس المحيط للشحن والتوصيل</h2>
+            <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">وصل تسليم بضاعة رسمي</p>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 15px;">
+            <div><b>رقم الكود:</b> {r_code}</div>
+            <div><b>رقم الحاوية:</b> {r_container}</div>
+        </div>
+        
+        <div style="margin-bottom: 20px; font-size: 15px;">
+            <b>عنوان/عالمة الشحن (Shipping Mark):</b> {r_mark}
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; text-align: center;">
+            <thead>
+                <tr style="background-color: #0f172a; color: white;">
+                    <th style="padding: 10px; border: 1px solid #cbd5e1;">عدد الكارتون</th>
+                    <th style="padding: 10px; border: 1px solid #cbd5e1;">الوزن (kg)</th>
+                    <th style="padding: 10px; border: 1px solid #cbd5e1;">الحجم (m³)</th>
+                    <th style="padding: 10px; border: 1px solid #cbd5e1;">مبلغ الجمرك</th>
+                    <th style="padding: 10px; border: 1px solid #cbd5e1;">المتبقي</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: bold;">{r_ctns:,.0f}</td>
+                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: bold;">{r_weight:,.2f}</td>
+                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: bold;">{r_volume:,.3f}</td>
+                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: bold;">¥{r_customs:,.2f}</td>
+                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: bold; color: #dc2626;">¥{r_remaining:,.2f}</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div style="display: flex; justify-content: space-between; font-size: 14px; background-color: #f1f5f9; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+            <div><b>مبلغ الاستحصالات:</b> ¥{r_collected:,.2f}</div>
+            <div><b>دفعة الزبون:</b> ¥{r_client_paid:,.2f}</div>
+            <div><b>دفعة المكتب:</b> ¥{r_office_paid:,.2f}</div>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; margin-top: 40px; font-size: 14px; color: #475569;">
+            <div>توقيع أمين المخزن: ........................</div>
+            <div>توقيع المستلم: ........................</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    st.info("لا توجد بيانات مطابقة للبحث الحالي لطباعة الوصل.")
+
+st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
