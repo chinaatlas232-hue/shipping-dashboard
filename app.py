@@ -45,6 +45,10 @@ shipment_path = os.path.join(UPLOAD_DIR, "shipments_data.xlsx")
 template_path = os.path.join(UPLOAD_DIR, "template.xlsx")
 logo_path = os.path.join(UPLOAD_DIR, "logo.png")
 
+selected_shipment_filter = "الكل"
+selected_code_filter = "الكل"
+manual_volume_col = "تلقائي"
+
 with st.sidebar:
   st.header("⚙️ إدارة الملفات")
 
@@ -55,6 +59,24 @@ with st.sidebar:
     with open(shipment_path, "wb") as f:
       f.write(uploaded_data_file.getbuffer())
     st.sidebar.success("تم حفظ ملف الشحنات بنجاح!")
+
+  if os.path.exists(shipment_path):
+    try:
+      temp_df = pd.read_excel(shipment_path)
+      temp_df.columns = temp_df.columns.astype(str).str.strip()
+
+      st.markdown("---")
+      st.markdown(
+          "<h3 style='color: #fbbf24; font-size:16px;'>🛠️ مطابقة عمود الحجم"
+          " يدوياً</h3>",
+          unsafe_allow_html=True,
+      )
+      cols_available = ["تلقائي"] + list(temp_df.columns)
+      manual_volume_col = st.selectbox(
+          "اختر العمود الذي يمثل الحجم (CBM):", cols_available
+      )
+    except Exception as e:
+      st.sidebar.error(f"خطأ في قراءة الأعمدة: {e}")
 
   uploaded_template_file = st.file_uploader(
       "2. قالب وصل التسليم (Atlas_Cargo_Delivery_Receipt.xlsx)", type=["xlsx"]
@@ -79,21 +101,10 @@ with st.sidebar:
     st.sidebar.warning("تم مسح الملفات المحفوظة بنجاح.")
     st.rerun()
 
-  selected_shipment_filter = "الكل"
-  selected_code_filter = "الكل"
-  manual_volume_col = "تلقائي"
-
   if os.path.exists(shipment_path):
     try:
       temp_df = pd.read_excel(shipment_path)
       temp_df.columns = temp_df.columns.astype(str).str.strip()
-
-      st.markdown("---")
-      st.subheader("🛠️ مطابقة الأعمدة يدوياً")
-      cols_available = ["تلقائي"] + list(temp_df.columns)
-      manual_volume_col = st.selectbox(
-          "حدد عمود الحجم يدوياً:", cols_available
-      )
 
       st.markdown("---")
       st.header("🔍 فلتر الشحنات")
@@ -133,8 +144,8 @@ with st.sidebar:
         selected_code_filter = st.selectbox(
             "اختر أو ابحث برقم الكود:", code_list
         )
-    except Exception as e:
-      st.sidebar.error(f"خطأ في قراءة ملف الإكسل: {e}")
+    except Exception:
+      pass
 
 active_data_file = shipment_path if os.path.exists(shipment_path) else None
 active_template_file = template_path if os.path.exists(template_path) else None
@@ -145,7 +156,7 @@ if active_data_file is not None and active_template_file is not None:
     df = pd.read_excel(active_data_file)
     df.columns = df.columns.astype(str).str.strip()
 
-    # معالجة تسمية عمود الحجم يدوياً أو تلقائياً
+    # معالجة تسمية عمود الحجم يدوياً أو تلقائياً بدقة عالية
     if manual_volume_col != "تلقائي" and manual_volume_col in df.columns:
       df.rename(columns={manual_volume_col: "الحجم"}, inplace=True)
     else:
@@ -155,14 +166,13 @@ if active_data_file is not None and active_template_file is not None:
         if any(
             k in clean_c
             for k in [
-                "فاليوم",
-                "فاليم",
-                "حجم",
                 "cbm",
                 "vol",
                 "volume",
+                "حجم",
+                "فاليوم",
+                "فاليم",
                 "حج",
-                "الحجم",
                 "الابعاد",
             ]
         ):
@@ -665,7 +675,6 @@ if active_data_file is not None and active_template_file is not None:
                         var content = document.getElementById('single-receipt-container').innerHTML;
                         var printWin = window.open('', '', 'height=800,width=800');
                         printWin.document.write('<html><head><title>طباعة الشحنة</title><style>@page {{ size: A5; margin: 5mm; }} body {{ direction: rtl; font-family: Tahoma, sans-serif; background: #fff; margin: 0; padding: 0; }}</style></head><body>');
-                        printWin.document.write(printWin); // fixed reference typo inside script below
                         printWin.document.write(content);
                         printWin.document.write('</body></html>');
                         printWin.document.close();
