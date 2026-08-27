@@ -61,7 +61,7 @@ with st.sidebar:
     st.sidebar.success("تم حفظ ملف الشحنات بنجاح!")
     st.rerun()
 
-  # إظهار خيار مطابقة الحجم إجبارياً فور توفر ملف الشحنات
+  # إظهار قائمة مطابقة الحجم إجبارياً فور توفر ملف الشحنات
   if os.path.exists(shipment_path):
     try:
       temp_df = pd.read_excel(shipment_path)
