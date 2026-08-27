@@ -130,6 +130,7 @@ active_logo = logo_path if os.path.exists(logo_path) else None
 if active_data_file is not None and active_template_file is not None:
   try:
     df = pd.read_excel(active_data_file)
+    # تنظيف أسماء الأعمدة وإزالة أي مسافات مخفية
     df.columns = df.columns.astype(str).str.strip()
 
     if selected_shipment_filter != "الكل" and "الشحنة" in df.columns:
@@ -150,12 +151,13 @@ if active_data_file is not None and active_template_file is not None:
 
     today_date = datetime.date.today().strftime("%Y-%m-%d")
 
-    # فحص وتوحيد اسم عمود الحجم إجبارياً وبحث مرن
+    # فحص وتوحيد اسم عمود الحجم بدقة فائقة
     found_vol_col = None
     for col in df.columns:
       clean_c = col.lower().strip()
       if any(
-          k in clean_c for k in ["حجم", "cbm", "vol", "volume", "حج", "الحجم"]
+          k in clean_c
+          for k in ["حجم", "cbm", "vol", "volume", "حج", "الحجم", "الابعاد"]
       ):
         found_vol_col = col
         break
@@ -189,7 +191,10 @@ if active_data_file is not None and active_template_file is not None:
       if code.endswith(".0"):
         code = code[:-2]
 
-      name = str(row.get("الاسم", "")).strip()
+      name = str(row.get("الاسم", ""))
+      if name.endswith(".0"):
+        name = name[:-2]
+      name = name.strip()
 
       file_name_id = (
           f"Shipment_{shipment}_Client_{name}"
@@ -406,7 +411,7 @@ if active_data_file is not None and active_template_file is not None:
           f"""
             <div class="metric-card-5">
                 <p style="margin: 0; color: #6b21a8; font-weight: bold; font-size: 13px;">📐 الحجم الكلي</p>
-                <h3 style="margin: 5px 0 0; color: #581c87; font-size: 18px;">{total_volume_sum:,.2f}</h3>
+                <h3 style="margin: 5px 0 0; color: #581c87; font-size: 18px;">{total_volume_sum:,.2f} CBM</h3>
             </div>
         """,
           unsafe_allow_html=True,
