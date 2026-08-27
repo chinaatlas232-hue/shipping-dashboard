@@ -21,7 +21,6 @@ st.markdown(
     .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
     .metric-value { font-size: 20px; font-weight: bold; }
     
-    /* تمديد حاوية الصفحة لعرض الشاشة بالكامل */
     .block-container { 
         padding-top: 3.5rem !important; 
         padding-bottom: 3rem !important; 
@@ -30,7 +29,6 @@ st.markdown(
         max-width: 100% !important; 
     }
 
-    /* تمديد الجداول وعناصر العرض لتغطي المساحة بنسبة 100% */
     [data-testid="stDataFrame"], [data-testid="stTable"], table {
         width: 100% !important;
     }
@@ -82,7 +80,6 @@ st.markdown(
         color: #ffffff !important;
     }
 
-    /* تنسيق زر مسح الملف بخلفية حمراء */
     [data-testid="stSidebar"] button[kind="secondary"] {
         background-color: #dc2626 !important;
         color: #ffffff !important;
@@ -148,10 +145,17 @@ def load_data(uploaded_file):
         df = pd.DataFrame(columns=[
             "No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن",
             "المكتب دفع", "الزبون دفع", "المجموع", "عدد الكارتون",
-            "الوزن", "حجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"
+            "الوزن", "الحجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"
         ])
 
     df.columns = df.columns.astype(str).str.strip()
+
+    # تعديل شامل لاكتشاف عمود الحجم بكافة صيغه المحتملة (حجم، الحجم، Volume)
+    vol_col_candidate = next((c for c in df.columns if any(k in c for k in ["الحجم", "حجم", "Volume", "vol"])), None)
+    if vol_col_candidate and vol_col_candidate != "الحجم":
+        df["الحجم"] = df[vol_col_candidate]
+    elif not vol_col_candidate and "الحجم" not in df.columns:
+        df["الحجم"] = 0
 
     office_col_candidate = next((c for c in df.columns if any(k in c for k in ["المكتب دفع", "Office Paid", "دفع الشركة"])), None)
     client_col_candidate = next((c for c in df.columns if any(k in c for k in ["الزبون دفع", "Client Paid", "دفع الزبون"])), None)
@@ -173,7 +177,7 @@ def load_data(uploaded_file):
 
     numeric_cols = [
         "المكتب دفع", "Office Paid", "الزبون دفع", "Client Paid",
-        "عدد الكارتون", "الوزن", "حجم", "المجموع", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"
+        "عدد الكارتون", "الوزن", "الحجم", "حجم", "المجموع", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"
     ]
     for col in numeric_cols:
         if col in df.columns:
@@ -304,7 +308,9 @@ if page == "dashboard":
     total_orders = len(filtered_df)
     total_weight = filtered_df["الوزن"].sum() if "الوزن" in filtered_df.columns else 0
     total_ctns = filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in filtered_df.columns else 0
-    total_volume = filtered_df["حجم"].sum() if "حجم" in filtered_df.columns else 0
+    
+    vol_sum_col = "الحجم" if "الحجم" in filtered_df.columns else ("حجم" if "حجم" in filtered_df.columns else None)
+    total_volume = filtered_df[vol_sum_col].sum() if vol_sum_col else 0
     
     client_field_candidates = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in filtered_df.columns]
     total_clients = filtered_df[client_field_candidates[0]].nunique() if client_field_candidates and not filtered_df.empty else 0
@@ -678,9 +684,10 @@ elif page == "charts":
                 st.bar_chart(weight_data)
 
         with col_chart2:
-            if container_col and "حجم" in filtered_df.columns:
+            vol_chart_col = "الحجم" if "الحجم" in filtered_df.columns else ("حجم" if "حجم" in filtered_df.columns else None)
+            if container_col and vol_chart_col:
                 st.subheader("📐 إجمالي الحجم حسب الحاوية (m³)")
-                volume_data = filtered_df.groupby(container_col)["حجم"].sum()
+                volume_data = filtered_df.groupby(container_col)[vol_chart_col].sum()
                 st.bar_chart(volume_data)
 
         st.markdown("---")
@@ -691,95 +698,3 @@ elif page == "charts":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
-
-# ---------------------------------------------------------
-# قالب وصل تسليم البضاعة (أطلس)
-# ---------------------------------------------------------
-st.markdown("---")
-st.title("📄 طباعة وصل تسليم البضاعة")
-
-# البحث المخصص لاختيار الطرد أو الزبون للوصول السريع للوصل
-receipt_search = st.text_input("🔍 البحث برقم الكود أو اسم الزبون لعرض الوصل:", "").strip()
-receipt_df = filtered_df.copy()
-if receipt_search:
-    search_cols_r = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in receipt_df.columns]
-    if search_cols_r:
-        mask_r = receipt_df[search_cols_r].apply(lambda col: col.astype(str).str.contains(receipt_search, case=False, na=False))
-        receipt_df = receipt_df[mask_r.any(axis=1)]
-
-if not receipt_df.empty:
-    selected_row_idx = st.selectbox(
-        "اختر السطر المطلوب طباعة وصله:",
-        options=receipt_df.index,
-        format_func=lambda idx: f"كود: {receipt_df.loc[idx, 'code'] if 'code' in receipt_df.columns else ''} | الشحنة: {receipt_df.loc[idx, 'رقم الحاوية'] if 'رقم الحاوية' in receipt_df.columns else ''} | الزبون: {receipt_df.loc[idx, 'Shipping mark'] if 'Shipping mark' in receipt_df.columns else ''}"
-    )
-    
-    r_row = receipt_df.loc[selected_row_idx]
-    
-    # استخراج البيانات للوصل
-    r_code = r_row.get("code", r_row.get("الكود", ""))
-    r_mark = r_row.get("Shipping mark", "")
-    r_weight = r_row.get("الوزن", 0)
-    r_volume = r_row.get("حجم", 0)  # تضمين الحجم
-    r_ctns = r_row.get("عدد الكارتون", 0)
-    r_container = r_row.get("رقم الحاوية", r_row.get("رقم الحاويات", ""))
-    r_customs = r_row.get("مبلغ الجمرك", 0)
-    r_collected = r_row.get("قيمة الاستحصالات", 0)
-    r_remaining = r_row.get("متبقي حقيقي", 0)
-    r_client_paid = r_row.get("الزبون دفع", r_row.get("Client Paid", 0))
-    r_office_paid = r_row.get("المكتب دفع", r_row.get("Office Paid", 0))
-
-    # تصميم وصل التسليم مع إضافة حقل وحجم التصميم للجدول بدقة واحترافية
-    st.markdown(f"""
-    <div style="background-color: #ffffff; color: #000000; padding: 25px; border-radius: 12px; border: 2px solid #cbd5e1; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-        <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px;">
-            <h2 style="color: #0f172a; margin: 0; font-size: 24px;">شركة أطلس المحيط للشحن والتوصيل</h2>
-            <p style="color: #64748b; margin: 5px 0 0 0; font-size: 14px;">وصل تسليم بضاعة رسمي</p>
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 15px;">
-            <div><b>رقم الكود:</b> {r_code}</div>
-            <div><b>رقم الحاوية:</b> {r_container}</div>
-        </div>
-        
-        <div style="margin-bottom: 20px; font-size: 15px;">
-            <b>عنوان/عالمة الشحن (Shipping Mark):</b> {r_mark}
-        </div>
-        
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; text-align: center;">
-            <thead>
-                <tr style="background-color: #0f172a; color: white;">
-                    <th style="padding: 10px; border: 1px solid #cbd5e1;">عدد الكارتون</th>
-                    <th style="padding: 10px; border: 1px solid #cbd5e1;">الوزن (kg)</th>
-                    <th style="padding: 10px; border: 1px solid #cbd5e1;">الحجم (m³)</th>
-                    <th style="padding: 10px; border: 1px solid #cbd5e1;">مبلغ الجمرك</th>
-                    <th style="padding: 10px; border: 1px solid #cbd5e1;">المتبقي</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: bold;">{r_ctns:,.0f}</td>
-                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: bold;">{r_weight:,.2f}</td>
-                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: bold;">{r_volume:,.3f}</td>
-                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: bold;">¥{r_customs:,.2f}</td>
-                    <td style="padding: 10px; border: 1px solid #cbd5e1; font-weight: bold; color: #dc2626;">¥{r_remaining:,.2f}</td>
-                </tr>
-            </tbody>
-        </table>
-        
-        <div style="display: flex; justify-content: space-between; font-size: 14px; background-color: #f1f5f9; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
-            <div><b>مبلغ الاستحصالات:</b> ¥{r_collected:,.2f}</div>
-            <div><b>دفعة الزبون:</b> ¥{r_client_paid:,.2f}</div>
-            <div><b>دفعة المكتب:</b> ¥{r_office_paid:,.2f}</div>
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; margin-top: 40px; font-size: 14px; color: #475569;">
-            <div>توقيع أمين المخزن: ........................</div>
-            <div>توقيع المستلم: ........................</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-else:
-    st.info("لا توجد بيانات مطابقة للبحث الحالي لطباعة الوصل.")
-
-st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
