@@ -83,11 +83,21 @@ with st.sidebar:
   st.header("🔍 فلتر الشحنات")
   selected_shipment_filter = "الكل"
   selected_code_filter = "الكل"
+  manual_volume_col = "تلقائي"
 
   if os.path.exists(shipment_path):
     try:
       temp_df = pd.read_excel(shipment_path)
       temp_df.columns = temp_df.columns.astype(str).str.strip()
+
+      # إضافة إمكانية اختيار عمود الحجم يدوياً من الشريط الجانبي لتجاوز أي خطأ في التسمية
+      st.markdown("---")
+      st.subheader("🛠️ مطابقة الأعمدة يدوياً")
+      cols_available = ["تلقائي"] + list(temp_df.columns)
+      manual_volume_col = st.selectbox(
+          "حدد عمود الحجم يدوياً (إذا لم يظهر):", cols_available
+      )
+
       if "الشحنة" in temp_df.columns:
         shipment_list = ["الكل"] + sorted(
             temp_df["الشحنة"]
@@ -150,37 +160,44 @@ if active_data_file is not None and active_template_file is not None:
 
     today_date = datetime.date.today().strftime("%Y-%m-%d")
 
-    # البحث الشامل والذكي عن أي مسمى لعمود الحجم (فاليوم، حجم، CBM، إلخ)
-    found_vol_col = None
-    for col in df.columns:
-      clean_c = col.lower().strip()
-      if any(
-          k in clean_c
-          for k in [
-              "فاليوم",
-              "فاليم",
-              "حجم",
-              "cbm",
-              "vol",
-              "volume",
-              "حج",
-              "الحجم",
-              "الابعاد",
-          ]
-      ):
-        found_vol_col = col
-        break
-
-    if found_vol_col:
-      df.rename(columns={found_vol_col: "الحجم"}, inplace=True)
+    # معالجة عمود الحجم (يدوي أو تلقائي)
+    if manual_volume_col != "تلقائي" and manual_volume_col in df.columns:
+      df.rename(columns={manual_volume_col: "الحجم"}, inplace=True)
     else:
-      # إذا لم يتم العثور على عمود حجم نهائياً في ملف الإكسل، نقوم بإنشائه وقائياً لتجنب الأخطاء
-      df["الحجم"] = 0.0
+      found_vol_col = None
+      for col in df.columns:
+        clean_c = col.lower().strip()
+        if any(
+            k in clean_c
+            for k in [
+                "فاليوم",
+                "فاليم",
+                "حجم",
+                "cbm",
+                "vol",
+                "volume",
+                "حج",
+                "الحجم",
+                "الابعاد",
+            ]
+        ):
+          found_vol_col = col
+          break
+
+      if found_vol_col:
+        df.rename(columns={found_vol_col: "الحجم"}, inplace=True)
+      else:
+        df["الحجم"] = 0.0
 
     st.success(
-        f"✅ الملفات محفوظة بثبات على السيرفر. الشحنة المعروضة:"
-        f" **{selected_shipment_filter}** | الكود: **{selected_code_filter}** | تاريخ الإصدار: {today_date}"
+        f"✅ الملفات محفوظة بثبات. الشحنة المعروضة:"
+        f" **{selected_shipment_filter}** | الكود: **{selected_code_filter}**"
     )
+
+    # عرض الأعمدة المكتشفة لمساعدتك في حال اختلف اسم العمود تماماً
+    with st.expander("ℹ️ معاينة الأعمدة المكتشفة في ملف الإكسل (اضغط للعرض)"):
+      st.write("الأعمدة الموجودة في ملفك حالياً:", list(df.columns))
+
     st.markdown("---")
 
     total_clients_count = len(df)
