@@ -150,27 +150,26 @@ if active_data_file is not None and active_template_file is not None:
 
     today_date = datetime.date.today().strftime("%Y-%m-%d")
 
+    # ضمان إيجاد أو إنشاء عمود "الحجم" إجبارياً في البيانات
+    found_vol_col = None
+    for col in df.columns:
+      clean_c = col.lower().strip()
+      if any(
+          k in clean_c for k in ["حجم", "cbm", "vol", "volume", "حج", "الحجم"]
+      ):
+        found_vol_col = col
+        break
+
+    if found_vol_col:
+      df.rename(columns={found_vol_col: "الحجم"}, inplace=True)
+    else:
+      df["الحجم"] = 0.0
+
     st.success(
         f"✅ الملفات محفوظة بثبات على السيرفر. الشحنة المعروضة:"
         f" **{selected_shipment_filter}** | الكود: **{selected_code_filter}** | تاريخ الإصدار: {today_date}"
     )
     st.markdown("---")
-
-    # البحث عن عمود الحجم بأي تسمية وضمان توحيده باسم "الحجم"
-    volume_col_name = None
-    for col in df.columns:
-      clean_col = col.lower().strip()
-      if any(
-          kw in clean_col
-          for kw in ["حجم", "حج", "cbm", "vol", "volume", "الحجم"]
-      ):
-        volume_col_name = col
-        break
-
-    if volume_col_name:
-      df.rename(columns={volume_col_name: "الحجم"}, inplace=True)
-    else:
-      df["الحجم"] = 0.0
 
     total_clients_count = len(df)
     total_packages_count = 0
