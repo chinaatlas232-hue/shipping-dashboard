@@ -141,24 +141,7 @@ if active_data_file is not None and active_template_file is not None:
     df = pd.read_excel(active_data_file)
     df.columns = df.columns.astype(str).str.strip()
 
-    if selected_shipment_filter != "الكل" and "الشحنة" in df.columns:
-      df = df[
-          df["الشحنة"].astype(str).str.replace(".0", "")
-          == selected_shipment_filter
-      ]
-
-    if selected_code_filter != "الكل" and "الكود" in df.columns:
-      df = df[
-          df["الكود"].astype(str).str.replace(".0", "")
-          == selected_code_filter
-      ]
-
-    if df.empty:
-      st.warning("⚠️ لا توجد بيانات مطابقة للشحنة أو الكود المحدد.")
-      st.stop()
-
-    today_date = datetime.date.today().strftime("%Y-%m-%d")
-
+    # معالجة تسمية عمود الحجم تلقائياً أو يدوياً
     if manual_volume_col != "تلقائي" and manual_volume_col in df.columns:
       df.rename(columns={manual_volume_col: "الحجم"}, inplace=True)
     else:
@@ -181,11 +164,28 @@ if active_data_file is not None and active_template_file is not None:
         ):
           found_vol_col = col
           break
-
       if found_vol_col:
         df.rename(columns={found_vol_col: "الحجم"}, inplace=True)
       else:
         df["الحجم"] = 0.0
+
+    if selected_shipment_filter != "الكل" and "الشحنة" in df.columns:
+      df = df[
+          df["الشحنة"].astype(str).str.replace(".0", "")
+          == selected_shipment_filter
+      ]
+
+    if selected_code_filter != "الكل" and "الكود" in df.columns:
+      df = df[
+          df["الكود"].astype(str).str.replace(".0", "")
+          == selected_code_filter
+      ]
+
+    if df.empty:
+      st.warning("⚠️ لا توجد بيانات مطابقة للشحنة أو الكود المحدد.")
+      st.stop()
+
+    today_date = datetime.date.today().strftime("%Y-%m-%d")
 
     st.success(
         f"✅ الملفات محفوظة بثبات. الشحنة المعروضة:"
@@ -536,7 +536,6 @@ if active_data_file is not None and active_template_file is not None:
     st.html(custom_table_styling)
     st.markdown("---")
 
-    # استخدام عنصر DOM مخفي لتمرير محتوى الطباعة الجماعية لتجنب أي تلف في بناء جملة الجافاسكريبت
     master_payload = f"""
         <!DOCTYPE html>
         <html lang="ar" dir="rtl">
