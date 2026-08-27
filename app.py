@@ -90,7 +90,6 @@ with st.sidebar:
       temp_df = pd.read_excel(shipment_path)
       temp_df.columns = temp_df.columns.astype(str).str.strip()
 
-      # إضافة إمكانية اختيار عمود الحجم يدوياً من الشريط الجانبي لتجاوز أي خطأ في التسمية
       st.markdown("---")
       st.subheader("🛠️ مطابقة الأعمدة يدوياً")
       cols_available = ["تلقائي"] + list(temp_df.columns)
@@ -160,7 +159,6 @@ if active_data_file is not None and active_template_file is not None:
 
     today_date = datetime.date.today().strftime("%Y-%m-%d")
 
-    # معالجة عمود الحجم (يدوي أو تلقائي)
     if manual_volume_col != "تلقائي" and manual_volume_col in df.columns:
       df.rename(columns={manual_volume_col: "الحجم"}, inplace=True)
     else:
@@ -194,7 +192,6 @@ if active_data_file is not None and active_template_file is not None:
         f" **{selected_shipment_filter}** | الكود: **{selected_code_filter}**"
     )
 
-    # عرض الأعمدة المكتشفة لمساعدتك في حال اختلف اسم العمود تماماً
     with st.expander("ℹ️ معاينة الأعمدة المكتشفة في ملف الإكسل (اضغط للعرض)"):
       st.write("الأعمدة الموجودة في ملفك حالياً:", list(df.columns))
 
@@ -539,6 +536,7 @@ if active_data_file is not None and active_template_file is not None:
     st.html(custom_table_styling)
     st.markdown("---")
 
+    # استخدام عنصر DOM مخفي لتمرير محتوى الطباعة الجماعية لتجنب أي تلف في بناء جملة الجافاسكريبت
     master_payload = f"""
         <!DOCTYPE html>
         <html lang="ar" dir="rtl">
@@ -574,17 +572,17 @@ if active_data_file is not None and active_template_file is not None:
             </style>
         </head>
         <body>
+            <div id="master-content" style="display:none;">{all_receipts_html_for_print}</div>
             <button class="master-btn" onclick="printAllReceipts()">
                 🖨️ طباعة الوصولات المعروضة دفعة واحدة (مقاس A5)
             </button>
 
             <script>
-                const allReceiptsContent = `{all_receipts_html_for_print.replace('`', '\\`').replace('$', '\\$')}`;
-
                 function printAllReceipts() {{
+                    var content = document.getElementById('master-content').innerHTML;
                     var printWin = window.open('', '', 'height=900,width=800');
                     printWin.document.write('<html><head><title>طباعة الوصولات</title><style>@page {{ size: A5; margin: 5mm; }} body {{ direction: rtl; font-family: Tahoma, sans-serif; background: #fff; margin: 0; padding: 0; }} .receipt-page {{ page-break-after: always; break-after: page; margin-bottom: 20px; }}</style></head><body>');
-                    printWin.document.write(allReceiptsContent);
+                    printWin.document.write(content);
                     printWin.document.write('</body></html>');
                     printWin.document.close();
                     printWin.focus();
@@ -656,7 +654,7 @@ if active_data_file is not None and active_template_file is not None:
                 </style>
             </head>
             <body>
-                {single_html_content}
+                <div id="single-receipt-container">{single_html_content}</div>
                 
                 <div class="btn-container">
                     <button class="action-btn" onclick="printReceipt()">
@@ -668,13 +666,13 @@ if active_data_file is not None and active_template_file is not None:
                 </div>
 
                 <script>
-                    const receiptContent = `{single_html_content.replace('`', '\\`').replace('$', '\\$')}`;
                     const fileNameId = '{file_name_id}';
 
                     function printReceipt() {{
+                        var content = document.getElementById('single-receipt-container').innerHTML;
                         var printWin = window.open('', '', 'height=800,width=800');
                         printWin.document.write('<html><head><title>طباعة الشحنة</title><style>@page {{ size: A5; margin: 5mm; }} body {{ direction: rtl; font-family: Tahoma, sans-serif; background: #fff; margin: 0; padding: 0; }}</style></head><body>');
-                        printWin.document.write(receiptContent);
+                        printWin.document.write(content);
                         printWin.document.write('</body></html>');
                         printWin.document.close();
                         printWin.focus();
@@ -682,9 +680,10 @@ if active_data_file is not None and active_template_file is not None:
                     }}
 
                     function savePdfReceipt() {{
+                        var content = document.getElementById('single-receipt-container').innerHTML;
                         var printWin = window.open('', '', 'height=800,width=800');
                         printWin.document.write('<html><head><title>' + fileNameId + '</title><style>@page {{ size: A5; margin: 5mm; }} body {{ direction: rtl; font-family: Tahoma, sans-serif; background: #fff; margin: 0; padding: 0; }}</style></head><body>');
-                        printWin.document.write(receiptContent);
+                        printWin.document.write(content);
                         printWin.document.write('</body></html>');
                         printWin.document.close();
                         printWin.focus();
