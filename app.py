@@ -137,8 +137,8 @@ if active_data_file is not None and active_template_file is not None:
     df = pd.read_excel(active_data_file)
     df.columns = df.columns.str.strip()
 
-    # طباعة الأعمدة المتاحة في ملف الإكسل لمساعدتك في حال اختلف اسم العمود تماماً
-    # st.write("الأعمدة المكتشفة في الملف:", list(df.columns))
+    # طباعة الأعمدة المتاحة في ملف الإكسل لمعرفة اسم عمود الحجم لديك بدقة
+    st.info(f"📌 الأعمدة المكتشفة في ملف الإكسل الخاص بك: {list(df.columns)}")
 
     if selected_shipment_filter != "الكل" and "الشحنة" in df.columns:
       df = df[
@@ -164,11 +164,11 @@ if active_data_file is not None and active_template_file is not None:
     )
     st.markdown("---")
 
-    # تحديد اسم عمود الحجم بشكل ذكي بالبحث عن أي عمود يحتوي على كلمة حجم أو cbm
+    # تحديد اسم عمود الحجم بشكل ذكي وشامل جداً
     volume_col_name = None
     for col in df.columns:
       clean_col = str(col).lower().strip()
-      if "حجم" in clean_col or "cbm" in clean_col:
+      if any(keyword in clean_col for keyword in ["حجم", "حج", "cbm", "vol", "volume"]):
         volume_col_name = col
         break
 
@@ -440,7 +440,7 @@ if active_data_file is not None and active_template_file is not None:
 
     display_table_df = df.copy()
     
-    # ضمان وجود عمود باسم "الحجم" في الجدول المعروض في حال وجد العمود بالملف بأي اسم ميكانيكي آخر
+    # توحيد اسم العمود المعروض ليصبح "الحجم" إن وجد بأي مسمى آخر
     if volume_col_name and volume_col_name != "الحجم":
       display_table_df.rename(columns={volume_col_name: "الحجم"}, inplace=True)
 
@@ -665,7 +665,7 @@ if active_data_file is not None and active_template_file is not None:
                     function savePdfReceipt() {{
                         var printWin = window.open('', '', 'height=800,width=800');
                         printWin.document.write('<html><head><title>' + fileNameId + '</title><style>@page {{ size: A5; margin: 5mm; }} body {{ direction: rtl; font-family: Tahoma, sans-serif; background: #fff; margin: 0; padding: 0; }}</style></head><body>');
-                        printWin.document.write(receiptTest);
+                        printWin.document.write(receiptContent);
                         printWin.document.write('</body></html>');
                         printWin.document.close();
                         printWin.focus();
