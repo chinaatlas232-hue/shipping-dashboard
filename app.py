@@ -150,7 +150,7 @@ if active_data_file is not None and active_template_file is not None:
 
     today_date = datetime.date.today().strftime("%Y-%m-%d")
 
-    # فحص وتوحيد اسم عمود الحجم إجبارياً
+    # فحص وتوحيد اسم عمود الحجم إجبارياً وبحث مرن
     found_vol_col = None
     for col in df.columns:
       clean_c = col.lower().strip()
