@@ -156,19 +156,21 @@ if active_data_file is not None and active_template_file is not None:
     )
     st.markdown("---")
 
-    # تحديد عمود الحجم بدقة أو إنشاؤه افتراضياً إن لم يوجد بالملف
+    # البحث عن عمود الحجم بأي تسمية وضمان توحيده باسم "الحجم"
     volume_col_name = None
     for col in df.columns:
       clean_col = col.lower().strip()
       if any(
-          kw in clean_col for kw in ["حجم", "حج", "cbm", "vol", "volume"]
+          kw in clean_col
+          for kw in ["حجم", "حج", "cbm", "vol", "volume", "الحجم"]
       ):
         volume_col_name = col
         break
 
-    if not volume_col_name:
+    if volume_col_name:
+      df.rename(columns={volume_col_name: "الحجم"}, inplace=True)
+    else:
       df["الحجم"] = 0.0
-      volume_col_name = "الحجم"
 
     total_clients_count = len(df)
     total_packages_count = 0
@@ -200,13 +202,12 @@ if active_data_file is not None and active_template_file is not None:
       total_weight_sum += weight
 
       volume = 0.0
-      if volume_col_name:
-        val = row.get(volume_col_name, 0)
-        if pd.notna(val):
-          try:
-            volume = float(val)
-          except:
-            volume = 0.0
+      val = row.get("الحجم", 0)
+      if pd.notna(val):
+        try:
+          volume = float(val)
+        except:
+          volume = 0.0
       total_volume_sum += volume
 
       packages = 0
@@ -426,15 +427,10 @@ if active_data_file is not None and active_template_file is not None:
     st.subheader(f"📋 جدول تفاصيل الشحنة المعروضة: [{selected_shipment_filter}]")
 
     display_table_df = df.copy()
-
-    if volume_col_name and volume_col_name != "الحجم":
-      display_table_df.rename(columns={volume_col_name: "الحجم"}, inplace=True)
-
     display_table_df.insert(
         0, "التسلسل", range(1, len(display_table_df) + 1)
     )
 
-    # تم إضافة "الحجم" صراحةً هنا لكي يظهر في الجدول المرئي بجانب الوزن
     preferred_cols = [
         "التسلسل",
         "الشحنة",
