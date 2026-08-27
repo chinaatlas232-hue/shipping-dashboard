@@ -111,7 +111,10 @@ with st.sidebar:
         )
 
       filtered_temp_df = temp_df.copy()
-      if selected_shipment_filter != "الكل" and "الشحنة" in filtered_temp_df.columns:
+      if (
+          selected_shipment_filter != "الكل"
+          and "الشحنة" in filtered_temp_df.columns
+      ):
         filtered_temp_df = filtered_temp_df[
             filtered_temp_df["الشحنة"].astype(str).str.replace(".0", "")
             == selected_shipment_filter
