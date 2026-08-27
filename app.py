@@ -434,6 +434,7 @@ if active_data_file is not None and active_template_file is not None:
         0, "التسلسل", range(1, len(display_table_df) + 1)
     )
 
+    # تم إضافة "الحجم" صراحةً هنا لكي يظهر في الجدول المرئي بجانب الوزن
     preferred_cols = [
         "التسلسل",
         "الشحنة",
