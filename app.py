@@ -130,7 +130,6 @@ active_logo = logo_path if os.path.exists(logo_path) else None
 if active_data_file is not None and active_template_file is not None:
   try:
     df = pd.read_excel(active_data_file)
-    # تنظيف أسماء الأعمدة وإزالة أي مسافات مخفية
     df.columns = df.columns.astype(str).str.strip()
 
     if selected_shipment_filter != "الكل" and "الشحنة" in df.columns:
@@ -151,13 +150,23 @@ if active_data_file is not None and active_template_file is not None:
 
     today_date = datetime.date.today().strftime("%Y-%m-%d")
 
-    # فحص وتوحيد اسم عمود الحجم بدقة فائقة
+    # البحث الشامل والذكي عن أي مسمى لعمود الحجم (فاليوم، حجم، CBM، إلخ)
     found_vol_col = None
     for col in df.columns:
       clean_c = col.lower().strip()
       if any(
           k in clean_c
-          for k in ["حجم", "cbm", "vol", "volume", "حج", "الحجم", "الابعاد"]
+          for k in [
+              "فاليوم",
+              "فاليم",
+              "حجم",
+              "cbm",
+              "vol",
+              "volume",
+              "حج",
+              "الحجم",
+              "الابعاد",
+          ]
       ):
         found_vol_col = col
         break
@@ -165,6 +174,7 @@ if active_data_file is not None and active_template_file is not None:
     if found_vol_col:
       df.rename(columns={found_vol_col: "الحجم"}, inplace=True)
     else:
+      # إذا لم يتم العثور على عمود حجم نهائياً في ملف الإكسل، نقوم بإنشائه وقائياً لتجنب الأخطاء
       df["الحجم"] = 0.0
 
     st.success(
