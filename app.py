@@ -59,7 +59,9 @@ with st.sidebar:
     with open(shipment_path, "wb") as f:
       f.write(uploaded_data_file.getbuffer())
     st.sidebar.success("تم حفظ ملف الشحنات بنجاح!")
+    st.rerun()
 
+  # إظهار خيار مطابقة الحجم إجبارياً فور توفر ملف الشحنات
   if os.path.exists(shipment_path):
     try:
       temp_df = pd.read_excel(shipment_path)
@@ -67,7 +69,7 @@ with st.sidebar:
 
       st.markdown("---")
       st.markdown(
-          "<h3 style='color: #fbbf24; font-size:16px;'>🛠️ مطابقة عمود الحجم"
+          "<h3 style='color: #fbbf24; font-size:15px;'>🛠️ مطابقة عمود الحجم"
           " يدوياً</h3>",
           unsafe_allow_html=True,
       )
@@ -85,6 +87,7 @@ with st.sidebar:
     with open(template_path, "wb") as f:
       f.write(uploaded_template_file.getbuffer())
     st.sidebar.success("تم حفظ القالب بنجاح!")
+    st.rerun()
 
   uploaded_logo = st.file_uploader(
       "3. شعار الشركة (Logo) - اختيارى", type=["png", "jpg", "jpeg"]
@@ -93,6 +96,7 @@ with st.sidebar:
     with open(logo_path, "wb") as f:
       f.write(uploaded_logo.getbuffer())
     st.sidebar.success("تم حفظ الشعار بنجاح!")
+    st.rerun()
 
   if st.button("🗑️ مسح الذاكرة ورفع ملفات جديدة"):
     for path in [shipment_path, template_path, logo_path]:
@@ -156,7 +160,7 @@ if active_data_file is not None and active_template_file is not None:
     df = pd.read_excel(active_data_file)
     df.columns = df.columns.astype(str).str.strip()
 
-    # معالجة تسمية عمود الحجم يدوياً أو تلقائياً بدقة عالية
+    # معالجة عمود الحجم بناءً على الاختيار اليدوي أو البحث التلقائي
     if manual_volume_col != "تلقائي" and manual_volume_col in df.columns:
       df.rename(columns={manual_volume_col: "الحجم"}, inplace=True)
     else:
