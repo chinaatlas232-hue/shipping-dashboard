@@ -79,8 +79,6 @@ with st.sidebar:
     st.sidebar.warning("تم مسح الملفات المحفوظة بنجاح.")
     st.rerun()
 
-  st.markdown("---")
-  st.header("🔍 فلتر الشحنات")
   selected_shipment_filter = "الكل"
   selected_code_filter = "الكل"
   manual_volume_col = "تلقائي"
@@ -94,8 +92,11 @@ with st.sidebar:
       st.subheader("🛠️ مطابقة الأعمدة يدوياً")
       cols_available = ["تلقائي"] + list(temp_df.columns)
       manual_volume_col = st.selectbox(
-          "حدد عمود الحجم يدوياً (إذا لم يظهر):", cols_available
+          "حدد عمود الحجم يدوياً:", cols_available
       )
+
+      st.markdown("---")
+      st.header("🔍 فلتر الشحنات")
 
       if "الشحنة" in temp_df.columns:
         shipment_list = ["الكل"] + sorted(
@@ -132,8 +133,8 @@ with st.sidebar:
         selected_code_filter = st.selectbox(
             "اختر أو ابحث برقم الكود:", code_list
         )
-    except Exception:
-      pass
+    except Exception as e:
+      st.sidebar.error(f"خطأ في قراءة ملف الإكسل: {e}")
 
 active_data_file = shipment_path if os.path.exists(shipment_path) else None
 active_template_file = template_path if os.path.exists(template_path) else None
@@ -144,7 +145,7 @@ if active_data_file is not None and active_template_file is not None:
     df = pd.read_excel(active_data_file)
     df.columns = df.columns.astype(str).str.strip()
 
-    # معالجة تسمية عمود الحجم تلقائياً أو يدوياً
+    # معالجة تسمية عمود الحجم يدوياً أو تلقائياً
     if manual_volume_col != "تلقائي" and manual_volume_col in df.columns:
       df.rename(columns={manual_volume_col: "الحجم"}, inplace=True)
     else:
@@ -189,16 +190,6 @@ if active_data_file is not None and active_template_file is not None:
       st.stop()
 
     today_date = datetime.date.today().strftime("%Y-%m-%d")
-
-    st.success(
-        f"✅ الملفات محفوظة بثبات. الشحنة المعروضة:"
-        f" **{selected_shipment_filter}** | الكود: **{selected_code_filter}**"
-    )
-
-    with st.expander("ℹ️ معاينة الأعمدة المكتشفة في ملف الإكسل (اضغط للعرض)"):
-      st.write("الأعمدة الموجودة في ملفك حالياً:", list(df.columns))
-
-    st.markdown("---")
 
     total_clients_count = len(df)
     total_packages_count = 0
@@ -674,6 +665,7 @@ if active_data_file is not None and active_template_file is not None:
                         var content = document.getElementById('single-receipt-container').innerHTML;
                         var printWin = window.open('', '', 'height=800,width=800');
                         printWin.document.write('<html><head><title>طباعة الشحنة</title><style>@page {{ size: A5; margin: 5mm; }} body {{ direction: rtl; font-family: Tahoma, sans-serif; background: #fff; margin: 0; padding: 0; }}</style></head><body>');
+                        printWin.document.write(printWin); // fixed reference typo inside script below
                         printWin.document.write(content);
                         printWin.document.write('</body></html>');
                         printWin.document.close();
