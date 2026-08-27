@@ -11,12 +11,10 @@ st.set_page_config(page_title="وصل تسليم بضاعة - أطلس", layout=
 st.markdown(
     """
     <style>
-    /* لون الشريط الجانبي: رمادي غامق بدرجة متوسطة */
     [data-testid="stSidebar"] {
         background-color: #334155;
         color: #f8fafc;
     }
-    /* تغيير لون النصوص والعناوين داخل الشريط الجانبي لتكون واضحة */
     [data-testid="stSidebar"] h1, 
     [data-testid="stSidebar"] h2, 
     [data-testid="stSidebar"] h3, 
@@ -24,7 +22,6 @@ st.markdown(
     [data-testid="stSidebar"] .stMarkdown {
         color: #f8fafc !important;
     }
-    /* تخصيص زر مسح الذاكرة ليكون أحمر غامق */
     [data-testid="stSidebar"] button[kind="secondary"] {
         background-color: #991b1b !important;
         color: white !important;
@@ -42,7 +39,6 @@ st.markdown(
 
 st.title("📦 النظام المالي والفني - وصل تسليم البضائع")
 
-# إنشاء مجلد لحفظ الملفات بشكل دائم على السيرفر
 UPLOAD_DIR = "saved_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -50,7 +46,6 @@ shipment_path = os.path.join(UPLOAD_DIR, "shipments_data.xlsx")
 template_path = os.path.join(UPLOAD_DIR, "template.xlsx")
 logo_path = os.path.join(UPLOAD_DIR, "logo.png")
 
-# شريط جانبي لإدارة الملفات والفلتر
 with st.sidebar:
   st.header("⚙️ إدارة الملفات")
 
@@ -85,7 +80,6 @@ with st.sidebar:
     st.sidebar.warning("تم مسح الملفات المحفوظة بنجاح.")
     st.rerun()
 
-  # --- فلتر الشحنات في القائمة الجانبية ---
   st.markdown("---")
   st.header("🔍 فلتر الشحنات")
   selected_shipment_filter = "الكل"
@@ -108,7 +102,6 @@ with st.sidebar:
             "اختر الشحنة للعرض:", shipment_list
         )
         
-      # تصفية المؤقت حسب الشحنة المحددة لإعطاء الأكواد الخاصة بها فقط
       filtered_temp_df = temp_df.copy()
       if selected_shipment_filter != "الكل" and "الشحنة" in filtered_temp_df.columns:
         filtered_temp_df = filtered_temp_df[
@@ -116,7 +109,6 @@ with st.sidebar:
             == selected_shipment_filter
         ]
 
-      # قائمة منسدلة تلقائية للكودات
       if "الكود" in filtered_temp_df.columns:
         code_list = ["الكل"] + sorted(
             filtered_temp_df["الكود"]
@@ -132,7 +124,6 @@ with st.sidebar:
     except Exception:
       pass
 
-# تحديد الملفات النشطة
 active_data_file = (
     shipment_path if os.path.exists(shipment_path) else None
 )
@@ -143,18 +134,18 @@ active_logo = logo_path if os.path.exists(logo_path) else None
 
 if active_data_file is not None and active_template_file is not None:
   try:
-    # قراءة بيانات الشحنات
     df = pd.read_excel(active_data_file)
     df.columns = df.columns.str.strip()
 
-    # تطبيق الفلتر إذا تم اختيار شحنة معينة
+    # طباعة الأعمدة المتاحة في ملف الإكسل لمساعدتك في حال اختلف اسم العمود تماماً
+    # st.write("الأعمدة المكتشفة في الملف:", list(df.columns))
+
     if selected_shipment_filter != "الكل" and "الشحنة" in df.columns:
       df = df[
           df["الشحنة"].astype(str).str.replace(".0", "")
           == selected_shipment_filter
       ]
 
-    # تطبيق الفلتر إذا تم اختيار كود معين
     if selected_code_filter != "الكل" and "الكود" in df.columns:
       df = df[
           df["الكود"].astype(str).str.replace(".0", "")
@@ -165,7 +156,6 @@ if active_data_file is not None and active_template_file is not None:
       st.warning("⚠️ لا توجد بيانات مطابقة للشحنة أو الكود المحدد.")
       st.stop()
 
-    # الحصول على تاريخ اليوم تلقائياً
     today_date = datetime.date.today().strftime("%Y-%m-%d")
 
     st.success(
@@ -174,7 +164,14 @@ if active_data_file is not None and active_template_file is not None:
     )
     st.markdown("---")
 
-    # حساب الإحصائيات الشاملة للشحنات المعروضة
+    # تحديد اسم عمود الحجم بشكل ذكي بالبحث عن أي عمود يحتوي على كلمة حجم أو cbm
+    volume_col_name = None
+    for col in df.columns:
+      clean_col = str(col).lower().strip()
+      if "حجم" in clean_col or "cbm" in clean_col:
+        volume_col_name = col
+        break
+
     total_clients_count = len(df)
     total_packages_count = 0
     total_weight_sum = 0.0
@@ -204,17 +201,15 @@ if active_data_file is not None and active_template_file is not None:
       weight = float(row.get("الوزن", 0) or 0)
       total_weight_sum += weight
 
-      # استخراج الحجم بأكثر من احتمال لتسمية العمود
+      # استخراج الحجم بناءً على العمود المكتشف ديناميكياً
       volume = 0.0
-      for col in ["الحجم", "حجم", "CBM", "الحجم "]:
-        if col in df.columns:
-          val = row.get(col, 0)
-          if pd.notna(val):
-            try:
-              volume = float(val)
-            except:
-              volume = 0.0
-            break
+      if volume_col_name:
+        val = row.get(volume_col_name, 0)
+        if pd.notna(val):
+          try:
+            volume = float(val)
+          except:
+            volume = 0.0
       total_volume_sum += volume
 
       packages = 0
@@ -224,7 +219,6 @@ if active_data_file is not None and active_template_file is not None:
         packages = 0
       total_packages_count += packages
 
-      # استخراج سعر الكيلو
       price_per_kg = 0
       for col in ["سعر الكيلو", "سعر الكيلو ", "السعر"]:
         if col in df.columns:
@@ -233,7 +227,6 @@ if active_data_file is not None and active_template_file is not None:
             price_per_kg = float(val)
             break
 
-      # استخراج إجمالي المبيعات أو حسابه تلقائياً
       total_sales = 0
       for col in ["اجمالي مبيعات", "اجمالي مبيعات ", "الاجمالي", "المبلغ"]:
         if col in df.columns:
@@ -246,7 +239,6 @@ if active_data_file is not None and active_template_file is not None:
 
       total_sales_sum += total_sales
 
-      # تنظيف رقم الهاتف وإضافة تنسيق +964
       phone_raw = row.get("رقم الهاتف", row.get("رقم الهاتف ", ""))
       phone = str(phone_raw).strip()
       if phone.endswith(".0"):
@@ -258,7 +250,6 @@ if active_data_file is not None and active_template_file is not None:
 
       formatted_phone = f"+964 {phone}" if phone else ""
 
-      # استخراج العنوان ونوع الشحنة
       address = ""
       for col in ["عنوان استلام البظاعة", "العنوان", "عنوان"]:
         if col in df.columns:
@@ -271,7 +262,6 @@ if active_data_file is not None and active_template_file is not None:
           shipment_type = str(row.get(col, "")).strip()
           break
 
-      # تعبئة قالب الإكسل الرسمي
       wb = openpyxl.load_workbook(active_template_file)
       ws = wb.active
 
@@ -289,7 +279,6 @@ if active_data_file is not None and active_template_file is not None:
       wb.save(output)
       output.seek(0)
 
-      # تصميم HTML للوصل الواحد
       single_receipt_html = f"""
             <div class="receipt-page" style="
                 padding: 15px; 
@@ -380,7 +369,6 @@ if active_data_file is not None and active_template_file is not None:
           "single_html": single_receipt_html,
       })
 
-    # --- إحصائيات KPI Cards (مضافة بطاقة الحجم الإجمالي) ---
     st.markdown(
         """
         <style>
@@ -448,10 +436,14 @@ if active_data_file is not None and active_template_file is not None:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- جدول تفاصيل الشحنة (متضمن عمود الحجم) ---
     st.subheader(f"📋 جدول تفاصيل الشحنة المعروضة: [{selected_shipment_filter}]")
 
     display_table_df = df.copy()
+    
+    # ضمان وجود عمود باسم "الحجم" في الجدول المعروض في حال وجد العمود بالملف بأي اسم ميكانيكي آخر
+    if volume_col_name and volume_col_name != "الحجم":
+      display_table_df.rename(columns={volume_col_name: "الحجم"}, inplace=True)
+
     display_table_df.insert(
         0, "التسلسل", range(1, len(display_table_df) + 1)
     )
@@ -467,18 +459,9 @@ if active_data_file is not None and active_template_file is not None:
         "عنوان استلام البظاعة",
         "نوع الشحنة",
     ]
-    # التحقق من وجود الأعمدة المتاحة فعلياً بالملف (مع مراعاة التسميات البديلة للحجم)
-    actual_cols = []
-    for col in preferred_cols:
-      if col in display_table_df.columns:
-        actual_cols.append(col)
-      elif col == "الحجم":
-        for alt in ["حجم", "CBM", "الحجم "]:
-          if alt in display_table_df.columns:
-            # إعادة تسمية العمود المؤقت ليتوافق مع العرض
-            display_table_df.rename(columns={alt: "الحجم"}, inplace=True)
-            actual_cols.append("الحجم")
-            break
+    actual_cols = [
+        col for col in preferred_cols if col in display_table_df.columns
+    ]
 
     final_table_df = (
         display_table_df[actual_cols] if actual_cols else display_table_df
@@ -537,7 +520,6 @@ if active_data_file is not None and active_template_file is not None:
     st.html(custom_table_styling)
     st.markdown("---")
 
-    # --- زر الطباعة الكلية ---
     master_payload = f"""
         <!DOCTYPE html>
         <html lang="ar" dir="rtl">
@@ -597,7 +579,6 @@ if active_data_file is not None and active_template_file is not None:
     st.components.v1.html(master_payload, height=75)
     st.markdown("---")
 
-    # عرض الوصولات بداخل Expander
     for item in receipts_data_list:
       index = item["index"]
       shipment = item["shipment"]
@@ -684,7 +665,7 @@ if active_data_file is not None and active_template_file is not None:
                     function savePdfReceipt() {{
                         var printWin = window.open('', '', 'height=800,width=800');
                         printWin.document.write('<html><head><title>' + fileNameId + '</title><style>@page {{ size: A5; margin: 5mm; }} body {{ direction: rtl; font-family: Tahoma, sans-serif; background: #fff; margin: 0; padding: 0; }}</style></head><body>');
-                        printWin.document.write(receiptContent);
+                        printWin.document.write(receiptTest);
                         printWin.document.write('</body></html>');
                         printWin.document.close();
                         printWin.focus();
