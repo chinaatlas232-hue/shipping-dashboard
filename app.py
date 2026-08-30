@@ -1,570 +1,694 @@
-import datetime
 import io
 import os
-import openpyxl
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="وصل تسليم بضاعة - أطلس", layout="wide")
+# 1. إعداد الصفحة والتنسيقات
+st.set_page_config(
+    page_title="شركة أطلس المحيط", page_icon="📦", layout="wide"
+)
 
-# --- مسارات الملفات ---
-UPLOAD_DIR = "saved_files"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-shipment_path = os.path.join(UPLOAD_DIR, "shipments_data.xlsx")
-template_path = os.path.join(UPLOAD_DIR, "template.xlsx")
-logo_path = os.path.join(UPLOAD_DIR, "logo.png")
-customer_info_path = os.path.join(UPLOAD_DIR, "customer_info.xlsx")
-
-# --- تنسيق الشريط الجانبي ---
 st.markdown(
     """
     <style>
-    [data-testid="stSidebar"] {
-        background-color: #334155;
-        color: #f8fafc;
+    .main { background-color: #0e1117; }
+    
+    .metric-card {
+        padding: 16px; border-radius: 12px; color: white;
+        text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
-    [data-testid="stSidebar"] h1, 
-    [data-testid="stSidebar"] h2, 
-    [data-testid="stSidebar"] h3, 
-    [data-testid="stSidebar"] label, 
-    [data-testid="stSidebar"] .stMarkdown {
-        color: #f8fafc !important;
+    .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
+    .metric-value { font-size: 20px; font-weight: bold; }
+    
+    /* تمديد حاوية الصفحة لعرض الشاشة بالكامل */
+    .block-container { 
+        padding-top: 3.5rem !important; 
+        padding-bottom: 3rem !important; 
+        padding-left: 1rem !important; 
+        padding-right: 1rem !important; 
+        max-width: 100% !important; 
     }
-    [data-testid="stSidebar"] button[kind="secondary"] {
-        background-color: #991b1b !important;
-        color: white !important;
-        border: 1px solid #7f1d1d !important;
+
+    /* تمديد الجداول وعناصر العرض لتغطي المساحة بنسبة 100% */
+    [data-testid="stDataFrame"], [data-testid="stTable"], table {
+        width: 100% !important;
+    }
+    
+    [data-testid="stDataFrame"] div[data-baseweb="block"] {
+        width: 100% !important;
+    }
+
+    h1 {
+        background-color: #e2e8f0 !important;
+        color: #0f172a !important;
+        padding: 15px 20px !important;
+        border-radius: 8px !important;
+        margin-bottom: 20px !important;
+        margin-top: 10px !important;
+    }
+
+    [data-testid="stTextInput"] label {
+        font-size: 18px !important;
         font-weight: bold !important;
+        color: #1f2937 !important;
+    }
+
+    [data-testid="stSidebar"] {
+        background-color: #07151a !important;
+    }
+    
+    [data-testid="stSidebar"] section div.stRadio label,
+    [data-testid="stSidebar"] section div.stRadio p,
+    [data-testid="stSidebar"] section div.stRadio span,
+    [data-testid="stSidebar"] .element-container label,
+    [data-testid="stSidebar"] .element-container span,
+    [data-testid="stSidebar"] .stMarkdown p,
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        font-size: 18px !important;
+    }
+
+    [data-testid="stSidebar"] [data-testid="stFileUploader"] *, 
+    [data-testid="stSidebar"] [data-testid="stButton"] *, 
+    [data-testid="stSidebar"] [data-testid="stSelectbox"] * {
+        color: #000000 !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stFileUploader"], 
+    [data-testid="stSidebar"] [data-testid="stButton"], 
+    [data-testid="stSidebar"] [data-testid="stSelectbox"] {
+        color: #ffffff !important;
+    }
+
+    /* تنسيق زر مسح الملف بخلفية حمراء */
+    [data-testid="stSidebar"] button[kind="secondary"] {
+        background-color: #dc2626 !important;
+        color: #ffffff !important;
+        border-color: #dc2626 !important;
+    }
+    
+    [data-testid="stSidebar"] button[kind="secondary"]:hover {
+        background-color: #b91c1c !important;
+        color: #ffffff !important;
+        border-color: #b91c1c !important;
+    }
+
+    ::-webkit-scrollbar {
+        width: 10px !important;
+        height: 10px !important;
+    }
+    ::-webkit-scrollbar-track {
+        background: #f1f5f9 !important;
+        border-radius: 5px !important;
+        margin: 5px !important;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #f87171 !important;
+        border-radius: 4px !important;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #ef4444 !important;
     }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-st.title("📦 النظام المالي والفني - وصل تسليم البضائع (شركة أطلس المحيط)")
+DATA_FILE = "shipping_data.xlsx"
 
-with st.sidebar:
-  st.header("⚙️ إدارة الملفات")
+def clean_numeric(series):
+    return pd.to_numeric(
+        series.astype(str)
+        .str.replace("¥", "", regex=False)
+        .str.replace("$", "", regex=False)
+        .str.replace(",", "", regex=False)
+        .str.strip(),
+        errors="coerce"
+    ).fillna(0)
 
-  uploaded_data_file = st.file_uploader(
-      "1. ملف بيانات الشحنات (تعبئة وصل اطلس.xlsx)", type=["xlsx"]
-  )
-  if uploaded_data_file is not None:
-    with open(shipment_path, "wb") as f:
-      f.write(uploaded_data_file.getbuffer())
-    st.success("تم حفظ ملف الشحنات بنجاح!")
-
-  uploaded_template_file = st.file_uploader(
-      "2. قالب وصل التسليم (Atlas_Cargo_Delivery_Receipt.xlsx)", type=["xlsx"]
-  )
-  if uploaded_template_file is not None:
-    with open(template_path, "wb") as f:
-      f.write(uploaded_template_file.getbuffer())
-    st.success("تم حفظ القالب بنجاح!")
-
-  uploaded_logo = st.file_uploader(
-      "3. شعار الشركة (Logo)", type=["png", "jpg", "jpeg"]
-  )
-  if uploaded_logo is not None:
-    with open(logo_path, "wb") as f:
-      f.write(uploaded_logo.getbuffer())
-    st.success("تم حفظ الشعار بنجاح!")
-
-  uploaded_customer_file = st.file_uploader(
-      "4. ملف معلومات العملاء (coustmer info)", type=["xlsx", "csv"]
-  )
-  if uploaded_customer_file is not None:
-    with open(customer_info_path, "wb") as f:
-      f.write(uploaded_customer_file.getbuffer())
-    st.success("تم حفظ ملف معلومات العملاء بنجاح!")
-
-  if st.button("🗑️ مسح الذاكرة ورفع ملفات جديدة"):
-    for path in [shipment_path, template_path, logo_path, customer_info_path]:
-      if os.path.exists(path):
-        os.remove(path)
-    st.rerun()
-
-  # --- دالة الدمج وتحديث الأعمدة الإجبارية ---
-  def load_and_merge_data():
-    if not os.path.exists(shipment_path):
-      return None
-
-    df_s = pd.read_excel(shipment_path)
-    df_s.columns = df_s.columns.astype(str).str.strip()
-
-    if os.path.exists(customer_info_path):
-      try:
-        if customer_info_path.endswith('.csv'):
-          df_c = pd.read_csv(customer_info_path)
-        else:
-          df_c = pd.read_excel(customer_info_path)
-          
-        df_c.columns = df_c.columns.astype(str).str.strip()
-
-        ship_code_col = next((c for c in df_s.columns if "كود" in c or "code" in c.lower()), "الكود")
-        cust_code_col = next((c for c in df_c.columns if "كود" in c or "code" in c.lower()), "الكود")
-
-        if ship_code_col in df_s.columns and cust_code_col in df_c.columns:
-          df_s['__s_code__'] = df_s[ship_code_col].astype(str).str.strip().str.upper().str.replace('.0', '', regex=False)
-          df_c['__c_code__'] = df_c[cust_code_col].astype(str).str.strip().str.upper().str.replace('.0', '', regex=False)
-          
-          c_name_col = next((c for c in df_c.columns if 'الاسم' in c or 'name' in c.lower()), None)
-          c_phone_col = next((c for c in df_c.columns if 'هاتف' in c or 'عاتف' in c or 'phone' in c.lower()), None)
-          c_addr_col = next((c for c in df_c.columns if 'عنوان' in c or 'address' in c.lower()), None)
-
-          name_dict = dict(zip(df_c['__c_code__'], df_c[c_name_col])) if c_name_col else {}
-          phone_dict = dict(zip(df_c['__c_code__'], df_c[c_phone_col])) if c_phone_col else {}
-          addr_dict = dict(zip(df_c['__c_code__'], df_c[c_addr_col])) if c_addr_col else {}
-
-          s_name_col = next((c for c in df_s.columns if 'الاسم' in c and c != '__s_code__'), 'الاسم')
-          s_phone_col = next((c for c in df_s.columns if 'هاتف' in c or 'عاتف' in c), 'رقم الهاتف')
-          s_addr_col = next((c for c in df_s.columns if 'عنوان' in c), 'عنوان استلام البظاعة')
-
-          df_s[s_name_col] = df_s['__s_code__'].map(name_dict).fillna(df_s.get(s_name_col))
-          df_s[s_phone_col] = df_s['__s_code__'].map(phone_dict).fillna(df_s.get(s_phone_col))
-          df_s[s_addr_col] = df_s['__s_code__'].map(addr_dict).fillna(df_s.get(s_addr_col))
-
-          df_s.drop(columns=['__s_code__'], errors='ignore', inplace=True)
-      except Exception as e:
-        print(f"Merge error: {e}")
-        
-    return df_s
-
-  # --- الفلاتر ---
-  st.markdown("---")
-  st.header("🔍 فلتر الشحنات")
-  selected_shipment_filter = "الكل"
-  selected_code_filter = "الكل"
-  selected_type_filter = "الكل"
-
-  temp_df = load_and_merge_data()
-  if temp_df is not None and not temp_df.empty:
-    try:
-      ship_col = next((c for c in temp_df.columns if "شحنة" in str(c) or "shipment" in str(c).lower()), temp_df.columns[0])
-      temp_df[ship_col] = temp_df[ship_col].fillna("بدون شحنة").astype(str).str.replace(".0", "", regex=False)
-      shipment_list = ["الكل"] + sorted(temp_df[ship_col].unique().tolist())
-      selected_shipment_filter = st.selectbox("اختر الشحنة للعرض:", shipment_list)
-        
-      filtered_temp_df = temp_df.copy()
-      if selected_shipment_filter != "الكل":
-        filtered_temp_df = filtered_temp_df[filtered_temp_df[ship_col] == selected_shipment_filter]
-
-      code_col = next((c for c in filtered_temp_df.columns if "كود" in str(c) or "code" in str(c).lower()), None)
-      if code_col:
-        filtered_temp_df[code_col] = filtered_temp_df[code_col].fillna("بدون كود").astype(str).str.replace(".0", "", regex=False)
-        code_list = ["الكل"] + sorted(filtered_temp_df[code_col].unique().tolist())
-        selected_code_filter = st.selectbox("اختر أو ابحث برقم الكود:", code_list)
-        if selected_code_filter != "الكل":
-          filtered_temp_df = filtered_temp_df[filtered_temp_df[code_col] == selected_code_filter]
-
-      type_col = next((c for c in filtered_temp_df.columns if "نوع" in str(c) or "type" in str(c).lower()), None)
-      if type_col:
-        filtered_temp_df[type_col] = filtered_temp_df[type_col].fillna("غير محدد").astype(str).str.strip()
-        type_list = ["الكل"] + sorted(filtered_temp_df[type_col].unique().tolist())
-        selected_type_filter = st.selectbox("اختر نوع الشحنة:", type_list)
-    except Exception:
-      pass
-
-active_data_file = shipment_path if os.path.exists(shipment_path) else None
-active_template_file = template_path if os.path.exists(template_path) else None
-active_logo = logo_path if os.path.exists(logo_path) else None
-
-if active_data_file is not None and active_template_file is not None:
-  try:
-    df = load_and_merge_data()
-    if df is None or df.empty:
-      st.warning("⚠️ ملف البيانات فارغ.")
-      st.stop()
-
-    ship_col = next((c for c in df.columns if "شحنة" in str(c) or "shipment" in str(c).lower()), df.columns[0])
-    code_col = next((c for c in df.columns if "كود" in str(c) or "code" in str(c).lower()), None)
-    type_col_name = next((c for c in df.columns if "نوع" in str(c) or "type" in str(c).lower()), None)
-
-    df[ship_col] = df[ship_col].fillna("بدون شحنة").astype(str).str.replace(".0", "", regex=False)
-    if code_col:
-      df[code_col] = df[code_col].fillna("بدون كود").astype(str).str.replace(".0", "", regex=False)
-    if type_col_name:
-      df[type_col_name] = df[type_col_name].fillna("غير محدد").astype(str).str.strip()
-
-    if selected_shipment_filter != "الكل":
-      df = df[df[ship_col] == selected_shipment_filter]
-
-    if selected_code_filter != "الكل" and code_col:
-      df = df[df[code_col] == selected_code_filter]
-
-    if selected_type_filter != "الكل" and type_col_name:
-      df = df[df[type_col_name] == selected_type_filter]
-
-    if df.empty:
-      st.warning("⚠️ لا توجد بيانات مطابقة للفلاتر المحددة.")
-      st.stop()
-
-    today_date = datetime.date.today().strftime("%Y-%m-%d")
-
-    import base64
-    logo_base64 = ""
-    if active_logo and os.path.exists(active_logo):
-      with open(active_logo, "rb") as img_file:
-        logo_base64 = base64.b64encode(img_file.read()).decode("utf-8")
-
-    st.success(f"✅ تمت المطابقة بنجاح. الشحنة: **{selected_shipment_filter}** | الكود: **{selected_code_filter}** | النوع: **{selected_type_filter}**")
-    st.markdown("---")
-
-    total_clients_count = len(df)
-    total_packages_count = 0
-    total_weight_sum = 0.0
-    total_cbm_sum = 0.0
-    total_sales_sum = 0.0
-
-    receipts_data_list = []
-    all_receipts_html_for_print = ""
-
-    for index, row in df.iterrows():
-      shipment = str(row.get(ship_col, "بدون شحنة")).strip()
-      code = str(row.get(code_col, "بدون كود")).strip() if code_col else ""
-      
-      display_code = "" if code in ["بدون كود", "nan", "None"] else code
-      display_shipment = "" if shipment in ["بدون شحنة", "nan", "None"] else shipment
-
-      name_col = next((c for c in df.columns if 'الاسم' in c or 'name' in c.lower()), None)
-      name = str(row.get(name_col, "عميل غير محدد")).strip() if name_col else "عميل غير محدد"
-      if name in ["nan", "None", ""]:
-        name = "عميل غير محدد"
-
-      file_name_id = f"Shipment_{shipment}_Client_{name}".replace(" ", "_")
-
-      weight_col = next((c for c in df.columns if "وزن" in c or "weight" in c.lower()), None)
-      weight = float(row.get(weight_col, 0) or 0) if weight_col else 0.0
-      total_weight_sum += weight
-
-      cbm_value = 0.0
-      cbm_col = next((c for c in df.columns if "cbm" in c.lower() or "حجم" in c), None)
-      if cbm_col:
+def load_data(uploaded_file):
+    df = None
+    if uploaded_file is not None:
         try:
-          cbm_value = float(row.get(cbm_col, 0) or 0)
-        except:
-          pass
-      total_cbm_sum += cbm_value
+            df = pd.read_excel(uploaded_file)
+            df.to_excel(DATA_FILE, index=False)
+            st.sidebar.success("تم حفظ الملف الجديد بنجاح ✔️")
+        except Exception as e:
+            st.sidebar.error(f"خطأ في قراءة الملف: {e}")
 
-      packages_col = next((c for c in df.columns if "طرود" in c or "packages" in c.lower()), None)
-      try:
-        packages = int(float(row.get(packages_col, 0) or 0)) if packages_col else 0
-      except:
-        packages = 0
-      total_packages_count += packages
+    if df is None and os.path.exists(DATA_FILE):
+        try:
+            df = pd.read_excel(DATA_FILE)
+        except Exception:
+            df = None
 
-      price_col = next((c for c in df.columns if "سعر" in c or "price" in c.lower()), None)
-      price_per_kg = float(row.get(price_col, 0) or 0) if price_col else 0.0
+    if df is None:
+        df = pd.DataFrame(columns=[
+            "No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن",
+            "المكتب دفع", "الزبون دفع", "المجموع", "عدد الكارتون",
+            "الوزن", "حجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"
+        ])
 
-      sales_col = next((c for c in df.columns if "مبيعات" in c or "اجمالي" in c or "total" in c.lower()), None)
-      total_sales = float(row.get(sales_col, 0) or 0) if sales_col else 0.0
-      if total_sales == 0 and price_per_kg > 0 and weight > 0:
-        total_sales = weight * price_per_kg
+    df.columns = df.columns.astype(str).str.strip()
 
-      total_sales_sum += total_sales
+    office_col_candidate = next((c for c in df.columns if any(k in c for k in ["المكتب دفع", "Office Paid", "دفع الشركة"])), None)
+    client_col_candidate = next((c for c in df.columns if any(k in c for k in ["الزبون دفع", "Client Paid", "دفع الزبون"])), None)
 
-      phone_col = next((c for c in df.columns if 'هاتف' in c or 'عاتف' in c or 'phone' in c.lower()), None)
-      phone = str(row.get(phone_col, "")).strip() if phone_col else ""
-      if phone.endswith(".0"):
-        phone = phone[:-2]
-      phone = phone.replace("+", "").strip()
-      if phone.startswith("964"):
-        phone = phone[3:]
-      formatted_phone = f"+964 {phone}" if phone and phone not in ["nan", "None"] else ""
+    if office_col_candidate and "Office Paid" not in df.columns:
+        df["Office Paid"] = df[office_col_candidate]
+    if client_col_candidate and "Client Paid" not in df.columns:
+        df["Client Paid"] = df[client_col_candidate]
 
-      address_col = next((c for c in df.columns if 'عنوان' in c or 'address' in c.lower()), None)
-      address = str(row.get(address_col, "")).strip() if address_col else ""
-      if address in ["nan", "None"]:
-        address = ""
+    if "الزبون دفع" in df.columns and "Client Paid" not in df.columns:
+        df["Client Paid"] = df["الزبون دفع"]
+    elif "Client Paid" in df.columns and "الزبون دفع" not in df.columns:
+        df["الزبون دفع"] = df["Client Paid"]
 
-      shipment_type = str(row.get(type_col_name, "")).strip() if type_col_name else ""
-      if shipment_type in ["nan", "None"]:
-        shipment_type = ""
+    if "المكتب دفع" in df.columns and "Office Paid" not in df.columns:
+        df["Office Paid"] = df["المكتب دفع"]
+    elif "Office Paid" in df.columns and "المكتب دفع" not in df.columns:
+        df["المكتب دفع"] = df["Office Paid"]
 
-      wb = openpyxl.load_workbook(active_template_file)
-      ws = wb.active
+    numeric_cols = [
+        "المكتب دفع", "Office Paid", "الزبون دفع", "Client Paid",
+        "عدد الكارتون", "الوزن", "حجم", "المجموع", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"
+    ]
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = clean_numeric(df[col])
 
-      ws["B4"] = display_code
-      ws["D4"] = today_date
-      ws["B5"] = name
-      ws["B6"] = address
-      ws["D5"] = formatted_phone
-      ws["B7"] = display_shipment
-      ws["D6"] = packages
-      ws["B8"] = shipment_type
-      ws["D7"] = weight
+    if "مبلغ الجمرك" in df.columns and "قيمة الاستحصالات" in df.columns:
+        df["متبقي حقيقي"] = df["مبلغ الجمرك"] - df["قيمة الاستحصالات"]
 
-      output = io.BytesIO()
-      wb.save(output)
-      output.seek(0)
+    return df
 
-      logo_img_tag = f'<img src="data:image/png;base64,{logo_base64}" style="max-height: 52px; max-width: 60px; margin-left: 10px; vertical-align: middle;">' if logo_base64 else ''
+st.sidebar.title("🚢 شركة أطلس المحيط")
+st.sidebar.markdown("---")
 
-      single_receipt_html = f"""
-            <div class="receipt-page" style="padding: 15px; font-family: 'Tahoma', Arial, sans-serif; direction: rtl; border: 2px solid #102a43; width: 100%; max-width: 148mm; margin: auto auto 20px auto; background: #ffffff; color: #102a43; box-sizing: border-box; page-break-after: always; break-after: page;">
-                <table style="width: 100%; border-bottom: 2px solid #102a43; padding-bottom: 8px; margin-bottom: 12px; border-collapse: collapse;">
-                    <tr>
-                        <td style="text-align: right; vertical-align: middle;">
-                            <div style="display: flex; align-items: center;">
-                                {logo_img_tag}
-                                <div>
-                                    <h2 style="margin: 0; font-size: 15px; color: #102a43;">أطلس المحيط للتجارة العامة</h2>
-                                    <p style="margin: 2px 0 0; font-size: 10px; color: #627d98;">OCEAN ATLAS GENERAL TRADING</p>
-                                </div>
-                            </div>
-                        </td>
-                        <td style="text-align: left; vertical-align: middle;">
-                            <h3 style="margin: 0; font-size: 13px; color: #b45309;">وصل تسليم بضاعة</h3>
-                            <p style="margin: 2px 0 0; font-size: 10px; color: #334e68;">Cargo Delivery Receipt</p>
-                        </td>
-                    </tr>
-                </table>
-                <table style="width: 100%; font-size: 11px; border-collapse: collapse; margin-bottom: 10px;">
-                    <tr style="background-color: #f0f4f8;">
-                        <td style="padding: 5px; border: 1px solid #bcccdc; width: 50%;"><strong>كود العميل:</strong> <span style="color: #b45309; font-weight: bold;">{display_code}</span></td>
-                        <td style="padding: 5px; border: 1px solid #bcccdc; width: 50%;"><strong>رقم الشحنة:</strong> <span style="color: #b45309; font-weight: bold;">{display_shipment}</span></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 5px; border: 1px solid #bcccdc;"><strong>اسم العميل:</strong> <span style="font-weight: bold;">{name}</span></td>
-                        <td style="padding: 5px; border: 1px solid #bcccdc;"><strong>رقم الهاتف:</strong> <span style="direction: ltr; display: inline-block; font-weight: bold;">{formatted_phone}</span></td>
-                    </tr>
-                    <tr style="background-color: #f0f4f8;">
-                        <td style="padding: 5px; border: 1px solid #bcccdc;"><strong>عنوان الاستلام:</strong> <span style="color: #486581; font-weight: bold;">{address}</span></td>
-                        <td style="padding: 5px; border: 1px solid #bcccdc;"><strong>عدد الطرود:</strong> 📦 {packages} طرد</td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 5px; border: 1px solid #bcccdc;"><strong>تاريخ الإصدار:</strong> <span style="color: #b45309; font-weight: bold;">{today_date}</span></td>
-                        <td style="padding: 5px; border: 1px solid #bcccdc;"><strong>الوزن الإجمالي:</strong> <span style="color: #102a43; font-weight: bold;">{weight} كغ</span></td>
-                    </tr>
-                    <tr style="background-color: #f0f4f8;">
-                        <td style="padding: 5px; border: 1px solid #bcccdc;"><strong>نوع الشحنة:</strong> {shipment_type}</td>
-                        <td style="padding: 5px; border: 1px solid #bcccdc;"><strong>حجم الشحنة (CBM):</strong> <span style="color: #b45309; font-weight: bold;">{cbm_value}</span></td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 5px; border: 1px solid #bcccdc;" colspan="2"><strong>سعر الكيلو:</strong> {price_per_kg:,.2f} $</td>
-                    </tr>
-                    <tr style="background-color: #fef3c7;">
-                        <td style="padding: 5px; border: 1px solid #f59e0b;" colspan="2"><strong>إجمالي المبيعات:</strong> <span style="color: #b45309; font-weight: bold; font-size: 12px;">{total_sales:,.2f} $</span> &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; <strong>طريقة الدفع:</strong> [ &nbsp; ] نقداً &nbsp;&nbsp; [ &nbsp; ] أجل</td>
-                    </tr>
-                </table>
-                <div style="background-color: #fffbeb; border: 1px solid #fde68a; padding: 6px; border-radius: 4px; margin-bottom: 10px;">
-                    <p style="margin: 0; font-size: 10px; color: #92400e; line-height: 1.3;"><strong>إقرار الاستلام:</strong><br>أقر أنا الموقع أدناه، بأنني استلمت البضاعة والشحنة المذكورة أعلاه كاملة، وبحالة سليمة وممتازة، ومطابقة لكافة الأوزان والأوصاف المدونة.</p>
-                </div>
-                <table style="width: 100%; font-size: 11px; margin-top: 5px; margin-bottom: 10px;">
-                    <tr>
-                        <td style="width: 50%; padding: 2px;"><strong>اسم المستلم:</strong><br><br>............................................</td>
-                        <td style="width: 50%; padding: 2px; text-align: left;"><strong>توقيع وختم المستلم:</strong><br><br>............................................</td>
-                    </tr>
-                </table>
-                <div style="border-top: 1px dashed #bcccdc; margin-top: 10px; padding-top: 6px; text-align: center; font-size: 9.5px; color: #334e68;">
-                    <span>📍 العنوان: بغداد - المنصور - تقاطع الواد</span><span style="margin: 0 10px;">|</span><span style="direction: ltr; display: inline-block;">📞 هاتف: 07858588899 / 07814518989</span>
-                </div>
-            </div>
-            """
+uploaded_file = st.sidebar.file_uploader("📁 رفع ملف Excel جديد", type=["xlsx", "xls"])
 
-      all_receipts_html_for_print += single_receipt_html
-      receipts_data_list.append({
-          "index": index,
-          "name": name,
-          "code": display_code,
-          "shipment": display_shipment,
-          "total_sales": total_sales,
-          "output": output,
-          "file_name_id": file_name_id,
-          "single_html": single_receipt_html,
-      })
+if st.sidebar.button("🗑️ مسح بيانات الملف الحالي"):
+    if os.path.exists(DATA_FILE):
+        try:
+            os.remove(DATA_FILE)
+            st.sidebar.success("تم مسح بيانات الشيت بنجاح! ✔️")
+            st.rerun()
+        except Exception as e:
+            st.sidebar.error(f"خطأ أثناء حذف الملف: {e}")
+    else:
+        st.sidebar.info("لا توجد بيانات مسجلة مسبقاً.")
 
-    # --- بطاقات الإحصائيات ---
-    st.markdown("""
-        <style>
-        .metric-card-1 { background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 10px; text-align: center; }
-        .metric-card-2 { background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 10px; text-align: center; }
-        .metric-card-3 { background-color: #f5f3ff; border: 1px solid #ddd6fe; padding: 15px; border-radius: 10px; text-align: center; }
-        .metric-card-4 { background-color: #fffbeb; border: 1px solid #fde68a; padding: 15px; border-radius: 10px; text-align: center; }
-        .metric-card-5 { background-color: #fdf2f8; border: 1px solid #fbcfe8; padding: 15px; border-radius: 10px; text-align: center; }
-        </style>
-    """, unsafe_allow_html=True)
+df = load_data(uploaded_file)
+filtered_df = df.copy()
 
-    m1, m2, m3, m4, m5 = st.columns(5)
-    with m1:
-      st.markdown(f'<div class="metric-card-1"><p style="margin:0; color:#1e40af; font-weight:bold; font-size:14px;">👥 عدد العملاء</p><h3 style="margin:5px 0 0; color:#1e3a8a; font-size:20px;">{total_clients_count} عميل</h3></div>', unsafe_allow_html=True)
-    with m2:
-      st.markdown(f'<div class="metric-card-2"><p style="margin:0; color:#166534; font-weight:bold; font-size:14px;">📦 إجمالي الطرود</p><h3 style="margin:5px 0 0; color:#14532d; font-size:20px;">{total_packages_count} طرد</h3></div>', unsafe_allow_html=True)
-    with m3:
-      st.markdown(f'<div class="metric-card-3"><p style="margin:0; color:#5b21b6; font-weight:bold; font-size:14px;">📐 إجمالي الحجم</p><h3 style="margin:5px 0 0; color:#4c1d95; font-size:20px;">{total_cbm_sum:,.2f} CBM</h3></div>', unsafe_allow_html=True)
-    with m4:
-      st.markdown(f'<div class="metric-card-4"><p style="margin:0; color:#92400e; font-weight:bold; font-size:14px;">⚖️ الوزن الكلي</p><h3 style="margin:5px 0 0; color:#78350f; font-size:20px;">{total_weight_sum:,.2f} كغ</h3></div>', unsafe_allow_html=True)
-    with m5:
-      st.markdown(f'<div class="metric-card-5"><p style="margin:0; color:#9d174d; font-weight:bold; font-size:14px;">💰 المبلغ الإجمالي</p><h3 style="margin:5px 0 0; color:#831843; font-size:20px;">{total_sales_sum:,.2f} $</h3></div>', unsafe_allow_html=True)
+st.sidebar.markdown("### 🔍 الفلاتر الجانبية")
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.subheader(f"📋 جدول تفاصيل الشحنة المعروضة: [{selected_shipment_filter}] - النوع: [{selected_type_filter}]")
+container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df.columns), None)
+selected_container = "الكل"
+if container_col and not df.empty:
+    containers = ["الكل"] + sorted(df[container_col].dropna().astype(str).unique().tolist())
+    selected_container = st.sidebar.selectbox("🚢 اختر رقم الحاوية:", containers)
+    if selected_container != "الكل":
+        filtered_df = filtered_df[filtered_df[container_col].astype(str) == selected_container]
 
-    display_table_df = df.copy()
-    display_table_df.insert(0, "التسلسل", range(1, len(display_table_df) + 1))
-    table_html = display_table_df.to_html(classes="custom-table", index=False, escape=False)
+code_col = next((c for c in ["code", "الكود", "كود"] if c in df.columns), "code")
+selected_code = "الكل"
+if code_col in df.columns and not df.empty:
+    codes = ["الكل"] + sorted(df[code_col].dropna().astype(str).unique().tolist())
+    selected_code = st.sidebar.selectbox("🏷️ اختر الكود (Code):", codes)
+    if selected_code != "الكل":
+        filtered_df = filtered_df[filtered_df[code_col].astype(str) == selected_code]
 
-    custom_table_styling = f"""
-    <style>
-        .custom-table-container {{
-            max-height: 450px;
-            overflow-x: auto;
-            overflow-y: auto;
-            border: 1px solid #bcccdc;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }}
-        .custom-table {{
-            width: 100%;
-            border-collapse: collapse;
-            font-family: 'Tahoma', Arial, sans-serif;
-            font-size: 13px;
-            direction: rtl;
-            background-color: #ffffff;
-            color: #102a43;
-            white-space: nowrap;
-        }}
-        .custom-table th {{
-            background-color: #102a43 !important;
-            color: #ffffff !important;
-            text-align: right;
-            padding: 12px 15px;
-            font-weight: bold;
-            border-bottom: 2px solid #0b1e33;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }}
-        .custom-table td {{
-            padding: 10px 15px;
-            border-bottom: 1px solid #e2e8f0;
-            text-align: right;
-        }}
-        .custom-table tr:nth-child(even) {{
-            background-color: #f8fafc;
-        }}
-        .custom-table tr:hover {{
-            background-color: #f1f5f9;
-        }}
-    </style>
-    <div class="custom-table-container">
-        {table_html}
-    </div>
-    """
-    st.html(custom_table_styling)
-    
-    # --- زر تصدير الجدول إلى PDF فعال ومباشر (يعمل بضغطة زر واحدة دون إعادة تحميل) ---
-    table_pdf_html_component = f"""
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                @page {{ size: A4 landscape; margin: 10mm; }}
-                body {{ font-family: 'Tahoma', Arial, sans-serif; direction: rtl; color: #102a43; margin: 0; padding: 0; background: transparent; }}
-                .export-btn {{
-                    background-color: #102a43;
-                    color: white;
-                    padding: 12px 24px;
-                    border: none;
-                    border-radius: 6px;
-                    cursor: pointer;
-                    font-weight: bold;
-                    font-size: 14px;
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                    font-family: 'Tahoma', Arial, sans-serif;
-                }}
-                .export-btn:hover {{
-                    background-color: #0b1e33;
-                }}
-            </style>
-        </head>
-        <body>
-            <button class="export-btn" onclick="exportTablePDF()">📄 تصدير الجدول الحالي إلى PDF</button>
-            <script>
-                const tableContent = `{table_html.replace('`', '\\`').replace('$', '\\$')}`;
-                const filterInfo = 'الشحنة: {selected_shipment_filter} | النوع: {selected_type_filter}';
-                function exportTablePDF() {{
-                    var w = window.open('', '', 'height=900,width=1200');
-                    w.document.write(`
-                        <!DOCTYPE html>
-                        <html lang="ar" dir="rtl">
-                        <head>
-                            <meta charset="UTF-8">
-                            <title>تقرير جدول الشحنات - أطلس</title>
-                            <style>
-                                @page {{ size: A4 landscape; margin: 10mm; }}
-                                body {{ font-family: Tahoma, Arial, sans-serif; direction: rtl; color: #102a43; padding: 20px; }}
-                                h2 {{ text-align: center; color: #102a43; margin-bottom: 20px; font-size: 18px; }}
-                                table {{ width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }}
-                                th {{ background-color: #102a43 !important; color: #ffffff !important; text-align: right; padding: 10px; border: 1px solid #0b1e33; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
-                                td {{ padding: 8px 10px; border: 1px solid #cbd5e1; text-align: right; }}
-                                tr:nth-child(even) {{ background-color: #f8fafc; -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
-                            </style>
-                        </head>
-                        <body>
-                            <h2>تقرير جدول تفاصيل الشحنة - شركة أطلس المحيط (${{filterInfo}})</h2>
-                            ${{tableContent}}
-                        </body>
-                        </html>
-                    `);
-                    w.document.close();
-                    w.focus();
-                    setTimeout(() => {{ w.print(); w.close(); }}, 600);
-                }}
-            </script>
-        </body>
-        </html>
-    """
-    st.components.v1.html(table_pdf_html_component, height=55)
-    st.markdown("---")
+sponsor_filter_col = next((c for c in ["الكفيل", "كفيل"] if c in df.columns), None)
+selected_sponsor = "الكل"
+if sponsor_filter_col and not df.empty:
+    sponsors = ["الكل"] + sorted(df[sponsor_filter_col].dropna().astype(str).unique().tolist())
+    selected_sponsor = st.sidebar.selectbox("👤 اختر اسم الكفيل:", sponsors)
+    if selected_sponsor != "الكل":
+        filtered_df = filtered_df[filtered_df[sponsor_filter_col].astype(str) == selected_sponsor]
 
-    master_payload = f"""
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head><meta charset="UTF-8"></head>
-        <body>
-            <button style="background-color: #047857; color: white; padding: 14px 28px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; width: 100%; max-width: 500px; display: block; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="printAll()">🖨️ طباعة الوصولات المعروضة دفعة واحدة (مقاس A5)</button>
-            <script>
-                const content = `{all_receipts_html_for_print.replace('`', '\\`').replace('$', '\\$')}`;
-                function printAll() {{
-                    var w = window.open('', '', 'height=900,width=800');
-                    w.document.write('<html><head><style>@page {{ size: A5; margin: 5mm; }} body {{ direction: rtl; font-family: Tahoma; }}</style></head><body>' + content + '</body></html>');
-                    w.document.close();
-                    w.focus();
-                    setTimeout(() => {{ w.print(); w.close(); }}, 600);
-                }}
-            </script>
-        </body>
-        </html>
-        """
-    st.components.v1.html(master_payload, height=75)
-    st.markdown("---")
+st.sidebar.markdown("---")
 
-    for item in receipts_data_list:
-      with st.expander(f"📄 وصل العميل: {item['name']} | كود: {item['code'] or 'بدون'} | الشحنة: {item['shipment']} | الإجمالي: {item['total_sales']:,.2f} $"):
+page_options = {
+    "لوحة التحكم (Dashboard)": "dashboard",
+    "كشف اجور الكمارك": "customs",
+    "الديون على الكفلاء": "sponsors",
+    "اعمار الديون (Aging Report)": "aging",
+    "كمرك الشحنات والاستحصالات": "collections",
+    "الرسوم البيانية": "charts"
+}
+
+selected_page_label = st.sidebar.radio("📌 القائمة الرئيسية", list(page_options.keys()))
+page = page_options[selected_page_label]
+
+st.sidebar.markdown("---")
+st.sidebar.info("النظام يعمل بكفاءة ✔️")
+
+def render_download_buttons(data_to_download):
+    btn_col1, btn_col2 = st.columns([1, 1])
+    with btn_col1:
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            data_to_download.to_excel(writer, index=False, sheet_name='Filtered_Data')
         st.download_button(
-            label=f"📥 تنزيل إكسل الوصل",
-            data=item["output"],
-            file_name=f"Delivery_Receipt_{item['file_name_id']}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key=f"dl_{item['index']}",
+            label="📊 Download as Excel",
+            data=buffer.getvalue(),
+            file_name="filtered_details.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.components.v1.html(
-            f"""<div style="direction:rtl">{item['single_html']}</div><button style="background:#102a43;color:white;padding:12px 20px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;margin-top:15px;" onclick="window.print()">🖨️ طباعة هذا الوصل</button>""",
-            height=700,
-            scrolling=True
+    
+    with btn_col2:
+        st.download_button(
+            label="📥 Download as CSV",
+            data=data_to_download.to_csv(index=False).encode('utf-8'),
+            file_name="filtered_details.csv",
+            mime="text/csv"
         )
-      st.markdown("---")
 
-  except Exception as e:
-    st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
-else:
-  st.info("الرجاء رفع ملف الشحنات وقالب الوصل وملف معلومات العملاء من الشريط الجانبي.")
+def style_container_column(df_to_style):
+    target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_style.columns), None)
+    sponsor_col_check = "الكفيل" if "الكفيل" in df_to_style.columns else None
 
+    if not target_container_col:
+        return df_to_style.style
+
+    def highlight_cells(row):
+        styles = [''] * len(row)
+        if target_container_col in df_to_style.columns:
+            col_idx = df_to_style.columns.get_loc(target_container_col)
+            is_arrived = False
+            is_not_arrived = False
+            
+            if sponsor_col_check and sponsor_col_check in row:
+                sponsor_val = str(row[sponsor_col_check]).strip()
+                if "لم تصل بعد" in sponsor_val:
+                    is_not_arrived = True
+                elif sponsor_val and sponsor_val != "nan" and sponsor_val != "غير محدد":
+                    is_arrived = True
+            
+            if is_not_arrived:
+                styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold;'
+            elif is_arrived:
+                styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
+                
+        return styles
+
+    return df_to_style.style.apply(highlight_cells, axis=1)
+
+if page == "dashboard":
+    st.title("📊 لوحة التحكم الرئيسية")
+    st.markdown("---")
+    
+    total_orders = len(filtered_df)
+    total_weight = filtered_df["الوزن"].sum() if "الوزن" in filtered_df.columns else 0
+    total_ctns = filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in filtered_df.columns else 0
+    total_volume = filtered_df["حجم"].sum() if "حجم" in filtered_df.columns else 0
+    
+    client_field_candidates = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in filtered_df.columns]
+    total_clients = filtered_df[client_field_candidates[0]].nunique() if client_field_candidates and not filtered_df.empty else 0
+    total_containers_count = filtered_df[container_col].nunique() if container_col and container_col in filtered_df.columns and not filtered_df.empty else 0
+
+    office_paid_col = next((c for c in ["Office Paid", "المكتب دفع"] if c in filtered_df.columns), None)
+    client_paid_col = next((c for c in ["Client Paid", "الزبون دفع"] if c in filtered_df.columns), None)
+    
+    total_office_paid = filtered_df[office_paid_col].sum() if office_paid_col else 0
+    total_client_paid = filtered_df[client_paid_col].sum() if client_paid_col else 0
+
+    row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
+    with row1_c1:
+        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات / الطرود</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
+    with row1_c2:
+        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">👥 إجمالي عدد العملاء</div><div class="metric-value">{total_clients:,}</div></div>', unsafe_allow_html=True)
+    with row1_c3:
+        st.markdown(f'<div class="metric-card" style="background-color: #1d4ed8;"><div class="metric-title">🚢 إجمالي عدد الحاويات</div><div class="metric-value">{total_containers_count:,}</div></div>', unsafe_allow_html=True)
+    with row1_c4:
+        st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.0f}</div></div>', unsafe_allow_html=True)
+
+    row2_c1, row2_c2, row2_c3, row2_c4 = st.columns(4)
+    with row2_c1:
+        st.markdown(f'<div class="metric-card" style="background-color: #047857;"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
+    with row2_c2:
+        st.markdown(f'<div class="metric-card" style="background-color: #7c2d12;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.3f}</div></div>', unsafe_allow_html=True)
+    with row2_c3:
+        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">💰 مبالغ دفعت من المكتب</div><div class="metric-value">¥{total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
+    with row2_c4:
+        st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">¥{total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
+
+    st.markdown("---")
+    render_download_buttons(filtered_df)
+    
+    styled_filtered_df = style_container_column(filtered_df)
+    table_height = max(300, min(len(filtered_df) * 35 + 50, 1200))
+    st.dataframe(styled_filtered_df, use_container_width=True, height=table_height)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
+elif page == "customs":
+    st.title("💰 كشف اجور الكمارك")
+    st.markdown("---")
+    
+    search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
+    pivot_filtered_df = filtered_df.copy()
+    
+    if search_query and not pivot_filtered_df.empty:
+        search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات"] if c in pivot_filtered_df.columns]
+        if search_cols:
+            mask = pivot_filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
+            pivot_filtered_df = pivot_filtered_df[mask.any(axis=1)]
+
+    total_customs = pivot_filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in pivot_filtered_df and not pivot_filtered_df.empty else 0.0
+    
+    sponsor_name = "الكفيل"
+    sponsor_remaining = 0.0
+    sponsor_collected = 0.0
+    
+    if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
+        valid_sponsors = [s for s in pivot_filtered_df["الكفيل"].dropna().unique() if "لم تصل بعد" not in str(s)]
+        if valid_sponsors:
+            sponsor_name = str(valid_sponsors[0]).strip()
+            sponsor_df = pivot_filtered_df[pivot_filtered_df["الكفيل"] == valid_sponsors[0]]
+            sponsor_remaining = sponsor_df["متبقي حقيقي"].sum()
+            sponsor_collected = sponsor_df["قيمة الاستحصالات"].sum()
+            
+    not_arrived_remaining = 0.0
+    if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
+        not_arrived_remaining = pivot_filtered_df[pivot_filtered_df["الكفيل"].astype(str).str.contains("لم تصل بعد", na=False)]["متبقي حقيقي"].sum()
+
+    m1, m2, m3, m4 = st.columns(4)
+    with m1:
+        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">¥{total_customs:,.2f}</div></div>', unsafe_allow_html=True)
+    with m2:
+        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">متبقي ({sponsor_name})</div><div class="metric-value">¥{sponsor_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+    with m3:
+        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">مسدد ({sponsor_name})</div><div class="metric-value">¥{sponsor_collected:,.2f}</div></div>', unsafe_allow_html=True)
+    with m4:
+        st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">¥{not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+
+    st.markdown("---")
+    
+    # إضافة زر التنزيل وعرض الجدول التفصيلي هنا
+    st.markdown("### 📋 جدول تفصيلي للشحنات")
+    render_download_buttons(pivot_filtered_df)
+    
+    styled_pivot_df = style_container_column(pivot_filtered_df)
+    customs_table_height = max(300, min(len(pivot_filtered_df) * 35 + 50, 1200))
+    st.dataframe(styled_pivot_df, use_container_width=True, height=customs_table_height)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
+elif page == "sponsors":
+    st.title("👥 الديون على الكفلاء")
+    st.markdown("---")
+    
+    if "الكفيل" in filtered_df.columns and not filtered_df.empty:
+        col_customs = "مبلغ الجمرك" if "مبلغ الجمرك" in filtered_df.columns else filtered_df.columns[0]
+        col_collected = "قيمة الاستحصالات" if "قيمة الاستحصالات" in filtered_df.columns else filtered_df.columns[0]
+        col_remaining = "متبقي حقيقي" if "متبقي حقيقي" in filtered_df.columns else filtered_df.columns[0]
+        col_count = "No" if "No" in filtered_df.columns else filtered_df.columns[0]
+
+        sponsor_summary = filtered_df.groupby("الكفيل").agg(
+            total_customs=(col_customs, "sum"),
+            total_collected=(col_collected, "sum"),
+            total_remaining=(col_remaining, "sum"),
+            total_orders=(col_count, "count")
+        ).reset_index()
+
+        st.markdown("### 📋 ملخص المبالغ لكل كفيل")
+        
+        for index, row in sponsor_summary.iterrows():
+            sponsor_name = row["الكفيل"]
+            s_customs = row["total_customs"]
+            s_collected = row["total_collected"]
+            s_remaining = row["total_remaining"]
+            s_orders = row["total_orders"]
+            
+            card_bg = "#1e3a8a"
+            if "لم تصل بعد" in str(sponsor_name):
+                card_bg = "#b45309"
+            
+            st.markdown(f"""
+                <div style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; color: #ffffff !important;">👤 الكفيل: {sponsor_name}</h3>
+                    <div style="display: flex; justify-content: space-between; font-size: 15px; text-align: center; color: #ffffff !important;">
+                        <div>📦 الطلبات: <b style="color: #ffffff;">{s_orders:,}</b></div>
+                        <div>💰 الجمرك: <b style="color: #ffffff;">¥{s_customs:,.2f}</b></div>
+                        <div>✅ المسدد: <b style="color: #ffffff;">¥{s_collected:,.2f}</b></div>
+                        <div>⏳ المتبقي: <b style="color: #ffffff;">¥{s_remaining:,.2f}</b></div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+        st.markdown("---")
+        st.markdown("### 📊 جدول تفصيلي بملخص الكفلاء (Pivot Table)")
+        
+        pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
+        pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
+        pivot_value_col = "مبلغ الجمرك" if "مبلغ الجمرك" in filtered_df.columns else None
+
+        if pivot_code_col and pivot_container_col and pivot_value_col:
+            base_pivot_df = df.copy()
+            
+            if selected_code != "الكل":
+                base_pivot_df = base_pivot_df[base_pivot_df[pivot_code_col].astype(str) == selected_code]
+            if selected_sponsor != "الكل" and "الكفيل" in base_pivot_df.columns:
+                base_pivot_df = base_pivot_df[base_pivot_df["الكفيل"].astype(str) == selected_sponsor]
+
+            pivot_table_df = base_pivot_df.pivot_table(
+                index=pivot_code_col,
+                columns=pivot_container_col,
+                values=pivot_value_col,
+                aggfunc="sum",
+                fill_value=0
+            )
+
+            pivot_table_df = pivot_table_df[(pivot_table_df > 0).any(axis=1)]
+
+            pivot_table_df["Grand Total"] = pivot_table_df.sum(axis=1)
+            grand_total_row = pivot_table_df.sum(axis=0)
+            pivot_table_df.loc["Grand Total"] = grand_total_row
+
+            new_columns = []
+            for col in pivot_table_df.columns:
+                if col == "Grand Total":
+                    new_columns.append(col)
+                    continue
+                
+                sub_df = base_pivot_df[base_pivot_df[pivot_container_col].astype(str) == str(col)]
+                is_not_arrived = False
+                if not sub_df.empty and "الكفيل" in sub_df.columns:
+                    sponsors_in_col = sub_df["الكفيل"].astype(str).unique()
+                    if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
+                        is_not_arrived = True
+                
+                bg_color = "#fef08a" if is_not_arrived else "#bbf7d0"
+                html_col_name = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{col}</div>'
+                new_columns.append(html_col_name)
+
+            pivot_table_df.columns = new_columns
+
+            formatted_pivot = pivot_table_df.map(
+                lambda val: f"¥{val:,.0f}" if isinstance(val, (int, float)) and val > 0 else ""
+            )
+            
+            def style_pivot_cells(val):
+                if val == "":
+                    return 'background-color: #f8fafc; color: transparent;'
+                return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
+
+            styled_matrix = formatted_pivot.style.map(style_pivot_cells)
+            
+            matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
+            st.markdown(f'<div style="width: 100%; overflow-x: auto;">{matrix_html}</div>', unsafe_allow_html=True)
+        else:
+            st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
+
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
+elif page == "aging":
+    st.title("⏳ تقرير أعمار الديون (Aging Report)")
+    st.markdown("---")
+    st.markdown("### 📋 جدول تحليلي يوزع المتبقي الحقيقي حسب الكود ورقم الحاوية وأيام التأخير (بدون 0 يوم)")
+
+    aging_df = filtered_df.copy()
+    code_field = next((c for c in ["code", "الكود", "كود"] if c in aging_df.columns), None)
+    
+    if not aging_df.empty and "رقم الحاوية" in aging_df.columns and "عدد الايام" in aging_df.columns and "متبقي حقيقي" in aging_df.columns:
+        
+        aging_df["عدد الايام"] = pd.to_numeric(aging_df["عدد الايام"], errors="coerce").fillna(0).astype(int)
+        aging_df = aging_df[aging_df["عدد الايام"] > 0]
+        
+        index_cols = [code_field, "رقم الحاوية"] if code_field else ["رقم الحاوية"]
+        
+        aging_pivot = aging_df.pivot_table(
+            index=index_cols,
+            columns="عدد الايام",
+            values="متبقي حقيقي",
+            aggfunc="sum",
+            fill_value=0
+        )
+
+        aging_pivot = aging_pivot[(aging_pivot > 0).any(axis=1)]
+
+        aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
+        aging_grand_total = aging_pivot.sum(axis=0)
+        
+        if code_field:
+            aging_pivot.loc[("Grand Total", "")] = aging_grand_total
+        else:
+            aging_pivot.loc["Grand Total"] = aging_grand_total
+
+        formatted_aging = aging_pivot.map(
+            lambda val: f"¥{val:,.0f}" if isinstance(val, (int, float)) and val > 0 else ""
+        )
+
+        def style_aging_cells(row):
+            styles = []
+            is_total_row = False
+            idx_val = row.name
+            if idx_val == "Grand Total" or (isinstance(idx_val, tuple) and idx_val[0] == "Grand Total"):
+                is_total_row = True
+                
+            for val in row:
+                if is_total_row:
+                    styles.append('background-color: #e2e8f0; color: #0f172a; font-weight: bold; text-align: center;')
+                elif val == "":
+                    styles.append('background-color: #f8fafc; color: transparent; text-align: center;')
+                else:
+                    styles.append('background-color: #ffffff; color: #000000; font-weight: bold; text-align: center;')
+            return styles
+
+        styled_aging_matrix = formatted_aging.style.apply(style_aging_cells, axis=1).set_table_styles([
+            {"selector": "th", "props": [("text-align", "center"), ("vertical-align", "middle")]}
+        ])
+        render_download_buttons(aging_pivot.reset_index())
+        
+        aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center;" id')
+        st.markdown(f'<div style="width: 100%; overflow-x: auto; text-align: center;">{aging_html}</div>', unsafe_allow_html=True)
+    else:
+        st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
+
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
+elif page == "collections":
+    st.title("🛃 نافذة كمرك الشحنات والاستحصالات")
+    st.markdown("---")
+    st.markdown("### 📋 ملخص الحاويات حسب مبالغ الجمرك والاستحصالات والمتبقي الحقيقي")
+
+    if not filtered_df.empty:
+        total_c = filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in filtered_df.columns else 0
+        total_coll = filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in filtered_df.columns else 0
+        total_rem = filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in filtered_df.columns else 0
+
+        mc1, mc2, mc3 = st.columns(3)
+        with mc1:
+            st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">إجمالي مبالغ الجمرك</div><div class="metric-value">¥{total_c:,.2f}</div></div>', unsafe_allow_html=True)
+        with mc2:
+            st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">إجمالي الاستحصالات</div><div class="metric-value">¥{total_coll:,.2f}</div></div>', unsafe_allow_html=True)
+        with mc3:
+            st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">¥{total_rem:,.2f}</div></div>', unsafe_allow_html=True)
+
+    st.markdown("---")
+    render_download_buttons(filtered_df)
+
+    container_field = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
+    
+    if container_field and not filtered_df.empty:
+        agg_df = filtered_df.groupby(container_field, dropna=False).agg(
+            {
+                "مبلغ الجمرك": "sum",
+                "قيمة الاستحصالات": "sum",
+                "متبقي حقيقي": "sum"
+            }
+        ).reset_index()
+
+        grand_totals = pd.DataFrame({
+            container_field: ["Grand Total"],
+            "مبلغ الجمرك": [agg_df["مبلغ الجمرك"].sum()],
+            "قيمة الاستحصالات": [agg_df["قيمة الاستحصالات"].sum()],
+            "متبقي حقيقي": [agg_df["متبقي حقيقي"].sum()]
+        })
+        
+        agg_df = pd.concat([agg_df, grand_totals], ignore_index=True)
+
+        agg_df = agg_df.rename(columns={
+            container_field: "رقم الحاوية",
+            "مبلغ الجمرك": "Sum of مبلغ الجمرك",
+            "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
+            "متبقي حقيقي": "Sum of متبقي حقيقي"
+        })
+
+        formatted_agg = agg_df.copy()
+        for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
+            formatted_agg[col] = formatted_agg[col].apply(lambda x: f"¥{x:,.0f}" if x > 0 else "")
+
+        def style_summary_cells(row):
+            styles = [''] * len(row)
+            container_val = str(row["رقم الحاوية"])
+            
+            if container_val == "Grand Total":
+                return ['background-color: #f1f5f9; color: #000000; font-weight: bold;'] * len(row)
+            
+            container_col_name = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
+            if container_col_name and "الكفيل" in filtered_df.columns:
+                sub_df = filtered_df[filtered_df[container_col_name].astype(str) == container_val]
+                is_arrived = False
+                is_not_arrived = False
+                
+                if not sub_df.empty:
+                    sponsors_in_col = sub_df["الكفيل"].astype(str).unique()
+                    if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
+                        is_not_arrived = True
+                    elif any(s and s != "nan" and s != "غير محدد" for s in sponsors_in_col):
+                        is_arrived = True
+                
+                col_idx = row.index.get_loc("رقم الحاوية")
+                if is_not_arrived:
+                    styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold;'
+                elif is_arrived:
+                    styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
+            
+            return styles
+
+        styled_summary = formatted_agg.style.apply(style_summary_cells, axis=1)
+
+        summary_height = max(300, min(len(formatted_agg) * 35 + 50, 1200))
+        st.dataframe(styled_summary, use_container_width=True, height=summary_height)
+    else:
+        st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
+
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
+elif page == "charts":
+    st.title("📈 لوحة الرسوم البيانية والتحليلات")
+    st.markdown("---")
+
+    if filtered_df.empty:
+        st.warning("لا توجد بيانات متاحة لعرض الرسوم البيانية.")
+    else:
+        if container_col and "مبلغ الجمرك" in filtered_df.columns:
+            st.subheader("📦 مقارنة مبالغ الجمرك والاستحصالات حسب الحاويات")
+            chart_data = filtered_df.groupby(container_col)[["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"]].sum()
+            st.bar_chart(chart_data)
+            st.markdown("---")
+
+        col_chart1, col_chart2 = st.columns(2)
+        with col_chart1:
+            if container_col and "الوزن" in filtered_df.columns:
+                st.subheader("⚖️ إجمالي الوزن حسب الحاوية (kg)")
+                weight_data = filtered_df.groupby(container_col)["الوزن"].sum()
+                st.bar_chart(weight_data)
+
+        with col_chart2:
+            if container_col and "حجم" in filtered_df.columns:
+                st.subheader("📐 إجمالي الحجم حسب الحاوية (m³)")
+                volume_data = filtered_df.groupby(container_col)["حجم"].sum()
+                st.bar_chart(volume_data)
+
+        st.markdown("---")
+
+        if "الكفيل" in filtered_df.columns and "مبلغ الجمرك" in filtered_df.columns:
+            st.subheader("👤 إجمالي مبالغ الجمرك والاستحصالات حسب الكفلاء")
+            sponsor_chart_data = filtered_df.groupby("الكفيل")[["مبلغ الجمرك", "قيمة الاستحصالات"]].sum()
+            st.bar_chart(sponsor_chart_data)
+
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
