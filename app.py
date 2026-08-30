@@ -387,6 +387,7 @@ elif page == "customs":
 
     st.markdown("---")
     
+    # إضافة زر التنزيل وعرض الجدول التفصيلي هنا
     st.markdown("### 📋 جدول تفصيلي للشحنات")
     render_download_buttons(pivot_filtered_df)
     
@@ -438,13 +439,11 @@ elif page == "sponsors":
             """, unsafe_allow_html=True)
             
         st.markdown("---")
-        st.markdown("### 📊 جدول تفصيلي بملخص الكفلاء (Pivot Table - الديون فقط)")
+        st.markdown("### 📊 جدول تفصيلي بملخص الكفلاء (Pivot Table)")
         
         pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
         pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
-        
-        # التعديل هنا: استخدام "متبقي حقيقي" لعرض الديون بدلاً من "مبلغ الجمرك"
-        pivot_value_col = "متبقي حقيقي" if "متبقي حقيقي" in filtered_df.columns else None
+        pivot_value_col = "مبلغ الجمرك" if "مبلغ الجمرك" in filtered_df.columns else None
 
         if pivot_code_col and pivot_container_col and pivot_value_col:
             base_pivot_df = df.copy()
@@ -578,7 +577,7 @@ elif page == "collections":
     if not filtered_df.empty:
         total_c = filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in filtered_df.columns else 0
         total_coll = filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in filtered_df.columns else 0
-        total_rem = filtered_df["متبقي حقيقي" in filtered_df.columns else 0
+        total_rem = filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in filtered_df.columns else 0
 
         mc1, mc2, mc3 = st.columns(3)
         with mc1:
