@@ -476,7 +476,6 @@ elif page == "sponsors":
         pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
         pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
         
-        # التعديل المطلوب هنا لإظهار قيم المتبقي الحقيقي بدلاً من مبلغ الجمرك
         pivot_value_col = "متبقي حقيقي" if "متبقي حقيقي" in filtered_df.columns else None
 
         if pivot_code_col and pivot_container_col and pivot_value_col:
@@ -495,7 +494,8 @@ elif page == "sponsors":
                 fill_value=0
             )
 
-            pivot_table_df = pivot_table_df[(pivot_table_df > 0).any(axis=1)]
+            # التعديل المطلوب هنا: إزالة الأكواد أو الحاويات التي تكون جميع قيمها صفرية أو فارغة
+            pivot_table_df = pivot_table_df.loc[(pivot_table_df > 0).any(axis=1), (pivot_table_df > 0).any(axis=0)]
 
             pivot_table_df["Grand Total"] = pivot_table_df.sum(axis=1)
             grand_total_row = pivot_table_df.sum(axis=0)
