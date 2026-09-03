@@ -246,8 +246,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-DATA_FILE = "shipping_data.xlsx"
-
 def clean_numeric(series):
     return pd.to_numeric(
         series.astype(str)
@@ -258,22 +256,20 @@ def clean_numeric(series):
         errors="coerce"
     ).fillna(0)
 
-def load_data(uploaded_file):
+@st.cache_data(ttl=60)  # يتم تحديث البيانات تلقائياً كل دقيقة أو عند إعادة تحميل الصفحة
+def load_data():
     df = None
-    if uploaded_file is not None:
-        try:
-            df = pd.read_excel(uploaded_file)
-            df.columns = df.columns.astype(str).str.strip()
-            df.to_excel(DATA_FILE, index=False)
-            st.sidebar.success("تم حفظ الملف الجديد بنجاح ✔️")
-        except Exception as e:
-            st.sidebar.error(f"خطأ في قراءة الملف: {e}")
-
-    if df is None and os.path.exists(DATA_FILE):
-        try:
-            df = pd.read_excel(DATA_FILE)
-        except Exception:
-            df = None
+    try:
+        # ضع رابط Google Sheets بصيغة التصدير CSV هنا مباشرة
+        # مثال: sheet_url = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv"
+        sheet_url = st.secrets.get("GOOGLE_SHEET_URL", "ضع_رابط_الشيت_هنا_أو_في_Secrets")
+        if "docs.google.com" in sheet_url:
+            if not sheet_url.endswith("export?format=csv"):
+                if "/edit" in sheet_url:
+                    sheet_url = sheet_url.split("/edit")[0] + "/export?format=csv"
+            df = pd.read_csv(sheet_url)
+    except Exception as e:
+        st.sidebar.error(f"خطأ في الاتصال بملف Google Sheets: {e}")
 
     if df is None:
         df = pd.DataFrame(columns=[
@@ -322,20 +318,11 @@ def load_data(uploaded_file):
 st.sidebar.title("🚢 شركة أطلس المحيط")
 st.sidebar.markdown("---")
 
-uploaded_file = st.sidebar.file_uploader("📁 رفع ملف Excel جديد", type=["xlsx", "xls"])
+if st.sidebar.button("🔄 تحديث البيانات من جوجل شيت"):
+    st.cache_data.clear()
+    st.rerun()
 
-if st.sidebar.button("🗑️ مسح بيانات الملف الحالي"):
-    if os.path.exists(DATA_FILE):
-        try:
-            os.remove(DATA_FILE)
-            st.sidebar.success("تم مسح بيانات الشيت بنجاح! ✔️")
-            st.rerun()
-        except Exception as e:
-            st.sidebar.error(f"خطأ أثناء حذف الملف: {e}")
-    else:
-        st.sidebar.info("لا توجد بيانات مسجلة مسبقاً.")
-
-df = load_data(uploaded_file)
+df = load_data()
 filtered_df = df.copy()
 
 st.sidebar.markdown("### 🔍 الفلاتر الجانبية")
@@ -369,7 +356,6 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 👁️ التحكم بأعمدة العرض")
 all_columns = filtered_df.columns.tolist()
 
-# إصلاح مشكلة إعادة تعيين الأعمدة عند تحديث الصفحة أو التنقل
 if "selected_columns_key" not in st.session_state:
     st.session_state["selected_columns_key"] = all_columns
 
@@ -399,7 +385,7 @@ selected_page_label = st.sidebar.radio("📌 القائمة الرئيسية", l
 page = page_options[selected_page_label]
 
 st.sidebar.markdown("---")
-st.sidebar.info("النظام يعمل بكفاءة ✔️")
+st.sidebar.info("متصل بملف Google Sheets بنجاح ✔️")
 
 def render_download_buttons(data_to_download):
     st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
@@ -851,7 +837,7 @@ elif page == "charts":
                 st.bar_chart(weight_data)
 
         with col_chart2:
-            if container_col and "حجم" in filtered_df.columns:
+            if container_col and "حجم" in filtered_df.contains if "حجم" in filtered_df.columns else []:
                 st.subheader("📐 إجمالي الحجم حسب الحاوية (m³)")
                 volume_data = filtered_df.groupby(container_col)["حجم"].sum()
                 st.bar_chart(volume_data)
