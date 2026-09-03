@@ -260,7 +260,6 @@ def clean_numeric(series):
 def load_data():
     df = None
     try:
-        # استخدام معرف جدولك المباشر لجلب البيانات
         sheet_id = "1amOmnZgzn2bhWTgje_9W2sUK6V-OygWk"
         sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
         df = pd.read_csv(sheet_url)
@@ -349,24 +348,13 @@ if sponsor_filter_col and not df.empty:
 
 st.sidebar.markdown("---")
 
-st.sidebar.markdown("### 👁️ التحكم بأعمدة العرض")
-all_columns = filtered_df.columns.tolist()
-
-if "selected_columns_key" not in st.session_state:
-    st.session_state["selected_columns_key"] = all_columns
-
-valid_defaults = [col for col in st.session_state["selected_columns_key"] if col in all_columns]
-if not valid_defaults:
-    valid_defaults = all_columns
-
-selected_columns = st.sidebar.multiselect(
-    "اختر الأعمدة المراد إظهارها:",
-    options=all_columns,
-    default=valid_defaults,
-    key="selected_columns_key"
-)
-
-st.sidebar.markdown("---")
+# قائمة الأعمدة الافتراضية الثابتة تماماً كما ظهرت في جدول الصورة المرجعية وإخفاء ما عداها
+default_columns_to_show = [
+    "No", "code", "Shipping mark", "عدد الكارتون", "الوزن", "حجم", 
+    "رقم الحاوية", "المجموع", "الزبون دفع", "المكتب دفع", "نقل داخلي", 
+    "سعر البيع", "مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي", 
+    "الكفيل", "تاريخ التوزيع", "عدد الايام"
+]
 
 page_options = {
     "لوحة التحكم (Dashboard)": "dashboard",
@@ -427,9 +415,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         st.info("لا توجد بيانات للعرض.")
         return
         
-    target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_render.columns), None)
-    sponsor_col_check = "الكفيل" if "الكفيل" in df_to_render.columns else None
-
     currency_keywords = ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "المتبقي"]
 
     html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
@@ -534,7 +519,10 @@ if page == "dashboard":
     st.markdown("---")
     render_download_buttons(filtered_df)
     
-    df_to_display = filtered_df[selected_columns] if selected_columns else filtered_df
+    # فلترة الأعمدة لتقتصر حصراً على الأعمدة الافتراضية الموجودة في الجدول الأساسي للصورة (مع إخفاء الباقي)
+    active_cols = [c for c in default_columns_to_show if c in filtered_df.columns]
+    df_to_display = filtered_df[active_cols] if active_cols else filtered_df
+    
     display_custom_html_table(df_to_display)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
@@ -830,4 +818,3 @@ elif page == "charts":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
-
