@@ -14,7 +14,7 @@ st.markdown(
     <style>
     .main { background-color: #0e1117; }
     
-    /* تنسيق رؤوس الجداول في HTML المخصص لتكون بلون الحبري الداكن ونص أبيض وتوسيط واتجاه صحيح */
+    /* تنسيق جدول HTML المخصص ليتوافق مع اتجاه اليمين لليسار */
     .custom-html-table {
         width: 100% !important;
         border-collapse: collapse !important;
@@ -209,6 +209,11 @@ def load_data(uploaded_file):
 
     df.columns = df.columns.astype(str).str.strip()
 
+    # معالجة وتنسيق أعمدة التواريخ إن وجدت
+    for col in df.columns:
+        if any(kw in col for kw in ["تاريخ", "date", "Date"]):
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.strftime("%Y-%m-%d").fillna(df[col])
+
     office_col_candidate = next((c for c in df.columns if any(k in c for k in ["المكتب دفع", "Office Paid", "دفع الشركة"])), None)
     client_col_candidate = next((c for c in df.columns if any(k in c for k in ["الزبون دفع", "Client Paid", "دفع الزبون"])), None)
 
@@ -313,7 +318,7 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 def render_download_buttons(data_to_download):
-    st.markdown('<div class="no-print">', unsafe_allow_html=True)
+    st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
     btn_col1, btn_col2 = st.columns([1, 1])
     with btn_col1:
         buffer = io.BytesIO()
@@ -323,7 +328,8 @@ def render_download_buttons(data_to_download):
             label="📊 Download as Excel",
             data=buffer.getvalue(),
             file_name="filtered_details.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
         )
     
     with btn_col2:
@@ -338,6 +344,7 @@ def render_download_buttons(data_to_download):
                     font-weight: 500;
                     cursor: pointer;
                     width: 100%;
+                    height: 38px;
                     font-size: 14px;
                     font-family: inherit;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
@@ -369,7 +376,6 @@ def display_custom_html_table(df_to_render):
         for col in df_to_render.columns:
             val = row[col]
             
-            # التنسيق والتلوين لعمود الحاوية
             cell_style = ""
             if target_container_col and col == target_container_col:
                 is_arrived = False
@@ -386,7 +392,6 @@ def display_custom_html_table(df_to_render):
                 elif is_arrived:
                     cell_style = ' style="background-color: #bbf7d0; color: #000000; font-weight: bold;"'
 
-            # تنسيق القيم الرقمية والعملات
             formatted_val = val
             if pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float)):
                 if any(kw in col for kw in currency_keywords):
@@ -404,6 +409,14 @@ if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
     st.markdown("---")
     
+    # إضافة شريط البحث الذكي في لوحة التحكم الرئيسية
+    search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
+    if search_query and not filtered_df.empty:
+        search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات", "Shipping mark"] if c in filtered_df.columns]
+        if search_cols:
+            mask = filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
+            filtered_df = filtered_df[mask.any(axis=1)]
+
     total_orders = len(filtered_df)
     total_weight = filtered_df["الوزن"].sum() if "الوزن" in filtered_df.columns else 0
     total_ctns = filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in filtered_df.columns else 0
