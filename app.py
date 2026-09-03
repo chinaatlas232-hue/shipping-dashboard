@@ -193,11 +193,9 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 👁️ إخفاء الأعمدة غير المرغوبة")
 st.sidebar.markdown("<small style='color: #cbd5e1;'>حدد الأعمدة التي تريد إخفاءها من الجدول:</small>", unsafe_allow_html=True)
 
-# دالة لتحديث الحالة عند التغيير دون حدوث تضارب
 def on_hidden_change():
     st.session_state["hidden_cols_storage"] = st.session_state["my_hidden_widget"]
 
-# التأكد من بقاء الاختيارات صالحة ومنطقية
 valid_defaults = [c for c in st.session_state["hidden_cols_storage"] if c in all_columns]
 
 st.sidebar.multiselect(
@@ -208,7 +206,6 @@ st.sidebar.multiselect(
     on_change=on_hidden_change
 )
 
-# تحديث الذاكرة المعتمدة نهائياً للعرض
 hidden_columns = st.session_state["hidden_cols_storage"]
 
 st.sidebar.markdown("---")
@@ -278,7 +275,6 @@ with st.expander("📂 اضغط هنا لفتح خيارات التصفية ال
 
 st.markdown("---")
 
-# تطبيق الفلاتر والبيانات الأساسية
 filtered_df = df.copy()
 
 if search_text:
@@ -297,14 +293,12 @@ if sponsor_col_name and selected_sponsors_filter:
 if goods_col_name and selected_goods_filter:
     filtered_df = filtered_df[filtered_df[goods_col_name].astype(str).isin(selected_goods_filter)]
 
-# استبعاد الأعمدة المختارة من الإخفاء بشكل قاطع من نسخة العرض النهائية
 view_df = filtered_df.copy()
 if hidden_columns:
     cols_to_drop = [c for c in hidden_columns if c in view_df.columns]
     view_df = view_df.drop(columns=cols_to_drop)
 
 
-# دوال التصدير والعرض المحدثة بالكامل
 def render_download_buttons(data_to_download):
     st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
     btn_col1, btn_col2 = st.columns([1, 1])
@@ -399,7 +393,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     
     st.markdown(html, unsafe_allow_html=True)
 
-# عرض الأقسام والصفحات باستخدام view_df المعالج
+
 if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
     st.markdown("---")
@@ -486,7 +480,7 @@ elif page == "sponsors":
             total_customs=("مبلغ الجمرك", "sum"),
             total_collected=("قيمة الاستحصالات", "sum"),
             total_remaining=("متبقي حقيقي", "sum"),
-            total_orders=("No", "count")
+            total_orders=("الكفيل", "count")
         ).reset_index()
 
         for _, row in sponsor_summary.iterrows():
