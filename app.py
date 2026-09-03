@@ -369,10 +369,11 @@ def style_container_column(df_to_style):
                 elif sponsor_val and sponsor_val != "nan" and sponsor_val != "غير محدد":
                     is_arrived = True
             
+            # تم إضافة !important لضمان إجبار المتصفح على تطبيق الألوان
             if is_not_arrived:
-                styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold;'
+                styles[col_idx] = 'background-color: #fef08a !important; color: #000000 !important; font-weight: bold;'
             elif is_arrived:
-                styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
+                styles[col_idx] = 'background-color: #bbf7d0 !important; color: #000000 !important; font-weight: bold;'
                 
         return styles
 
@@ -500,7 +501,7 @@ elif page == "customs":
         def style_customs_table(row):
             styles = [''] * len(row)
             if str(row["Row Labels"]) == "Grand Total":
-                return ['background-color: #e2e8f0; color: #000000; font-weight: bold;'] * len(row)
+                return ['background-color: #e2e8f0 !important; color: #000000 !important; font-weight: bold;'] * len(row)
             return styles
 
         styled_customs_table = formatted_customs.style.apply(style_customs_table, axis=1)
@@ -609,8 +610,8 @@ elif page == "sponsors":
             
             def style_pivot_cells(val):
                 if val == "":
-                    return 'background-color: #f8fafc; color: transparent;'
-                return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
+                    return 'background-color: #f8fafc !important; color: transparent !important;'
+                return 'background-color: #fce7f3 !important; color: #000000 !important; font-weight: bold;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
             matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
@@ -666,11 +667,11 @@ elif page == "aging":
                 
             for val in row:
                 if is_total_row:
-                    styles.append('background-color: #e2e8f0; color: #0f172a; font-weight: bold; text-align: center;')
+                    styles.append('background-color: #e2e8f0 !important; color: #0f172a !important; font-weight: bold; text-align: center;')
                 elif val == "":
-                    styles.append('background-color: #f8fafc; color: transparent; text-align: center;')
+                    styles.append('background-color: #f8fafc !important; color: transparent !important; text-align: center;')
                 else:
-                    styles.append('background-color: #ffffff; color: #000000; font-weight: bold; text-align: center;')
+                    styles.append('background-color: #ffffff !important; color: #000000 !important; font-weight: bold; text-align: center;')
             return styles
 
         styled_aging_matrix = formatted_aging.style.apply(style_aging_cells, axis=1).set_table_styles([
@@ -742,7 +743,7 @@ elif page == "collections":
             container_val = str(row["رقم الحاوية"])
             
             if container_val == "Grand Total":
-                return ['background-color: #f1f5f9; color: #000000; font-weight: bold;'] * len(row)
+                return ['background-color: #f1f5f9 !important; color: #000000 !important; font-weight: bold;'] * len(row)
             
             container_col_name = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
             if container_col_name and "الكفيل" in filtered_df.columns:
@@ -759,9 +760,9 @@ elif page == "collections":
                 
                 col_idx = row.index.get_loc("رقم الحاوية")
                 if is_not_arrived:
-                    styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold;'
+                    styles[col_idx] = 'background-color: #fef08a !important; color: #000000 !important; font-weight: bold;'
                 elif is_arrived:
-                    styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
+                    styles[col_idx] = 'background-color: #bbf7d0 !important; color: #000000 !important; font-weight: bold;'
             
             return styles
 
