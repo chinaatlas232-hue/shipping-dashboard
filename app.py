@@ -51,7 +51,7 @@ st.markdown(
     .metric-card {
         padding: 16px; border-radius: 12px; color: white;
         text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.15);
     }
     .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
     .metric-value { font-size: 20px; font-weight: bold; }
@@ -319,7 +319,7 @@ def render_download_buttons(data_to_download):
         print_html = """
             <div>
                 <button onclick="window.parent.print();" style="
-                    background-color: #ff4b4b;
+                    background-color: #64748b;
                     color: white;
                     padding: 0.45rem 0.75rem;
                     border: none;
@@ -369,7 +369,6 @@ def style_container_column(df_to_style):
                 elif sponsor_val and sponsor_val != "nan" and sponsor_val != "غير محدد":
                     is_arrived = True
             
-            # تم إضافة !important لضمان إجبار المتصفح على تطبيق الألوان
             if is_not_arrived:
                 styles[col_idx] = 'background-color: #fef08a !important; color: #000000 !important; font-weight: bold;'
             elif is_arrived:
@@ -398,25 +397,26 @@ if page == "dashboard":
     total_office_paid = filtered_df[office_paid_col].sum() if office_paid_col else 0
     total_client_paid = filtered_df[client_paid_col].sum() if client_paid_col else 0
 
+    # === استخدام ألوان هادئة ومريحة للمربعات (Soft Pastel / Muted Tones) ===
     row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
     with row1_c1:
-        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات / الطرود</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #475569;"><div class="metric-title">📦 عدد الطلبات / الطرود</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
     with row1_c2:
-        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">👥 إجمالي عدد العملاء</div><div class="metric-value">{total_clients:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #334155;"><div class="metric-title">👥 إجمالي عدد العملاء</div><div class="metric-value">{total_clients:,}</div></div>', unsafe_allow_html=True)
     with row1_c3:
-        st.markdown(f'<div class="metric-card" style="background-color: #1d4ed8;"><div class="metric-title">🚢 إجمالي عدد الحاويات</div><div class="metric-value">{total_containers_count:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #3b82f6;"><div class="metric-title">🚢 إجمالي عدد الحاويات</div><div class="metric-value">{total_containers_count:,}</div></div>', unsafe_allow_html=True)
     with row1_c4:
-        st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.2f}</div></div>', unsafe_allow_html=True)
 
     row2_c1, row2_c2, row2_c3, row2_c4 = st.columns(4)
     with row2_c1:
-        st.markdown(f'<div class="metric-card" style="background-color: #047857;"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #0d9488;"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c2:
-        st.markdown(f'<div class="metric-card" style="background-color: #7c2d12;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #78350f;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c3:
-        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">💰 مبالغ دفعت من المكتب</div><div class="metric-value">¥{total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">💰 مبالغ دفعت من المكتب</div><div class="metric-value">¥{total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c4:
-        st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">¥{total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #8b5cf6;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">¥{total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     render_download_buttons(filtered_df)
@@ -452,13 +452,13 @@ elif page == "customs":
 
     m1, m2, m3, m4 = st.columns(4)
     with m1:
-        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">¥{total_customs:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #3b82f6;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">¥{total_customs:,.2f}</div></div>', unsafe_allow_html=True)
     with m2:
-        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">¥{total_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #0d9488;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">¥{total_remaining:,.2f}</div></div>', unsafe_allow_html=True)
     with m3:
-        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">إجمالي الاستحصالات (المسدد)</div><div class="metric-value">¥{total_collected:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">إجمالي الاستحصالات (المسدد)</div><div class="metric-value">¥{total_collected:,.2f}</div></div>', unsafe_allow_html=True)
     with m4:
-        st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">¥{not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #64748b;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">¥{not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### 📊 جدول ملخص أجور الكمارك والاستحصالات حسب الكود")
@@ -540,9 +540,9 @@ elif page == "sponsors":
             s_remaining = row["total_remaining"]
             s_orders = row["total_orders"]
             
-            card_bg = "#1e3a8a"
+            card_bg = "#334155"
             if "لم تصل بعد" in str(sponsor_name):
-                card_bg = "#b45309"
+                card_bg = "#64748b"
             
             st.markdown(f"""
                 <div style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -611,7 +611,7 @@ elif page == "sponsors":
             def style_pivot_cells(val):
                 if val == "":
                     return 'background-color: #f8fafc !important; color: transparent !important;'
-                return 'background-color: #fce7f3 !important; color: #000000 !important; font-weight: bold;'
+                return 'background-color: #f1f5f9 !important; color: #000000 !important; font-weight: bold;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
             matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
@@ -698,7 +698,7 @@ elif page == "collections":
 
         mc1, mc2, mc3 = st.columns(3)
         with mc1:
-            st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">إجمالي مبالغ الجمرك</div><div class="metric-value">¥{total_c:,.2f}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card" style="background-color: #3b82f6;"><div class="metric-title">إجمالي مبالغ الجمرك</div><div class="metric-value">¥{total_c:,.2f}</div></div>', unsafe_allow_html=True)
         with mc2:
             st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">إجمالي الاستحصالات</div><div class="metric-value">¥{total_coll:,.2f}</div></div>', unsafe_allow_html=True)
         with mc3:
