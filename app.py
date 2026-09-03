@@ -599,56 +599,65 @@ elif page == "aging":
         aging_df["عدد الايام"] = pd.to_numeric(aging_df["عدد الايام"], errors="coerce").fillna(0).astype(int)
         aging_df = aging_df[aging_df["عدد الايام"] > 0]
         
-        index_cols = [code_field, "رقم الحاوية"] if code_field else ["رقم الحاوية"]
-        
-        aging_pivot = aging_df.pivot_table(
-            index=index_cols,
-            columns="عدد الايام",
-            values="متبقي حقيقي",
-            aggfunc="sum",
-            fill_value=0
-        )
-
-        aging_pivot = aging_pivot[(aging_pivot > 0).any(axis=1)]
-
-        # حساب الإجماليات بشكل صحيح وآمن لتفادي أخطاء الفهرس المتعدد
-        aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
-        aging_grand_total = aging_pivot.sum(axis=0)
-        
-        if code_field:
-            total_idx = ("Grand Total", "")
+        if aging_df.empty:
+            st.info("لا توجد بيانات متاحة لأيام التأخير بعد التصفية الحالية (قد تكون الديون مسددة بالكامل أو تساوي صفر).")
         else:
-            total_idx = "Grand Total"
+            index_cols = [code_field, "رقم الحاوية"] if code_field else ["رقم الحاوية"]
             
-        aging_pivot.loc[total_idx] = aging_grand_total
+            aging_pivot = aging_df.pivot_table(
+                index=index_cols,
+                columns="عدد الايام",
+                values="متبقي حقيقي",
+                aggfunc="sum",
+                fill_value=0
+            )
 
-        formatted_aging = aging_pivot.map(
-            lambda val: f"¥{val:,.2f}" if isinstance(val, (int, float)) and val > 0 else ""
-        )
+            aging_pivot = aging_pivot[(aging_pivot > 0).any(axis=1)]
 
-        def style_aging_cells(row):
-            styles = []
-            is_total_row = False
-            idx_val = row.name
-            if idx_val == "Grand Total" or (isinstance(idx_val, tuple) and idx_val[0] == "Grand Total"):
-                is_total_row = True
+            if aging_pivot.empty:
+                st.info("لا توجد مبالغ متبقية أكبر من الصفر للعرض بناءً على الفلاتر المحددة.")
+            else:
+                # حساب الإجماليات بشكل آمن
+                aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
+                aging_grand_total = aging_pivot.sum(axis=0)
                 
-            for val in row:
-                if is_total_row:
-                    styles.append('background-color: #e2e8f0; color: #0f172a; font-weight: bold; text-align: center;')
-                elif val == "":
-                    styles.append('background-color: #f8fafc; color: transparent; text-align: center;')
+                if code_field:
+                    total_idx = ("Grand Total", "") if isinstance(aging_pivot.index, pd.MultiIndex) else "Grand Total"
                 else:
-                    styles.append('background-color: #ffffff; color: #000000; font-weight: bold; text-align: center;')
-            return styles
+                    total_idx = "Grand Total"
+                
+                try:
+                    aging_pivot.loc[total_idx] = aging_grand_total
+                except Exception:
+                    aging_pivot.loc["Grand Total"] = aging_grand_total
 
-        styled_aging_matrix = formatted_aging.style.apply(style_aging_cells, axis=1).set_table_styles([
-            {"selector": "th", "props": [("text-align", "center"), ("vertical-align", "middle")]}
-        ])
-        render_download_buttons(aging_pivot.reset_index())
-        
-        aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center;" id')
-        st.markdown(f'<div style="width: 100%; overflow-x: auto; text-align: center;">{aging_html}</div>', unsafe_allow_html=True)
+                formatted_aging = aging_pivot.map(
+                    lambda val: f"¥{val:,.2f}" if isinstance(val, (int, float)) and val > 0 else ""
+                )
+
+                def style_aging_cells(row):
+                    styles = []
+                    is_total_row = False
+                    idx_val = row.name
+                    if idx_val == "Grand Total" or (isinstance(idx_val, tuple) and "Grand Total" in str(idx_val)):
+                        is_total_row = True
+                        
+                    for val in row:
+                        if is_total_row:
+                            styles.append('background-color: #e2e8f0; color: #0f172a; font-weight: bold; text-align: center;')
+                        elif val == "":
+                            styles.append('background-color: #f8fafc; color: transparent; text-align: center;')
+                        else:
+                            styles.append('background-color: #ffffff; color: #000000; font-weight: bold; text-align: center;')
+                    return styles
+
+                styled_aging_matrix = formatted_aging.style.apply(style_aging_cells, axis=1).set_table_styles([
+                    {"selector": "th", "props": [("text-align", "center"), ("vertical-align", "middle")]}
+                ])
+                render_download_buttons(aging_pivot.reset_index())
+                
+                aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center;" id')
+                st.markdown(f'<div style="width: 100%; overflow-x: auto; text-align: center;">{aging_html}</div>', unsafe_allow_html=True)
     else:
         st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
 
