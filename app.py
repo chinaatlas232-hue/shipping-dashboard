@@ -348,7 +348,6 @@ if sponsor_filter_col and not df.empty:
 
 st.sidebar.markdown("---")
 
-# قائمة الأعمدة الافتراضية الثابتة تماماً كما ظهرت في جدول الصورة المرجعية وإخفاء ما عداها
 default_columns_to_show = [
     "No", "code", "Shipping mark", "عدد الكارتون", "الوزن", "حجم", 
     "رقم الحاوية", "المجموع", "الزبون دفع", "المكتب دفع", "نقل داخلي", 
@@ -415,7 +414,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         st.info("لا توجد بيانات للعرض.")
         return
         
-    # إضافة عمود التسلسل في أقصى اليمين
     df_with_seq = df_to_render.copy()
     seq_list = []
     for idx, row in enumerate(df_with_seq.iterrows(), start=1):
@@ -515,7 +513,7 @@ if page == "dashboard":
 
     row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
     with row1_c1:
-        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطرود / الطلبات</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
     with row1_c2:
         st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">👥 إجمالي عدد العملاء</div><div class="metric-value">{total_clients:,}</div></div>', unsafe_allow_html=True)
     with row1_c3:
