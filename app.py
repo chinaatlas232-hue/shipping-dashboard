@@ -14,6 +14,19 @@ st.markdown(
     <style>
     .main { background-color: #0e1117; }
     
+    /* تنسيق رؤوس الجداول لتكون بلون الحبري الداكن ونص أبيض وتوسيط */
+    table tr th, [data-testid="stDataFrame"] th, [data-testid="stTable"] th {
+        background-color: #0b2239 !important;
+        color: #ffffff !important;
+        text-align: center !important;
+        font-weight: bold !important;
+    }
+
+    /* توسيط المحتوى والأرقام داخل خلايا الجداول */
+    table tr td, [data-testid="stDataFrame"] td, [data-testid="stTable"] td {
+        text-align: center !important;
+    }
+    
     .metric-card {
         padding: 16px; border-radius: 12px; color: white;
         text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -337,9 +350,9 @@ def style_container_column(df_to_style):
                     is_arrived = True
             
             if is_not_arrived:
-                styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold;'
+                styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold; text-align: center;'
             elif is_arrived:
-                styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
+                styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold; text-align: center;'
                 
         return styles
 
@@ -465,8 +478,8 @@ elif page == "customs":
         def style_customs_table(row):
             styles = [''] * len(row)
             if str(row["Row Labels"]) == "Grand Total":
-                return ['background-color: #e2e8f0; color: #000000; font-weight: bold;'] * len(row)
-            return styles
+                return ['background-color: #e2e8f0; color: #000000; font-weight: bold; text-align: center;'] * len(row)
+            return ['text-align: center;'] * len(row)
 
         styled_customs_table = formatted_customs.style.apply(style_customs_table, axis=1)
 
@@ -584,11 +597,11 @@ elif page == "sponsors":
             
             def style_pivot_cells(val):
                 if val == "":
-                    return 'background-color: #f8fafc; color: transparent;'
-                return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
+                    return 'background-color: #f8fafc; color: transparent; text-align: center;'
+                return 'background-color: #fce7f3; color: #000000; font-weight: bold; text-align: center;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
-            matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
+            matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center;" id')
             st.markdown(f'<div style="width: 100%; overflow-x: auto;">{matrix_html}</div>', unsafe_allow_html=True)
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
@@ -645,22 +658,22 @@ elif page == "aging":
 
                 def style_aging_pivot_cells(val):
                     if val == "":
-                        return 'background-color: #f8fafc; color: transparent;'
-                    return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
+                        return 'background-color: #f8fafc; color: transparent; text-align: center;'
+                    return 'background-color: #fce7f3; color: #000000; font-weight: bold; text-align: center;'
 
                 styled_aging_matrix = formatted_aging.style.map(style_aging_pivot_cells)
 
                 def highlight_grand_total(row):
                     idx_val = row.name
                     if idx_val == "Grand Total" or (isinstance(idx_val, tuple) and "Grand Total" in str(idx_val)):
-                        return ['background-color: #e2e8f0; color: #000000; font-weight: bold;'] * len(row)
-                    return [''] * len(row)
+                        return ['background-color: #e2e8f0; color: #000000; font-weight: bold; text-align: center;'] * len(row)
+                    return ['text-align: center;'] * len(row)
 
                 styled_aging_matrix = styled_aging_matrix.apply(highlight_grand_total, axis=1)
 
                 render_download_buttons(aging_pivot.reset_index())
                 
-                aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
+                aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center;" id')
                 st.markdown(f'<div style="width: 100%; overflow-x: auto;">{aging_html}</div>', unsafe_allow_html=True)
     else:
         st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
@@ -720,11 +733,11 @@ elif page == "collections":
             formatted_agg[col] = formatted_agg[col].apply(lambda x: f"¥{x:,.2f}" if x > 0 else "")
 
         def style_summary_cells(row):
-            styles = [''] * len(row)
+            styles = ['text-align: center;'] * len(row)
             container_val = str(row["رقم الحاوية"])
             
             if container_val == "Grand Total":
-                return ['background-color: #f1f5f9; color: #000000; font-weight: bold;'] * len(row)
+                return ['background-color: #f1f5f9; color: #000000; font-weight: bold; text-align: center;'] * len(row)
             
             container_col_name = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
             if container_col_name and "الكفيل" in filtered_df.columns:
@@ -741,9 +754,9 @@ elif page == "collections":
                 
                 col_idx = row.index.get_loc("رقم الحاوية")
                 if is_not_arrived:
-                    styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold;'
+                    styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold; text-align: center;'
                 elif is_arrived:
-                    styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
+                    styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold; text-align: center;'
             
             return styles
 
