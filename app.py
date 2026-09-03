@@ -14,21 +14,36 @@ st.markdown(
     <style>
     .main { background-color: #0e1117; }
     
-    /* تنسيق رؤوس الجداول لتكون بلون الحبري الداكن ونص أبيض وتوسيط واتجاه صحيح */
-    table tr th, [data-testid="stDataFrame"] th, [data-testid="stTable"] th {
+    /* تنسيق رؤوس الجداول في HTML المخصص لتكون بلون الحبري الداكن ونص أبيض وتوسيط واتجاه صحيح */
+    .custom-html-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        direction: rtl !important;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #ffffff;
+        color: #000000;
+        margin-bottom: 20px;
+    }
+    .custom-html-table th {
         background-color: #0b2239 !important;
         color: #ffffff !important;
         text-align: center !important;
         font-weight: bold !important;
-        direction: rtl !important;
+        padding: 10px 8px !important;
+        border: 1px solid #cbd5e1 !important;
+        font-size: 14px !important;
+    }
+    .custom-html-table td {
+        text-align: center !important;
+        padding: 8px !important;
+        border: 1px solid #cbd5e1 !important;
+        font-size: 13px !important;
+        color: #1e293b !important;
+    }
+    .custom-html-table tr:nth-child(even) {
+        background-color: #f8fafc !important;
     }
 
-    /* توسيط المحتوى والأرقام داخل خلايا الجداول وضبط الاتجاه */
-    table tr td, [data-testid="stDataFrame"] td, [data-testid="stTable"] td {
-        text-align: center !important;
-        direction: rtl !important;
-    }
-    
     .metric-card {
         padding: 16px; border-radius: 12px; color: white;
         text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -44,14 +59,6 @@ st.markdown(
         padding-right: 1rem !important; 
         max-width: 100% !important; 
         direction: rtl !important;
-    }
-
-    [data-testid="stDataFrame"], [data-testid="stTable"], table {
-        width: 100% !important;
-    }
-    
-    [data-testid="stDataFrame"] div[data-baseweb="block"] {
-        width: 100% !important;
     }
 
     h1 {
@@ -129,7 +136,6 @@ st.markdown(
         background: #ef4444 !important;
     }
 
-    /* إعدادات الطباعة المخصصة لمنع انقسام الجداول على صفحتين وضبط المقاسات وإخفاء كافة الأزرار والإطارات */
     @media print {
         @page {
             size: A4 landscape;
@@ -148,20 +154,16 @@ st.markdown(
             color: #000000 !important;
             font-size: 9px !important;
             direction: rtl !important;
-            zoom: 80%;
         }
         .block-container {
             padding: 0rem !important;
             max-width: 100% !important;
         }
-        table, tr, td, th {
-            page-break-inside: avoid !important;
-            font-size: 9px !important;
-            padding: 3px !important;
+        .custom-html-table {
+            font-size: 8px !important;
         }
-        div, table {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
+        .custom-html-table th, .custom-html-table td {
+            padding: 3px !important;
         }
     }
     </style>
@@ -347,46 +349,56 @@ def render_download_buttons(data_to_download):
         components.html(print_html, height=45)
     st.markdown('</div>', unsafe_allow_html=True)
 
-def style_container_column(df_to_style):
-    target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_style.columns), None)
-    sponsor_col_check = "الكفيل" if "الكفيل" in df_to_style.columns else None
+def display_custom_html_table(df_to_render):
+    if df_to_render.empty:
+        st.info("لا توجد بيانات للعرض.")
+        return
+        
+    target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_render.columns), None)
+    sponsor_col_check = "الكفيل" if "الكفيل" in df_to_render.columns else None
 
-    format_dict = {}
     currency_keywords = ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "المتبقي"]
-    for col in df_to_style.columns:
-        if pd.api.types.is_numeric_dtype(df_to_style[col]):
-            if any(kw in col for kw in currency_keywords):
-                format_dict[col] = "¥{:,.2f}"
-            else:
-                format_dict[col] = "{:,.2f}"
 
-    styler = df_to_style.style.format(format_dict)
+    html = '<div style="width: 100%; overflow-x: auto; max-height: 600px;"><table class="custom-html-table"><thead><tr>'
+    for col in df_to_render.columns:
+        html += f'<th>{col}</th>'
+    html += '</tr></thead><tbody>'
 
-    if not target_container_col:
-        return styler
-
-    def highlight_cells(row):
-        styles = [''] * len(row)
-        if target_container_col in df_to_style.columns:
-            col_idx = df_to_style.columns.get_loc(target_container_col)
-            is_arrived = False
-            is_not_arrived = False
+    for _, row in df_to_render.iterrows():
+        html += '<tr>'
+        for col in df_to_render.columns:
+            val = row[col]
             
-            if sponsor_col_check and sponsor_col_check in row:
-                sponsor_val = str(row[sponsor_col_check]).strip()
-                if "لم تصل بعد" in sponsor_val:
-                    is_not_arrived = True
-                elif sponsor_val and sponsor_val != "nan" and sponsor_val != "غير محدد" and sponsor_val != "0":
-                    is_arrived = True
-            
-            if is_not_arrived:
-                styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold; text-align: center;'
-            elif is_arrived:
-                styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold; text-align: center;'
+            # التنسيق والتلوين لعمود الحاوية
+            cell_style = ""
+            if target_container_col and col == target_container_col:
+                is_arrived = False
+                is_not_arrived = False
+                if sponsor_col_check and sponsor_col_check in row:
+                    sponsor_val = str(row[sponsor_col_check]).strip()
+                    if "لم تصل بعد" in sponsor_val:
+                        is_not_arrived = True
+                    elif sponsor_val and sponsor_val != "nan" and sponsor_val != "غير محدد" and sponsor_val != "0":
+                        is_arrived = True
                 
-        return styles
+                if is_not_arrived:
+                    cell_style = ' style="background-color: #fef08a; color: #000000; font-weight: bold;"'
+                elif is_arrived:
+                    cell_style = ' style="background-color: #bbf7d0; color: #000000; font-weight: bold;"'
 
-    return styler.apply(highlight_cells, axis=1)
+            # تنسيق القيم الرقمية والعملات
+            formatted_val = val
+            if pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float)):
+                if any(kw in col for kw in currency_keywords):
+                    formatted_val = f"¥{val:,.2f}"
+                else:
+                    formatted_val = f"{val:,.2f}" if isinstance(val, float) else f"{val:,}"
+
+            html += f'<td{cell_style}>{formatted_val}</td>'
+        html += '</tr>'
+    html += '</tbody></table></div>'
+    
+    st.markdown(html, unsafe_allow_html=True)
 
 if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
@@ -431,9 +443,7 @@ if page == "dashboard":
     render_download_buttons(filtered_df)
     
     df_to_display = filtered_df[selected_columns] if selected_columns else filtered_df
-    styled_filtered_df = style_container_column(df_to_display)
-    table_height = max(300, min(len(filtered_df) * 35 + 50, 1200))
-    st.dataframe(styled_filtered_df, use_container_width=True, height=table_height)
+    display_custom_html_table(df_to_display)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "customs":
@@ -500,21 +510,8 @@ elif page == "customs":
             "متبقي حقيقي": "Sum of متبقي حقيقي"
         })
 
-        formatted_customs = customs_summary.copy()
-        for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
-            if col in formatted_customs.columns:
-                formatted_customs[col] = formatted_customs[col].apply(lambda x: f"¥{x:,.2f}" if isinstance(x, (int, float)) else x)
-
-        def style_customs_table(row):
-            if str(row["Row Labels"]) == "Grand Total":
-                return ['background-color: #e2e8f0; color: #000000; font-weight: bold; text-align: center;'] * len(row)
-            return ['text-align: center;'] * len(row)
-
-        styled_customs_table = formatted_customs.style.apply(style_customs_table, axis=1)
-
         render_download_buttons(customs_summary)
-        table_height = max(300, min(len(formatted_customs) * 35 + 50, 1200))
-        st.dataframe(styled_customs_table, use_container_width=True, height=table_height)
+        display_custom_html_table(customs_summary)
     else:
         st.warning("الأعمدة المطلوبة لإنشاء الجدول غير متوفرة أو البيانات فارغة.")
 
@@ -586,52 +583,12 @@ elif page == "sponsors":
             )
 
             pivot_table_df = pivot_table_df.loc[(pivot_table_df > 0).any(axis=1), (pivot_table_df > 0).any(axis=0)]
-
             pivot_table_df["Grand Total"] = pivot_table_df.sum(axis=1)
             grand_total_row = pivot_table_df.sum(axis=0)
             pivot_table_df.loc["Grand Total"] = grand_total_row
+            pivot_table_df = pivot_table_df.reset_index()
 
-            new_columns = []
-            for col in pivot_table_df.columns:
-                if col == "Grand Total":
-                    new_columns.append(col)
-                    continue
-                
-                sub_df = base_pivot_df[base_pivot_df[pivot_container_col].astype(str) == str(col)]
-                is_not_arrived = False
-                is_arrived = False
-                
-                if not sub_df.empty and "الكفيل" in sub_df.columns:
-                    sponsors_in_col = sub_df["الكفيل"].astype(str).unique()
-                    if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
-                        is_not_arrived = True
-                    elif any(s and str(s).strip() != "nan" and str(s).strip() != "غير محدد" and str(s).strip() != "0" for s in sponsors_in_col):
-                        is_arrived = True
-                
-                if is_not_arrived:
-                    bg_color = "#fef08a"
-                elif is_arrived:
-                    bg_color = "#bbf7d0"
-                else:
-                    bg_color = "#e2e8f0"
-                
-                html_col_name = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{col}</div>'
-                new_columns.append(html_col_name)
-
-            pivot_table_df.columns = new_columns
-
-            formatted_pivot = pivot_table_df.map(
-                lambda val: f"¥{val:,.2f}" if isinstance(val, (int, float)) and val > 0 else ""
-            )
-            
-            def style_pivot_cells(val):
-                if val == "":
-                    return 'background-color: #f8fafc; color: transparent; text-align: center;'
-                return 'background-color: #fce7f3; color: #000000; font-weight: bold; text-align: center;'
-
-            styled_matrix = formatted_pivot.style.map(style_pivot_cells)
-            matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center; direction: rtl;" id')
-            st.markdown(f'<div style="width: 100%; overflow-x: auto;">{matrix_html}</div>', unsafe_allow_html=True)
+            display_custom_html_table(pivot_table_df)
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
 
@@ -651,7 +608,7 @@ elif page == "aging":
         aging_df = aging_df[aging_df["عدد الايام"] > 0]
         
         if aging_df.empty:
-            st.info("لا توجد بيانات متاحة لأيام التأخير بعد التصفية الحالية (قد تكون الديون مسددة بالكامل أو تساوي صفر).")
+            st.info("لا توجد بيانات متاحة لأيام التأخير بعد التصفية الحالية.")
         else:
             index_cols = [code_field, "رقم الحاوية"] if code_field else ["رقم الحاوية"]
             
@@ -681,72 +638,9 @@ elif page == "aging":
                 except Exception:
                     aging_pivot.loc["Grand Total"] = aging_grand_total
 
-                new_index_tuples = []
-                for idx in aging_pivot.index:
-                    if idx == "Grand Total" or (isinstance(idx, tuple) and "Grand Total" in str(idx)):
-                        new_index_tuples.append(idx if isinstance(idx, tuple) else (idx, ""))
-                        continue
-                    
-                    if code_field and isinstance(idx, tuple):
-                        c_code, c_cont = idx
-                    else:
-                        c_code = None
-                        c_cont = idx
-                    
-                    c_cont_str = str(c_cont).strip()
-                    sub_df = filtered_df[filtered_df["رقم الحاوية"].astype(str) == c_cont_str]
-                    is_arrived = False
-                    is_not_arrived = False
-                    
-                    if not sub_df.empty and "الكفيل" in filtered_df.columns:
-                        sponsors_in_col = sub_df["الكفيل"].astype(str).unique()
-                        if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
-                            is_not_arrived = True
-                        elif any(s and str(s).strip() != "nan" and str(s).strip() != "غير محدد" and str(s).strip() != "0" for s in sponsors_in_col):
-                            is_arrived = True
-                    
-                    if is_not_arrived:
-                        bg_color = "#fef08a"
-                    elif is_arrived:
-                        bg_color = "#bbf7d0"
-                    else:
-                        bg_color = "#e2e8f0"
-                    
-                    html_badge = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{c_cont_str}</div>'
-                    
-                    if code_field:
-                        new_index_tuples.append((c_code, html_badge))
-                    else:
-                        new_index_tuples.append(html_badge)
-
-                if code_field:
-                    aging_pivot.index = pd.MultiIndex.from_tuples(new_index_tuples, names=[code_field, "رقم الحاوية"])
-                else:
-                    aging_pivot.index = new_index_tuples
-
-                formatted_aging = aging_pivot.map(
-                    lambda val: f"¥{val:,.2f}" if isinstance(val, (int, float)) and val > 0 else ""
-                )
-
-                def style_aging_pivot_cells(val):
-                    if val == "":
-                        return 'background-color: #f8fafc; color: transparent; text-align: center;'
-                    return 'background-color: #fce7f3; color: #000000; font-weight: bold; text-align: center;'
-
-                styled_aging_matrix = formatted_aging.style.map(style_aging_pivot_cells)
-
-                def highlight_grand_total(row):
-                    idx_val = row.name
-                    if idx_val == "Grand Total" or (isinstance(idx_val, tuple) and "Grand Total" in str(idx_val)):
-                        return ['background-color: #e2e8f0; color: #000000; font-weight: bold; text-align: center;'] * len(row)
-                    return ['text-align: center;'] * len(row)
-
-                styled_aging_matrix = styled_aging_matrix.apply(highlight_grand_total, axis=1)
-
-                render_download_buttons(aging_pivot.reset_index())
-                
-                aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center; direction: rtl;" id')
-                st.markdown(f'<div style="width: 100%; overflow-x: auto;">{aging_html}</div>', unsafe_allow_html=True)
+                aging_pivot = aging_pivot.reset_index()
+                render_download_buttons(aging_pivot)
+                display_custom_html_table(aging_pivot)
     else:
         st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
 
@@ -792,37 +686,6 @@ elif page == "collections":
         })
         
         agg_df = pd.concat([agg_df, grand_totals], ignore_index=True)
-
-        formatted_container_col = []
-        for val in agg_df[container_field]:
-            val_str = str(val).strip()
-            if val_str == "Grand Total":
-                formatted_container_col.append("Grand Total")
-                continue
-            
-            sub_df = filtered_df[filtered_df[container_field].astype(str) == val_str]
-            is_arrived = False
-            is_not_arrived = False
-            
-            if not sub_df.empty and "الكفيل" in filtered_df.columns:
-                sponsors_in_col = sub_df["الكفيل"].astype(str).unique()
-                if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
-                    is_not_arrived = True
-                elif any(s and str(s).strip() != "nan" and str(s).strip() != "غير محدد" and str(s).strip() != "0" for s in sponsors_in_col):
-                    is_arrived = True
-            
-            if is_not_arrived:
-                bg_color = "#fef08a"
-            elif is_arrived:
-                bg_color = "#bbf7d0"
-            else:
-                bg_color = "#e2e8f0"
-                
-            html_badge = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{val_str}</div>'
-            formatted_container_col.append(html_badge)
-
-        agg_df[container_field] = formatted_container_col
-
         agg_df = agg_df.rename(columns={
             container_field: "رقم الحاوية",
             "مبلغ الجمرك": "Sum of مبلغ الجمرك",
@@ -830,21 +693,7 @@ elif page == "collections":
             "متبقي حقيقي": "Sum of متبقي حقيقي"
         })
 
-        formatted_agg = agg_df.copy()
-        for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
-            formatted_agg[col] = formatted_agg[col].apply(lambda x: f"¥{x:,.2f}" if isinstance(x, (int, float)) and x > 0 else (f"¥{x:,.2f}" if isinstance(x, (int, float)) else x))
-
-        def style_summary_cells(row):
-            styles = ['text-align: center;'] * len(row)
-            container_val_str = str(row["رقم الحاوية"])
-            if "Grand Total" in container_val_str:
-                return ['background-color: #f1f5f9; color: #000000; font-weight: bold; text-align: center;'] * len(row)
-            return styles
-
-        styled_summary = formatted_agg.style.apply(style_summary_cells, axis=1)
-
-        summary_summary_html = styled_summary.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center; direction: rtl;" id')
-        st.markdown(f'<div style="width: 100%; overflow-x: auto;">{summary_summary_html}</div>', unsafe_allow_html=True)
+        display_custom_html_table(agg_df)
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
 
