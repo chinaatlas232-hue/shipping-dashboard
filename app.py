@@ -29,15 +29,15 @@ st.markdown(
         color: #ffffff !important;
         text-align: center !important;
         font-weight: bold !important;
-        padding: 10px 8px !important;
+        padding: 8px 4px !important;
         border: 1px solid #cbd5e1 !important;
-        font-size: 14px !important;
+        font-size: 12px !important;
     }
     .custom-html-table td {
         text-align: center !important;
-        padding: 8px !important;
+        padding: 6px 4px !important;
         border: 1px solid #cbd5e1 !important;
-        font-size: 13px !important;
+        font-size: 11px !important;
         color: #1e293b !important;
     }
 
@@ -121,8 +121,13 @@ st.markdown(
         border-radius: 4px !important;
     }
 
-    /* تنسيقات الطباعة الصارمة لإخفاء حقول البحث، الأزرار، الشريط الجانبي تماماً */
+    /* تنسيقات الطباعة الصارمة: فرض العرض الأفقي A4 وإخفاء حقول البحث والأزرار تماماً */
     @media print {
+        @page {
+            size: A4 landscape;
+            margin: 8mm;
+        }
+        
         [data-testid="stSidebar"],
         header,
         .no-print,
@@ -132,16 +137,28 @@ st.markdown(
             display: none !important;
         }
         
-        .main {
+        body, .main {
             background-color: #ffffff !important;
+            -webkit-print-color-adjust: exact;
         }
+        
         .block-container {
             padding: 0 !important;
             max-width: 100% !important;
+            width: 100% !important;
         }
+
         .custom-html-table {
+            width: 100% !important;
+            font-size: 10px !important;
             page-break-inside: auto;
         }
+
+        .custom-html-table th, .custom-html-table td {
+            padding: 4px 2px !important;
+            font-size: 10px !important;
+        }
+        
         tr {
             page-break-inside: avoid;
             page-break-after: auto;
