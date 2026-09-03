@@ -14,7 +14,7 @@ st.markdown(
     <style>
     .main { background-color: #0e1117; }
     
-    /* تنسيق جدول HTML المخصص ليتوافق مع اتجاه اليمين لليسار */
+    /* تنسيق جدول HTML المخصص */
     .custom-html-table {
         width: 100% !important;
         border-collapse: collapse !important;
@@ -39,9 +39,6 @@ st.markdown(
         border: 1px solid #cbd5e1 !important;
         font-size: 13px !important;
         color: #1e293b !important;
-    }
-    .custom-html-table tr:nth-child(even) {
-        background-color: #f8fafc !important;
     }
 
     .metric-card {
@@ -71,13 +68,6 @@ st.markdown(
         text-align: right !important;
     }
 
-    [data-testid="stTextInput"] label {
-        font-size: 18px !important;
-        font-weight: bold !important;
-        color: #f8fafc !important;
-    }
-
-    /* === التنسيقات المحسنة والمضبوطة للمسطرة الجانبية (Sidebar) === */
     [data-testid="stSidebar"] {
         background-color: #07151a !important;
         direction: rtl !important;
@@ -87,10 +77,6 @@ st.markdown(
     [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
         color: #ffffff !important;
         text-align: right !important;
-    }
-
-    [data-testid="stSidebar"] .element-container {
-        margin-bottom: 0.5rem !important;
     }
 
     [data-testid="stSidebar"] section div.stRadio label,
@@ -113,25 +99,12 @@ st.markdown(
         color: #000000 !important;
         text-align: right !important;
     }
-    
-    [data-testid="stSidebar"] [data-testid="stFileUploader"], 
-    [data-testid="stSidebar"] [data-testid="stButton"], 
-    [data-testid="stSidebar"] [data-testid="stSelectbox"],
-    [data-testid="stSidebar"] [data-testid="stMultiSelect"] {
-        color: #ffffff !important;
-    }
 
     [data-testid="stSidebar"] button[kind="secondary"] {
         background-color: #dc2626 !important;
         color: #ffffff !important;
         border-color: #dc2626 !important;
         width: 100% !important;
-    }
-    
-    [data-testid="stSidebar"] button[kind="secondary"]:hover {
-        background-color: #b91c1c !important;
-        color: #ffffff !important;
-        border-color: #b91c1c !important;
     }
 
     ::-webkit-scrollbar {
@@ -146,100 +119,6 @@ st.markdown(
     ::-webkit-scrollbar-thumb {
         background: #f87171 !important;
         border-radius: 4px !important;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-        background: #ef4444 !important;
-    }
-
-    @media print {
-        @page {
-            size: A4 landscape;
-            margin: 8mm;
-        }
-        
-        [data-testid="stSidebar"], 
-        header, 
-        .stDownloadButton, 
-        button, 
-        .stButton, 
-        .no-print, 
-        iframe, 
-        [data-testid="stIFrame"] {
-            display: none !important;
-            visibility: hidden !important;
-            height: 0 !important;
-            width: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-
-        body {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            font-size: 11px !important;
-            direction: rtl !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-
-        .block-container {
-            padding: 0rem !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-        }
-
-        .metric-card {
-            background-color: #f1f5f9 !important;
-            color: #000000 !important;
-            border: 1px solid #cbd5e1 !important;
-            box-shadow: none !important;
-            padding: 8px !important;
-            margin-bottom: 8px !important;
-            break-inside: avoid;
-        }
-        
-        .metric-title {
-            color: #334155 !important;
-            font-size: 11px !important;
-        }
-        
-        .metric-value {
-            color: #0f172a !important;
-            font-size: 14px !important;
-        }
-
-        .custom-html-table {
-            font-size: 10px !important;
-            width: 100% !important;
-            page-break-inside: auto;
-        }
-        
-        .custom-html-table th {
-            background-color: #1e293b !important;
-            color: #ffffff !important;
-            padding: 5px !important;
-            font-size: 10px !important;
-        }
-        
-        .custom-html-table td {
-            padding: 4px !important;
-            font-size: 9.5px !important;
-            color: #000000 !important;
-        }
-        
-        tr {
-            page-break-inside: avoid;
-            page-break-after: auto;
-        }
-        
-        h1 {
-            background-color: transparent !important;
-            color: #000000 !important;
-            padding: 5px 0 !important;
-            font-size: 16px !important;
-            border-bottom: 2px solid #000;
-            margin-bottom: 10px !important;
-        }
     }
     </style>
 """,
@@ -440,25 +319,22 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         is_not_arrived = "لم تصل بعد" in sponsor_val
         is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (str(row.get("Row Labels", "")) == "Grand Total")
 
-        # تطبيق لون خلفية الصف بالكامل (أصفر للشحنة التي لم تصل بعد)
-        row_bg_style = ""
-        if not is_grand_total_row and is_not_arrived:
-            row_bg_style = ' style="background-color: #fef08a !important;"'
-
-        html += f'<tr{row_bg_style}>'
+        html += '<tr>'
         for col in df_with_seq.columns:
             val = row[col]
             col_str = str(col)
             cell_style = ""
             
             if not is_grand_total_row:
-                if col_str in ["رقم الحاوية", "الكفيل"]:
-                    if is_not_arrived:
-                        cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
-                    else:
-                        cell_style = ' style="background-color: #bbf7d0 !important; color: #065f46 !important; font-weight: bold;"'
-                elif is_not_arrived:
+                if is_not_arrived:
+                    # تلوين الصف بالكامل باللون الأصفر إذا كانت الشحنة لم تصل بعد
                     cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important;"'
+                    if col_str in ["رقم الحاوية", "الكفيل"]:
+                        cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
+                else:
+                    # تلوين أعمدة الحاوية والكفيل بالأخضر للشحنات الواصلة التي لها كفيل
+                    if col_str in ["رقم الحاوية", "الكفيل"]:
+                        cell_style = ' style="background-color: #bbf7d0 !important; color: #065f46 !important; font-weight: bold;"'
 
             formatted_val = val
             if col_str == "التسلسل":
