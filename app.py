@@ -189,12 +189,17 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 👁️ إخفاء الأعمدة غير المرغوبة")
 st.sidebar.markdown("<small style='color: #cbd5e1;'>حدد الأعمدة التي تريد إخفاءها من الجدول:</small>", unsafe_allow_html=True)
 
+# استخدام مفتاح ثابث وتخزين الحالة لضمان عدم ضياع الاختيارات عند التحديث
+if "hidden_columns_state" not in st.session_state:
+    st.session_state["hidden_columns_state"] = []
+
 hidden_columns = st.sidebar.multiselect(
     "اختر الأعمدة لإخفائها:",
     options=all_columns,
-    default=[],
+    default=st.session_state["hidden_columns_state"],
     key="columns_to_hide_unique_key"
 )
+st.session_state["hidden_columns_state"] = hidden_columns
 
 st.sidebar.markdown("---")
 
