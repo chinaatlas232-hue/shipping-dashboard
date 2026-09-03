@@ -125,6 +125,12 @@ st.markdown(
         background: #ef4444 !important;
     }
 
+    /* إعدادات الطباعة المخصصة لصفحة A4 */
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
+    }
+
     @media print {
         [data-testid="stSidebar"] {
             display: none !important;
@@ -134,6 +140,17 @@ st.markdown(
         }
         .stDownloadButton, button {
             display: none !important;
+        }
+        body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            font-size: 12px !important;
+        }
+        table, tr, td, th {
+            page-break-inside: avoid !important;
+        }
+        div {
+            page-break-inside: avoid;
         }
     }
     </style>
@@ -652,7 +669,6 @@ elif page == "aging":
                 except Exception:
                     aging_pivot.loc["Grand Total"] = aging_grand_total
 
-                # تنسيق رؤوس الحاويات في الجدول (MultiIndex أو Index عادي) لتصبح ملونة مثل بقية الجداول
                 new_index_tuples = []
                 for idx in aging_pivot.index:
                     if idx == "Grand Total" or (isinstance(idx, tuple) and "Grand Total" in str(idx)):
@@ -856,4 +872,3 @@ elif page == "charts":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
-
