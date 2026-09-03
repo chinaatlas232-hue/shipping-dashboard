@@ -124,7 +124,7 @@ st.markdown(
     @media print {
         @page {
             size: A4 landscape;
-            margin: 8mm;
+            margin: 5mm 5mm 5mm 5mm;
         }
         
         [data-testid="stSidebar"],
@@ -143,8 +143,15 @@ st.markdown(
         
         .block-container {
             padding: 0 !important;
+            margin: 0 !important;
             max-width: 100% !important;
             width: 100% !important;
+        }
+
+        h1 {
+            margin-top: 0 !important;
+            padding: 5px 10px !important;
+            font-size: 16px !important;
         }
 
         .custom-html-table {
@@ -154,7 +161,7 @@ st.markdown(
         }
 
         .custom-html-table th, .custom-html-table td {
-            padding: 4px 2px !important;
+            padding: 3px 2px !important;
             font-size: 10px !important;
         }
         
@@ -391,7 +398,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             elif pd.isna(val) or val_str == "" or val_str.lower() == "nan":
                 formatted_val = "0.00"
             elif numeric_val is not None:
-                # التحقق الشامل من الكلمات المالية لتطبيق رمز العملة $
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
                 
                 if is_currency_col:
