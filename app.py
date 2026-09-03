@@ -121,17 +121,17 @@ st.markdown(
         border-radius: 4px !important;
     }
 
-    /* تنسيقات الطباعة لتصحيح شكل PDF وإخفاء العناصر الزائدة */
+    /* تنسيقات الطباعة الصارمة لإخفاء الأزرار والقوائم تماماً */
     @media print {
-        [data-testid="stSidebar"] {
+        /* إخفاء الشريط الجانبي والرأس ومكونات الـ Iframe والأزرار */
+        [data-testid="stSidebar"],
+        header,
+        .no-print,
+        iframe,
+        div[data-testid="stHorizontalBlock"] {
             display: none !important;
         }
-        .no-print {
-            display: none !important;
-        }
-        header {
-            display: none !important;
-        }
+        
         .main {
             background-color: #ffffff !important;
         }
@@ -277,6 +277,7 @@ st.sidebar.markdown("---")
 st.sidebar.info("متصل بملف Google Sheets بنجاح ✔️")
 
 def render_download_buttons(data_to_download):
+    # وضعنا الأزرار داخل الحاوية المصنفة بـ no-print لضمان اختفائها تماماً عند الطباعة
     st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
     btn_col1, btn_col2 = st.columns([1, 1])
     with btn_col1:
@@ -293,7 +294,7 @@ def render_download_buttons(data_to_download):
     
     with btn_col2:
         print_html = """
-            <div class="no-print" style="width: 100%;">
+            <div style="width: 100%;">
                 <button onclick="window.parent.print();" style="
                     background-color: #ff4b4b;
                     color: white;
