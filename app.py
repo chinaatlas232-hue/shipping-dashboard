@@ -93,14 +93,6 @@ st.markdown(
         text-align: right !important;
     }
 
-    .filter-box {
-        background-color: #161b22;
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid #30363d;
-        margin-bottom: 20px;
-    }
-
     ::-webkit-scrollbar {
         width: 10px !important;
         height: 10px !important;
@@ -196,18 +188,19 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 👁️ التحكم بأعمدة العرض")
 all_columns = df.columns.tolist()
 
-if "selected_columns_key" not in st.session_state:
-    st.session_state["selected_columns_key"] = all_columns
+# ضمان الثبات التام لاختيار الأعمدة عبر الـ session_state
+if "user_selected_cols" not in st.session_state:
+    st.session_state["user_selected_cols"] = all_columns
 
-valid_defaults = [col for col in st.session_state["selected_columns_key"] if col in all_columns]
-if not valid_defaults:
-    valid_defaults = all_columns
+current_valid_defaults = [col for col in st.session_state["user_selected_cols"] if col in all_columns]
+if not current_valid_defaults:
+    current_valid_defaults = all_columns
 
 selected_columns = st.sidebar.multiselect(
     "اختر الأعمدة المراد إظهارها:",
     options=all_columns,
-    default=valid_defaults,
-    key="selected_columns_key"
+    default=current_valid_defaults,
+    key="user_selected_cols"
 )
 
 st.sidebar.markdown("---")
@@ -228,50 +221,45 @@ st.sidebar.markdown("---")
 st.sidebar.info("متصل بملف Google Sheets بنجاح ✔️")
 
 
-# ----------------- نظام التصفية والبحث المخصص الحر (Custom Filtering System) -----------------
+# ----------------- نظام التصفية والبحث المخصص الحر -----------------
 st.markdown("### 🔍 نظام التصفية والبحث المخصص للجدول")
 
 with st.expander("📂 اضغط هنا لفتح خيارات التصفية المتقدمة حسب رغبتك", expanded=True):
     fc1, fc2, fc3 = st.columns(3)
     
-    # 1. البحث النصي الحر الشامل
     with fc1:
-        search_text = st.text_input("بحث نصي عام (في كل الأعمدة):", "").strip()
+        search_text = st.text_input("بحث نصي عام (في كل الأعمدة):", "", key="general_search_input").strip()
         
-    # 2. تصفية حسب رقم الحاوية (متعدد الخيارات)
     container_col_name = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df.columns), None)
     with fc2:
         if container_col_name:
             all_containers = sorted(df[container_col_name].dropna().astype(str).unique().tolist())
-            selected_containers_filter = st.multiselect("تصفية برقم الحاوية:", options=all_containers, default=[])
+            selected_containers_filter = st.multiselect("تصفية برقم الحاوية:", options=all_containers, default=[], key="filter_containers")
         else:
             selected_containers_filter = []
 
-    # 3. تصفية حسب الكود (متعدد الخيارات)
     code_col_name = next((c for c in ["code", "الكود", "كود"] if c in df.columns), None)
     with fc3:
         if code_col_name:
             all_codes = sorted(df[code_col_name].dropna().astype(str).unique().tolist())
-            selected_codes_filter = st.multiselect("تصفية بالكود (Code):", options=all_codes, default=[])
+            selected_codes_filter = st.multiselect("تصفية بالكود (Code):", options=all_codes, default=[], key="filter_codes")
         else:
             selected_codes_filter = []
 
     fc4, fc5, fc6 = st.columns(3)
-    # 4. تصفية حسب الكفيل
     sponsor_col_name = next((c for c in ["الكفيل", "كفيل"] if c in df.columns), None)
     with fc4:
         if sponsor_col_name:
             all_sponsors = sorted(df[sponsor_col_name].dropna().astype(str).unique().tolist())
-            selected_sponsors_filter = st.multiselect("تصفية باسم الكفيل:", options=all_sponsors, default=[])
+            selected_sponsors_filter = st.multiselect("تصفية باسم الكفيل:", options=all_sponsors, default=[], key="filter_sponsors")
         else:
             selected_sponsors_filter = []
 
-    # 5. تصفية حسب نوع البضاعة
     goods_col_name = next((c for c in ["نوع البضاعة", "البضاعة"] if c in df.columns), None)
     with fc5:
         if goods_col_name:
             all_goods = sorted(df[goods_col_name].dropna().astype(str).unique().tolist())
-            selected_goods_filter = st.multiselect("تصفية بنوع البضاعة:", options=all_goods, default=[])
+            selected_goods_filter = st.multiselect("تصفية بنوع البضاعة:", options=all_goods, default=[], key="filter_goods")
         else:
             selected_goods_filter = []
 
@@ -282,7 +270,7 @@ with st.expander("📂 اضغط هنا لفتح خيارات التصفية ال
 
 st.markdown("---")
 
-# تطبيق الفلاتر المخصصة على الداتا
+# تطبيق الفلاتر على البيانات
 filtered_df = df.copy()
 
 if search_text:
@@ -394,7 +382,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     
     st.markdown(html, unsafe_allow_html=True)
 
-# عرض الأقسام
+# عرض الأقسام والصفحات
 if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
     st.markdown("---")
