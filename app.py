@@ -308,8 +308,16 @@ def style_container_column(df_to_style):
     target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_style.columns), None)
     sponsor_col_check = "الكفيل" if "الكفيل" in df_to_style.columns else None
 
+    # تطبيق تنسيق حصر الأرقام العشرية بحد أقصى مرتبتين عشريتين على الأرقام في الجدول
+    format_dict = {}
+    for col in df_to_style.columns:
+        if pd.api.types.is_numeric_dtype(df_to_style[col]):
+            format_dict[col] = "{:,.2f}"
+
+    styler = df_to_style.style.format(format_dict, na_rep="")
+
     if not target_container_col:
-        return df_to_style.style
+        return styler
 
     def highlight_cells(row):
         styles = [''] * len(row)
@@ -332,7 +340,7 @@ def style_container_column(df_to_style):
                 
         return styles
 
-    return df_to_style.style.apply(highlight_cells, axis=1)
+    return styler.apply(highlight_cells, axis=1)
 
 if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
@@ -361,13 +369,13 @@ if page == "dashboard":
     with row1_c3:
         st.markdown(f'<div class="metric-card" style="background-color: #1d4ed8;"><div class="metric-title">🚢 إجمالي عدد الحاويات</div><div class="metric-value">{total_containers_count:,}</div></div>', unsafe_allow_html=True)
     with row1_c4:
-        st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.0f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.2f}</div></div>', unsafe_allow_html=True)
 
     row2_c1, row2_c2, row2_c3, row2_c4 = st.columns(4)
     with row2_c1:
         st.markdown(f'<div class="metric-card" style="background-color: #047857;"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c2:
-        st.markdown(f'<div class="metric-card" style="background-color: #7c2d12;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.3f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #7c2d12;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c3:
         st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">💰 مبالغ دفعت من المكتب</div><div class="metric-value">¥{total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c4:
@@ -450,8 +458,9 @@ elif page == "customs":
         })
 
         formatted_customs = customs_summary.copy()
-        for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
-            formatted_customs[col] = formatted_customs[col].apply(lambda x: f"${x:,.2f}" if isinstance(x, (int, float)) else x)
+        for col in ["Sum of عدد الكارتون", "Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
+            if col in formatted_customs.columns:
+                formatted_customs[col] = formatted_customs[col].apply(lambda x: f"${x:,.2f}" if isinstance(x, (int, float)) else x)
 
         def style_customs_table(row):
             styles = [''] * len(row)
@@ -503,7 +512,7 @@ elif page == "sponsors":
                 <div style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; color: #ffffff !important;">👤 الكفيل: {sponsor_name}</h3>
                     <div style="display: flex; justify-content: space-between; font-size: 15px; text-align: center; color: #ffffff !important;">
-                        <div>📦 الطلبات: <b style="color: #ffffff;">{s_orders:,}</b></div>
+                        <div>📦 الطلبات: <b style="color: #ffffff;">{s_orders:,.2f}</b></div>
                         <div>💰 الجمرك: <b style="color: #ffffff;">¥{s_customs:,.2f}</b></div>
                         <div>✅ المسدد: <b style="color: #ffffff;">¥{s_collected:,.2f}</b></div>
                         <div>⏳ المتبقي: <b style="color: #ffffff;">¥{s_remaining:,.2f}</b></div>
@@ -560,7 +569,7 @@ elif page == "sponsors":
             pivot_table_df.columns = new_columns
 
             formatted_pivot = pivot_table_df.map(
-                lambda val: f"¥{val:,.0f}" if isinstance(val, (int, float)) and val > 0 else ""
+                lambda val: f"¥{val:,.2f}" if isinstance(val, (int, float)) and val > 0 else ""
             )
             
             def style_pivot_cells(val):
@@ -610,7 +619,7 @@ elif page == "aging":
             aging_pivot.loc["Grand Total"] = aging_grand_total
 
         formatted_aging = aging_pivot.map(
-            lambda val: f"¥{val:,.0f}" if isinstance(val, (int, float)) and val > 0 else ""
+            lambda val: f"¥{val:,.2f}" if isinstance(val, (int, float)) and val > 0 else ""
         )
 
         def style_aging_cells(row):
@@ -691,7 +700,7 @@ elif page == "collections":
 
         formatted_agg = agg_df.copy()
         for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
-            formatted_agg[col] = formatted_agg[col].apply(lambda x: f"¥{x:,.0f}" if x > 0 else "")
+            formatted_agg[col] = formatted_agg[col].apply(lambda x: f"¥{x:,.2f}" if x > 0 else "")
 
         def style_summary_cells(row):
             styles = [''] * len(row)
