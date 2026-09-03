@@ -418,7 +418,7 @@ def render_download_buttons(data_to_download):
         components.html(print_html, height=45)
     st.markdown('</div>', unsafe_allow_html=True)
 
-def display_custom_html_table(df_to_render, is_sponsors_pivot=False):
+def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_report=False):
     if df_to_render.empty:
         st.info("لا توجد بيانات للعرض.")
         return
@@ -441,9 +441,9 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False):
             
             cell_style = ""
             
-            # التعديل المطلوب حصراً في نافذة "الديون على الكفلاء" (الجدول المفصلي / Pivot Table)
+            # التعديل المطلوب حصراً في نافذة "الديون على الكفلاء" (الجدول المفصلي / Pivot Table) وفي تقرير أعمار الديون
             # إذا كانت القيم الرقمية أكبر من 0.0 يتم تلوين الخلية باللون الوردي (#fbcfe8) حصراً
-            if is_sponsors_pivot and col_str != "code" and col_str != "Grand Total" and str(row.get("code", "")) != "Grand Total":
+            if (is_sponsors_pivot or is_aging_report) and col_str != "code" and col_str != "Grand Total" and str(row.get("code", "")) != "Grand Total" and str(row.get("رقم الحاوية", "")) != "Grand Total":
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
                     if num_val > 0.0:
@@ -452,7 +452,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False):
                     pass
 
             # تلوين عمود "متبقي حقيقي" في الجداول الأخرى إذا وجد
-            if not is_sponsors_pivot and "متبقي حقيقي" in col_str:
+            if not is_sponsors_pivot and not is_aging_report and "متبقي حقيقي" in col_str:
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
                     if num_val == 0.0:
@@ -463,7 +463,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False):
                     pass
 
             # تلوين عمود رقم الحاوية بناءً على حالة الكفيل إذا وجد
-            if not is_sponsors_pivot and target_container_col and col_str == str(target_container_col):
+            if not is_sponsors_pivot and not is_aging_report and target_container_col and col_str == str(target_container_col):
                 is_arrived = False
                 is_not_arrived = False
                 if sponsor_col_check and sponsor_col_check in row:
@@ -709,14 +709,15 @@ elif page == "aging":
         if aging_df.empty:
             st.info("لا توجد بيانات متاحة لأيام التأخير بعد التصفية الحالية.")
         else:
-            index_cols = [code_field, "رقم الحاوية"] if code_field else ["رقم الحاوية"]
+            # تم تعديل ترتيب الـ index ليكون رقم الحاوية أولاً ثم الـ code ثانياً ليتطابق مع الصورة المطلوبة
+            index_cols = ["رقم الحاوية", code_field] if code_field else ["رقم الحاوية"]
             
             aging_pivot = aging_df.pivot_table(
                 index=index_cols,
                 columns="عدد الايام",
                 values="متبقي حقيقي",
                 aggfunc="sum",
-                fill_value=0
+                fill_value=0.0
             )
 
             aging_pivot = aging_pivot[(aging_pivot > 0).any(axis=1)]
@@ -727,22 +728,15 @@ elif page == "aging":
                 aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
                 aging_grand_total = aging_pivot.sum(axis=0)
                 
-                if code_field:
-                    total_idx = ("Grand Total", "") if isinstance(aging_pivot.index, pd.MultiIndex) else "Grand Total"
-                else:
-                    total_idx = "Grand Total"
-                
-                try:
-                    aging_pivot.loc[total_idx] = aging_grand_total
-                except Exception:
-                    aging_pivot.loc["Grand Total"] = aging_grand_total
+                aging_pivot.loc["Grand Total"] = aging_grand_total
 
                 aging_pivot = aging_pivot.reset_index()
                 
                 aging_pivot.columns = [str(c) for c in aging_pivot.columns]
                 
                 render_download_buttons(aging_pivot)
-                display_custom_html_table(aging_pivot)
+                # تم تمرير الوسيط is_aging_report=True لتصحيح مشكلة ظهور nan وتلوين القيم أكبر من 0.0 بالوردي
+                display_custom_html_table(aging_pivot, is_aging_report=True)
     else:
         st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
 
@@ -799,7 +793,7 @@ elif page == "collections":
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
 
-    st.markdown("<div style='margin-block: 50px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-block: 50px;'>`</div>", unsafe_allow_html=True)
 
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
