@@ -463,7 +463,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 except:
                     pass
 
-            # تلوين عمود رقم الحاوية بناءً على حالة الكفيل إذا وجد
+            # تلوين عمود رقم الحاوية باللون الأخضر في الجداول العامة (وعدم تلوينه في تقرير أعمار الديون لكي يبقى أبيض)
             if not is_sponsors_pivot and not is_aging_report and target_container_col and col_str == str(target_container_col):
                 is_arrived = False
                 is_not_arrived = False
