@@ -50,8 +50,8 @@ st.markdown(
     .metric-value { font-size: 20px; font-weight: bold; }
     
     .block-container { 
-        padding-top: 3.5rem !important; 
-        padding-bottom: 3rem !important; 
+        padding-top: 2rem !important; 
+        padding-bottom: 2rem !important; 
         padding-left: 1rem !important; 
         padding-right: 1rem !important; 
         max-width: 100% !important; 
@@ -124,9 +124,15 @@ st.markdown(
     @media print {
         @page {
             size: A4 landscape;
-            margin: 5mm 5mm 5mm 5mm;
+            margin: 5mm;
         }
         
+        html, body {
+            height: auto !important;
+            overflow: visible !important;
+            background-color: #ffffff !important;
+        }
+
         [data-testid="stSidebar"],
         header,
         .no-print,
@@ -136,22 +142,23 @@ st.markdown(
             display: none !important;
         }
         
-        body, .main {
+        .main, .block-container {
             background-color: #ffffff !important;
-            -webkit-print-color-adjust: exact;
-        }
-        
-        .block-container {
             padding: 0 !important;
             margin: 0 !important;
             max-width: 100% !important;
             width: 100% !important;
+            display: block !important;
         }
 
         h1 {
             margin-top: 0 !important;
+            margin-bottom: 10px !important;
             padding: 5px 10px !important;
-            font-size: 16px !important;
+            font-size: 14px !important;
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact;
         }
 
         .custom-html-table {
@@ -160,7 +167,14 @@ st.markdown(
             page-break-inside: auto;
         }
 
-        .custom-html-table th, .custom-html-table td {
+        .custom-html-table th {
+            background-color: #0b2239 !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact;
+            padding: 4px !important;
+        }
+
+        .custom-html-table td {
             padding: 3px 2px !important;
             font-size: 10px !important;
         }
@@ -773,7 +787,6 @@ elif page == "data_entry":
     st.markdown("---")
     st.markdown("يمكنك تعديل البيانات مباشرة في الجدول أدناه، أو إضافة سجل جديد:")
 
-    # عرض جدول قابل للتعديل باستخدام st.data_editor
     edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="data_editor_grid")
 
     if st.button("💾 حفظ التغييرات وتحديث العرض"):
