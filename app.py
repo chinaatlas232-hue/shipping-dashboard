@@ -415,23 +415,39 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         st.info("لا توجد بيانات للعرض.")
         return
         
+    # إضافة عمود التسلسل في أقصى اليمين
+    df_with_seq = df_to_render.copy()
+    seq_list = []
+    for idx, row in enumerate(df_with_seq.iterrows(), start=1):
+        # التحقق إذا كان السطر هو سطر المجموع النهائي لعدم ترقيمه أو ترك خانته فارغة أو بعبارة تخصه
+        is_total = (str(df_with_seq.iloc[idx-1].get("رقم الحاوية", "")) == "GrandTotal") or \
+                   (str(df_with_seq.iloc[idx-1].get("رقم الحاوية", "")) == "Grand Total") or \
+                   (str(df_with_seq.iloc[idx-1].get("code", "")) == "Grand Total") or \
+                   (str(df_with_seq.iloc[idx-1].get("Row Labels", "")) == "Grand Total")
+        if is_total:
+            seq_list.append("")
+        else:
+            seq_list.append(idx)
+            
+    df_with_seq.insert(0, "التسلسل", seq_list)
+
     currency_keywords = ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "المتبقي"]
 
     html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
-    for col in df_to_render.columns:
+    for col in df_with_seq.columns:
         html += f'<th>{col}</th>'
     html += '</tr></thead><tbody>'
 
-    for _, row in df_to_render.iterrows():
+    for _, row in df_with_seq.iterrows():
         html += '<tr>'
-        for col in df_to_render.columns:
+        for col in df_with_seq.columns:
             val = row[col]
             col_str = str(col)
             cell_style = ""
             
-            is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (col_str == "Grand Total")
+            is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (col_str == "Grand Total") or (str(row.get("Row Labels", "")) == "Grand Total")
             
-            if (is_sponsors_pivot or is_aging_report) and not is_grand_total_row and col_str != "رقم الحاوية" and col_str != "code":
+            if (is_sponsors_pivot or is_aging_report) and not is_grand_total_row and col_str != "رقم الحاوية" and col_str != "code" and col_str != "التسلسل" and col_str != "Row Labels":
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
                     if num_val > 0.0:
@@ -450,7 +466,9 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                     pass
 
             formatted_val = val
-            if pd.isna(val) or str(val).strip() == "" or str(val).lower() == "nan":
+            if col_str == "التسلسل":
+                formatted_val = val if val != "" else "-"
+            elif pd.isna(val) or str(val).strip() == "" or str(val).lower() == "nan":
                 formatted_val = "0.00"
             elif pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float)):
                 if any(kw in col_str for kw in currency_keywords):
