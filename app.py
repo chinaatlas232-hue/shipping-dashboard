@@ -325,16 +325,26 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             col_str = str(col)
             cell_style = ""
             
-            if not is_grand_total_row:
-                if is_not_arrived:
-                    # تلوين الصف بالكامل باللون الأصفر إذا كانت الشحنة لم تصل بعد
-                    cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important;"'
-                    if col_str in ["رقم الحاوية", "الكفيل"]:
-                        cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
-                else:
-                    # تلوين أعمدة الحاوية والكفيل بالأخضر للشحنات الواصلة التي لها كفيل
-                    if col_str in ["رقم الحاوية", "الكفيل"]:
-                        cell_style = ' style="background-color: #bbf7d0 !important; color: #065f46 !important; font-weight: bold;"'
+            # التحقق من قيمة الخلية إذا كانت رقماً أكبر من 0.0 لتلوينها باللون الوردي
+            numeric_val = 0.0
+            is_num = False
+            try:
+                numeric_val = float(str(val).replace("¥", "").replace("$", "").replace(",", "").strip())
+                is_num = True
+            except:
+                pass
+
+            if is_num and numeric_val > 0.0:
+                cell_style = ' style="background-color: #fbcfe8 !important; color: #831843 !important; font-weight: bold;"'
+            else:
+                if not is_grand_total_row:
+                    if is_not_arrived:
+                        cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important;"'
+                        if col_str in ["رقم الحاوية", "الكفيل"]:
+                            cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
+                    else:
+                        if col_str in ["رقم الحاوية", "الكفيل"]:
+                            cell_style = ' style="background-color: #bbf7d0 !important; color: #065f46 !important; font-weight: bold;"'
 
             formatted_val = val
             if col_str == "التسلسل":
@@ -706,4 +716,3 @@ elif page == "charts":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
-
