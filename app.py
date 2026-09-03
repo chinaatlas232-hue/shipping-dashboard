@@ -276,11 +276,11 @@ def load_data(uploaded_file):
     df.columns = df.columns.astype(str).str.strip()
 
     for col in df.columns:
-        if any(kw in col for kw in ["تاريخ", "date", "Date"]):
+        if any(kw in str(col).lower() for kw in ["تاريخ", "date"]):
             df[col] = pd.to_datetime(df[col], errors="coerce").dt.strftime("%Y-%m-%d").fillna(df[col])
 
-    office_col_candidate = next((c for c in df.columns if any(k in c for k in ["المكتب دفع", "Office Paid", "دفع الشركة"])), None)
-    client_col_candidate = next((c for c in df.columns if any(k in c for k in ["الزبون دفع", "Client Paid", "دفع الزبون"])), None)
+    office_col_candidate = next((c for c in df.columns if any(k in str(c) for k in ["المكتب دفع", "Office Paid", "دفع الشركة"])), None)
+    client_col_candidate = next((c for c in df.columns if any(k in str(c) for k in ["الزبون دفع", "Client Paid", "دفع الزبون"])), None)
 
     if office_col_candidate and "Office Paid" not in df.columns:
         df["Office Paid"] = df[office_col_candidate]
@@ -440,9 +440,10 @@ def display_custom_html_table(df_to_render):
         html += '<tr>'
         for col in df_to_render.columns:
             val = row[col]
+            col_str = str(col)
             
             cell_style = ""
-            if target_container_col and col == target_container_col:
+            if target_container_col and col_str == str(target_container_col):
                 is_arrived = False
                 is_not_arrived = False
                 if sponsor_col_check and sponsor_col_check in row:
@@ -459,7 +460,7 @@ def display_custom_html_table(df_to_render):
 
             formatted_val = val
             if pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float)):
-                if any(kw in col for kw in currency_keywords):
+                if any(kw in col_str for kw in currency_keywords):
                     formatted_val = f"¥{val:,.2f}"
                 else:
                     formatted_val = f"{val:,.2f}" if isinstance(val, float) else f"{val:,}"
@@ -716,6 +717,10 @@ elif page == "aging":
                     aging_pivot.loc["Grand Total"] = aging_grand_total
 
                 aging_pivot = aging_pivot.reset_index()
+                
+                # تحويل أسماء الأعمدة إلى نصوص لتفادي خطأ الـ TypeError عند القراءة في جدول العرض
+                aging_pivot.columns = [str(c) for c in aging_pivot.columns]
+                
                 render_download_buttons(aging_pivot)
                 display_custom_html_table(aging_pivot)
     else:
@@ -791,7 +796,7 @@ elif page == "charts":
 
         col_chart1, col_chart2 = st.columns(2)
         with col_chart1:
-            if container_col and "`الوزن`" in filtered_df.columns or container_col and "الوزن" in filtered_df.columns:
+            if container_col and "الوزن" in filtered_df.columns:
                 st.subheader("⚖️ إجمالي الوزن حسب الحاوية (kg)")
                 weight_data = filtered_df.groupby(container_col)["الوزن"].sum()
                 st.bar_chart(weight_data)
