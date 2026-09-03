@@ -14,7 +14,7 @@ st.markdown(
     <style>
     .main { background-color: #0e1117; }
     
-    /* تنسيق الشريط العلوي ليكون بخلفية حبري داكن ونص أبيض */
+    /* تنسيق الشريط العلوي */
     header[data-testid="stHeader"] {
         background-color: #07151a !important;
     }
@@ -22,6 +22,23 @@ st.markdown(
         color: #ffffff !important;
     }
     
+    /* === تعديل ترويسة الجدول (Headers) لتكون بلون حبري داكن ونص أبيض === */
+    [data-testid="stDataFrame"] th, 
+    [data-testid="stTable"] th, 
+    table th,
+    [data-testid="stDataFrame"] div[data-baseweb="base-input"] + div th,
+    thead tr th {
+        background-color: #0b192c !important;
+        color: #ffffff !important;
+    }
+    
+    [data-testid="stDataFrame"] th *, 
+    [data-testid="stTable"] th *, 
+    table th * {
+        color: #ffffff !important;
+        font-weight: bold !important;
+    }
+
     .metric-card {
         padding: 16px; border-radius: 12px; color: white;
         text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -251,7 +268,6 @@ if sponsor_filter_col and not df.empty:
 
 st.sidebar.markdown("---")
 
-# أداة التحكم بأعمدة جدول العرض الرئيسي
 st.sidebar.markdown("### 👁️ التحكم بأعمدة العرض")
 all_columns = filtered_df.columns.tolist()
 selected_columns = st.sidebar.multiselect(
