@@ -1,6 +1,7 @@
 import io
 import os
 import pandas as pd
+import streamlit.components.v1 as components
 import streamlit as st
 
 # 1. إعداد الصفحة والتنسيقات
@@ -270,10 +271,10 @@ def render_download_buttons(data_to_download):
         )
     
     with btn_col2:
-        # طريقة مضمونة ومحدثة لتشغيل الطباعة وحفظ PDF عبر مكونات streamlit باستخدام مكون HTML/JS متفاعل
+        # استخدام st.components.v1.html للتحكم الصحيح في تفاعل زر الطباعة عبر الـ iframe
         print_html = """
             <div>
-                <button onclick="parent.window.print();" style="
+                <button onclick="window.parent.print();" style="
                     background-color: #ff4b4b;
                     color: white;
                     padding: 0.45rem 0.75rem;
@@ -290,7 +291,7 @@ def render_download_buttons(data_to_download):
                 </button>
             </div>
         """
-        st.markdown(print_html, unsafe_allow_html=True)
+        components.html(print_html, height=45)
 
 def style_container_column(df_to_style):
     target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_style.columns), None)
