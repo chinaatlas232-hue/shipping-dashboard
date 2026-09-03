@@ -436,10 +436,23 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     html += '</tr></thead><tbody>'
 
     for _, row in df_with_seq.iterrows():
-        # التحقق مما إذا كان الكفيل يحتوي على "لم تصل بعد" لتلوين السطر بالكامل بالأصفر الفاتح
+        # التحقق من حالة الشحنة بناءً على اسم الكفيل أو رقم الحاوية
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
-        is_not_arrived = "لم تصل بعد" in sponsor_val
+        container_val_row = str(row.get("رقم الحاوية", "")) if "رقم الحاوية" in df_with_seq.columns else ""
         
+        is_not_arrived = "لم تصل بعد" in sponsor_val
+        is_arrived = sponsor_val != "" and sponsor_val != "nan" and sponsor_val != "غير محدد" and not is_not_arrived
+
+        # التحقق من الحاويات في حال كانت الجداول مجدولة حسب رقم الحاوية
+        if not is_not_arrived and not is_arrived and container_val_row and container_val_row != "nan":
+            sub_check = df.loc[df[container_col].astype(str) == container_val_row] if container_col else pd.DataFrame()
+            if not sub_check.empty and "الكفيل" in sub_check.columns:
+                s_vals = sub_check["الكفيل"].astype(str).unique()
+                if any("لم تصل بعد" in str(s) for s in s_vals):
+                    is_not_arrived = True
+                elif any(s and s != "nan" and s != "غير محدد" for s in s_vals):
+                    is_arrived = True
+
         html += '<tr>'
         for col in df_with_seq.columns:
             val = row[col]
@@ -448,10 +461,16 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             
             is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (col_str == "Grand Total") or (str(row.get("Row Labels", "")) == "Grand Total")
             
-            # التلوين الخاص بـ "لم تصل بعد" (أصفر فاتح جداً ومتناسق)
-            if is_not_arrived and not is_grand_total_row:
-                cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: 500;"'
-            
+            # ميزة التلوين المطلوب: غير الواصل (أصفر)، والواضل (أخضر) لعمود رقم الحاوية أو السطر
+            if not is_grand_total_row:
+                if col_str in ["رقم الحاوية", "الكفيل"]:
+                    if is_not_arrived:
+                        cell_style = ' style="background-color: #fef08a !important; color: #000000 !important; font-weight: bold;"'
+                    elif is_arrived:
+                        cell_style = ' style="background-color: #bbf7d0 !important; color: #000000 !important; font-weight: bold;"'
+                elif is_not_arrived:
+                    cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: 500;"'
+
             if (is_sponsors_pivot or is_aging_report) and not is_grand_total_row and col_str != "رقم الحاوية" and col_str != "code" and col_str != "التسلسل" and col_str != "Row Labels":
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
