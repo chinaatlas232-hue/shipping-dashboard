@@ -340,10 +340,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     df_with_seq = df_to_render.copy()
     seq_list = []
     for idx, row in enumerate(df_with_seq.iterrows(), start=1):
-        is_total = (str(df_with_seq.iloc[idx-1].get("رقم الحاوية", "")) == "GrandTotal") or \
-                   (str(df_with_seq.iloc[idx-1].get("رقم الحاوية", "")) == "Grand Total") or \
-                   (str(df_with_seq.iloc[idx-1].get("code", "")) == "Grand Total") or \
-                   (str(df_with_seq.iloc[idx-1].get("Row Labels", "")) == "Grand Total")
+        is_total = any(str(val).strip() in ["Grand Total", "GrandTotal"] for val in row.values)
         if is_total:
             seq_list.append("")
         else:
@@ -361,25 +358,28 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     for _, row in df_with_seq.iterrows():
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
-        is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (str(row.get("Row Labels", "")) == "Grand Total")
 
         html += '<tr>'
         for col in df_with_seq.columns:
             val = row[col]
             col_str = str(col)
+            val_str = str(val).strip()
             cell_style = ""
             
-            numeric_val = None
-            try:
-                clean_val_str = str(val).replace("¥", "").replace("$", "").replace(",", "").strip()
-                numeric_val = float(clean_val_str)
-            except (ValueError, TypeError):
-                pass
-
-            if numeric_val is not None and numeric_val > 0.0 and not is_grand_total_row and col_str != "التسلسل":
-                cell_style = ' style="background-color: #fbcfe8 !important; color: #831843 !important; font-weight: bold;"'
+            # تلوين أي خلية تحتوي على Grand Total بلون رصاصي طوخ (داكن)
+            if val_str in ["Grand Total", "GrandTotal"]:
+                cell_style = ' style="background-color: #4b5563 !important; color: #ffffff !important; font-weight: bold;"'
             else:
-                if not is_grand_total_row:
+                numeric_val = None
+                try:
+                    clean_val_str = val_str.replace("¥", "").replace("$", "").replace(",", "")
+                    numeric_val = float(clean_val_str)
+                except (ValueError, TypeError):
+                    pass
+
+                if numeric_val is not None and numeric_val > 0.0 and col_str != "التسلسل":
+                    cell_style = ' style="background-color: #fbcfe8 !important; color: #831843 !important; font-weight: bold;"'
+                else:
                     if is_not_arrived:
                         cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important;"'
                         if col_str in ["رقم الحاوية", "الكفيل"]:
@@ -391,7 +391,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             formatted_val = val
             if col_str == "التسلسل":
                 formatted_val = val if val != "" else "-"
-            elif pd.isna(val) or str(val).strip() == "" or str(val).lower() == "nan":
+            elif pd.isna(val) or val_str == "" or val_str.lower() == "nan":
                 formatted_val = "0.00"
             elif numeric_val is not None:
                 if any(kw in col_str for kw in currency_keywords):
