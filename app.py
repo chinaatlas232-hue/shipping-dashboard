@@ -52,8 +52,9 @@ st.markdown(
     .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
     .metric-value { font-size: 20px; font-weight: bold; }
     
+    /* رفع المسافة العلوية وإلغاء السكرول غير المريح للأعلى */
     .block-container { 
-        padding-top: 3.5rem !important; 
+        padding-top: 1rem !important; 
         padding-bottom: 3rem !important; 
         padding-left: 1rem !important; 
         padding-right: 1rem !important; 
@@ -67,7 +68,7 @@ st.markdown(
         padding: 15px 20px !important;
         border-radius: 8px !important;
         margin-bottom: 20px !important;
-        margin-top: 10px !important;
+        margin-top: 0px !important;
         text-align: right !important;
     }
 
@@ -439,10 +440,8 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             
             cell_style = ""
             
-            # التحقق إذا كان السطر هو إجمالي الإجماليات (Grand Total)
             is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (col_str == "Grand Total")
             
-            # تلوين القيم الرقمية الأكبر من 0.0 باللون الوردي في تقرير أعمار الديون أو الديون على الكفلاء (ما عدا صف المجموع النهائي)
             if (is_sponsors_pivot or is_aging_report) and not is_grand_total_row and col_str != "رقم الحاوية" and col_str != "code":
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
@@ -451,7 +450,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 except:
                     pass
 
-            # تلوين عمود "متبقي حقيقي" في الجداول الأخرى إذا وجد
             if not is_sponsors_pivot and not is_aging_report and "متبقي حقيقي" in col_str:
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
@@ -462,7 +460,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 except:
                     pass
 
-            # تلوين عمود رقم الحاوية باللون الأخضر أو الاصفر في الجداول العامة
             if not is_sponsors_pivot and not is_aging_report and target_container_col and col_str == str(target_container_col):
                 is_arrived = False
                 is_not_arrived = False
@@ -479,7 +476,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                     cell_style = ' style="background-color: #bbf7d0; color: #000000; font-weight: bold;"'
 
             formatted_val = val
-            # معالجة القيم الفارغة أو NaN في جدول أعمار الديون لتظهر كـ 0.00 بدلاً من فراغ
             if pd.isna(val) or str(val).strip() == "" or str(val).lower() == "nan":
                 formatted_val = "0.00"
             elif pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float)):
@@ -732,11 +728,9 @@ elif page == "aging":
             if aging_pivot.empty:
                 st.info("لا توجد مبالغ متبقية أكبر من الصفر للعرض بناءً على الفلاتر المحددة.")
             else:
-                # ترتيب أعمدة أيام التأخير تصاعدياً (من الأقل للأكبر) كما في الصورة المطابقة (14, 21, 25, 45, 91)
                 sorted_cols = sorted(aging_pivot.columns, reverse=False)
                 aging_pivot = aging_pivot[sorted_cols]
 
-                # إضافة المجموع الأفقي (Grand Total) كعمود أخير على اليسار
                 aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
                 
                 aging_grand_total = aging_pivot.sum(axis=0)
