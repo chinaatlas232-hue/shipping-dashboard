@@ -189,7 +189,6 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 👁️ إخفاء الأعمدة غير المرغوبة")
 st.sidebar.markdown("<small style='color: #cbd5e1;'>حدد الأعمدة التي تريد إخفاءها من الجدول:</small>", unsafe_allow_html=True)
 
-# اختيار الأعمدة المراد إخفاؤها
 hidden_columns = st.sidebar.multiselect(
     "اختر الأعمدة لإخفائها:",
     options=all_columns,
@@ -264,7 +263,7 @@ with st.expander("📂 اضغط هنا لفتح خيارات التصفية ال
 
 st.markdown("---")
 
-# تطبيق الفلاتر على البيانات
+# تطبيق الفلاتر والبيانات الأساسية
 filtered_df = df.copy()
 
 if search_text:
@@ -283,15 +282,14 @@ if sponsor_col_name and selected_sponsors_filter:
 if goods_col_name and selected_goods_filter:
     filtered_df = filtered_df[filtered_df[goods_col_name].astype(str).isin(selected_goods_filter)]
 
-# **تطبيق إخفاء الأعمدة المحددة فوراً هنا**
+# استبعاد الأعمدة المختارة من الإخفاء بشكل قاطع من نسخة العرض النهائية
+view_df = filtered_df.copy()
 if hidden_columns:
-    cols_to_drop = [c for c in hidden_columns if c in filtered_df.columns]
-    view_df = filtered_df.drop(columns=cols_to_drop)
-else:
-    view_df = filtered_df.copy()
+    cols_to_drop = [c for c in hidden_columns if c in view_df.columns]
+    view_df = view_df.drop(columns=cols_to_drop)
 
 
-# دوال التصدير والعرض
+# دُوَل التصدير والعرض المحدثة بالكامل
 def render_download_buttons(data_to_download):
     st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
     btn_col1, btn_col2 = st.columns([1, 1])
@@ -324,6 +322,10 @@ def render_download_buttons(data_to_download):
     st.markdown('</div>', unsafe_allow_html=True)
 
 def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_report=False):
+    # التأكد التام من استبعاد الأعمدة المخفية حتى داخل دالة الرسم
+    if hidden_columns:
+        df_to_render = df_to_render.drop(columns=[c for c in hidden_columns if c in df_to_render.columns])
+
     if df_to_render.empty:
         st.info("لا توجد بيانات مطابقة لخيارات الفلترة الحالية.")
         return
@@ -383,7 +385,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     
     st.markdown(html, unsafe_allow_html=True)
 
-# عرض الأقسام والصفحات
+# عرض الأقسام والصفحات باستخدام view_df المعالج
 if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
     st.markdown("---")
@@ -459,10 +461,6 @@ elif page == "customs":
         })
         customs_summary = pd.concat([customs_summary, grand_total_row], ignore_index=True)
         
-        # تطبيق إخفاء الأعمدة على ملخص الكمارك أيضاً
-        if hidden_columns:
-            customs_summary = customs_summary.drop(columns=[c for c in hidden_columns if c in customs_summary.columns])
-            
         render_download_buttons(customs_summary)
         display_custom_html_table(customs_summary)
 
