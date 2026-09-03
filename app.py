@@ -256,22 +256,24 @@ def clean_numeric(series):
         errors="coerce"
     ).fillna(0)
 
-@st.cache_data(ttl=60)  # يتم تحديث البيانات تلقائياً كل دقيقة أو عند إعادة تحميل الصفحة
+@st.cache_data(ttl=60)
 def load_data():
     df = None
     try:
-        # ضع رابط Google Sheets بصيغة التصدير CSV هنا مباشرة
+        # يمكنك وضع الرابط مباشرة هنا بين علامتي التنصيص أو جذبه من st.secrets
         # مثال: sheet_url = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv"
-        sheet_url = st.secrets.get("GOOGLE_SHEET_URL", "ضع_رابط_الشيت_هنا_أو_في_Secrets")
+        sheet_url = st.secrets.get("GOOGLE_SHEET_URL", "ضع_رابط_الشيت_هنا")
+        
         if "docs.google.com" in sheet_url:
-            if not sheet_url.endswith("export?format=csv"):
-                if "/edit" in sheet_url:
-                    sheet_url = sheet_url.split("/edit")[0] + "/export?format=csv"
+            if "/edit" in sheet_url:
+                sheet_url = sheet_url.split("/edit")[0] + "/export?format=csv"
+            elif not sheet_url.endswith("export?format=csv"):
+                sheet_url = sheet_url.rstrip("/") + "/export?format=csv"
             df = pd.read_csv(sheet_url)
     except Exception as e:
         st.sidebar.error(f"خطأ في الاتصال بملف Google Sheets: {e}")
 
-    if df is None:
+    if df is None or df.empty:
         df = pd.DataFrame(columns=[
             "No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن",
             "المكتب دفع", "الزبون دفع", "المجموع", "عدد الكارتون",
@@ -446,7 +448,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         for col in df_to_render.columns:
             val = row[col]
             col_str = str(col)
-            
             cell_style = ""
             
             is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (col_str == "Grand Total")
@@ -468,21 +469,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                         cell_style = ' style="background-color: #fbcfe8; color: #000000; font-weight: bold;"'
                 except:
                     pass
-
-            if not is_sponsors_pivot and not is_aging_report and target_container_col and col_str == str(target_container_col):
-                is_arrived = False
-                is_not_arrived = False
-                if sponsor_col_check and sponsor_col_check in row:
-                    sponsor_val = str(row[sponsor_col_check]).strip()
-                    if "لم تصل بعد" in sponsor_val:
-                        is_not_arrived = True
-                    elif sponsor_val and sponsor_val != "nan" and sponsor_val != "غير محدد" and sponsor_val != "0":
-                        is_arrived = True
-                
-                if is_not_arrived:
-                    cell_style = ' style="background-color: #fef08a; color: #000000; font-weight: bold;"'
-                elif is_arrived:
-                    cell_style = ' style="background-color: #bbf7d0; color: #000000; font-weight: bold;"'
 
             formatted_val = val
             if pd.isna(val) or str(val).strip() == "" or str(val).lower() == "nan":
@@ -837,7 +823,7 @@ elif page == "charts":
                 st.bar_chart(weight_data)
 
         with col_chart2:
-            if container_col and "حجم" in filtered_df.contains if "حجم" in filtered_df.columns else []:
+            if container_col and "حجم" in filtered_df.columns:
                 st.subheader("📐 إجمالي الحجم حسب الحاوية (m³)")
                 volume_data = filtered_df.groupby(container_col)["حجم"].sum()
                 st.bar_chart(volume_data)
