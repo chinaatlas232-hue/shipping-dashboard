@@ -125,14 +125,20 @@ st.markdown(
         background: #ef4444 !important;
     }
 
-    /* إعدادات الطباعة المخصصة لمنع انقسام الجداول على صفحتين وضبط المقاسات */
+    /* إعدادات الطباعة المخصصة لمنع انقسام الجداول على صفحتين وضبط المقاسات وإخفاء كافة الأزرار والإطارات */
     @media print {
         @page {
             size: A4 landscape;
             margin: 3mm;
         }
-        [data-testid="stSidebar"], header, .stDownloadButton, button, .stButton, .no-print {
+        /* إخفاء القائمة الجانبية، الهيدر، الأزرار، الحاويات الخاصة المكونة، والإطارات تماماً */
+        [data-testid="stSidebar"], header, .stDownloadButton, button, .stButton, .no-print, iframe, [data-testid="stIFrame"] {
             display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            width: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         body {
             background-color: #ffffff !important;
@@ -302,6 +308,7 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 def render_download_buttons(data_to_download):
+    # استخدام فئة no-print مباشرة على الحاوية الخارجية لمنع طباعتها نهائياً
     st.markdown('<div class="no-print">', unsafe_allow_html=True)
     btn_col1, btn_col2 = st.columns([1, 1])
     with btn_col1:
@@ -317,7 +324,7 @@ def render_download_buttons(data_to_download):
     
     with btn_col2:
         print_html = """
-            <div style="width: 100%;">
+            <div class="no-print" style="width: 100%;">
                 <button onclick="window.parent.print();" style="
                     background-color: #ff4b4b;
                     color: white;
@@ -834,8 +841,8 @@ elif page == "collections":
 
         styled_summary = formatted_agg.style.apply(style_summary_cells, axis=1)
 
-        summary_html = styled_summary.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center;" id')
-        st.markdown(f'<div style="width: 100%; overflow-x: auto;">{summary_html}</div>', unsafe_allow_html=True)
+        summary_summary_html = styled_summary.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center;" id')
+        st.markdown(f'<div style="width: 100%; overflow-x: auto;">{summary_summary_html}</div>', unsafe_allow_html=True)
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
 
