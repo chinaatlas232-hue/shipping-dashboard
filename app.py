@@ -121,7 +121,7 @@ st.markdown(
         border-radius: 4px !important;
     }
 
-    /* تعديلات الطباعة لإزالة الفراغات الكبيرة وتنسيق الصفحات */
+    /* تعديلات الطباعة لإزالة الفراغات وتنسيق الصفحات وتكرار العناوين */
     @media print {
         @page {
             size: A4 landscape;
@@ -167,17 +167,24 @@ st.markdown(
             background-color: #1e293b !important;
             color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
         }
 
         .custom-html-table {
             width: 100% !important;
             font-size: 10px !important;
-            page-break-inside: auto !important;
+            border-collapse: collapse !important;
         }
 
-        .custom-html-table tr {
+        /* تكرار رأس الجدول تلقائياً في أعلى كل صفحة مطبوعة */
+        thead {
+            display: table-header-group !important;
+        }
+
+        tr {
             page-break-inside: avoid !important;
-            page-break-after: auto !important;
+            break-inside: avoid !important;
         }
 
         .custom-html-table th {
@@ -185,8 +192,6 @@ st.markdown(
             color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
             padding: 4px !important;
-            page-break-inside: avoid !important;
-            page-break-after: avoid !important;
         }
 
         .custom-html-table td {
