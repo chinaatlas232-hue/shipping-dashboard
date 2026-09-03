@@ -121,15 +121,15 @@ st.markdown(
         border-radius: 4px !important;
     }
 
-    /* تعديلات الطباعة لإزالة الفراغات وتنسيق الصفحات وتكرار العناوين */
+    /* تعديلات الطباعة لإزالة الفراغات الشاغرة وتنسيق الصفحة بالكامل */
     @media print {
         @page {
             size: A4 landscape;
-            margin: 10mm !important;
+            margin: 5mm !important;
         }
         
         html, body {
-            height: auto !important;
+            height: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
             background-color: #ffffff !important;
@@ -161,9 +161,9 @@ st.markdown(
 
         h1 {
             margin-top: 0 !important;
-            margin-bottom: 10px !important;
-            padding: 8px 12px !important;
-            font-size: 14px !important;
+            margin-bottom: 5px !important;
+            padding: 6px 10px !important;
+            font-size: 12px !important;
             background-color: #1e293b !important;
             color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
@@ -173,8 +173,9 @@ st.markdown(
 
         .custom-html-table {
             width: 100% !important;
-            font-size: 10px !important;
+            font-size: 9px !important;
             border-collapse: collapse !important;
+            margin: 0 !important;
         }
 
         /* تكرار رأس الجدول تلقائياً في أعلى كل صفحة مطبوعة */
@@ -191,12 +192,12 @@ st.markdown(
             background-color: #0b2239 !important;
             color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
-            padding: 4px !important;
+            padding: 3px !important;
         }
 
         .custom-html-table td {
-            padding: 3px 2px !important;
-            font-size: 10px !important;
+            padding: 2px 2px !important;
+            font-size: 9px !important;
         }
     }
     </style>
