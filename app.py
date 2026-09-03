@@ -436,14 +436,14 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     html += '</tr></thead><tbody>'
 
     for _, row in df_with_seq.iterrows():
-        # التحقق من حالة الشحنة بناءً على اسم الكفيل أو رقم الحاوية
+        # التحقق المحسن والشامل من حالة الشحنة بالاعتماد على الجدول الكامل df
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
         container_val_row = str(row.get("رقم الحاوية", "")) if "رقم الحاوية" in df_with_seq.columns else ""
         
         is_not_arrived = "لم تصل بعد" in sponsor_val
         is_arrived = sponsor_val != "" and sponsor_val != "nan" and sponsor_val != "غير محدد" and not is_not_arrived
 
-        # التحقق من الحاويات في حال كانت الجداول مجدولة حسب رقم الحاوية
+        # فحص إضافي عبر رقم الحاوية في الجدول الرئيسي الكامل لضمان دقة التلوين حتى لو غاب عمود الكفيل
         if not is_not_arrived and not is_arrived and container_val_row and container_val_row != "nan":
             sub_check = df.loc[df[container_col].astype(str) == container_val_row] if container_col else pd.DataFrame()
             if not sub_check.empty and "الكفيل" in sub_check.columns:
@@ -461,7 +461,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             
             is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (col_str == "Grand Total") or (str(row.get("Row Labels", "")) == "Grand Total")
             
-            # ميزة التلوين المطلوب: غير الواصل (أصفر)، والواضل (أخضر) لعمود رقم الحاوية أو السطر
+            # تطبيق ألوان التلوين المطلوبة (أصفر لغير الواصل، أخضر للواصل)
             if not is_grand_total_row:
                 if col_str in ["رقم الحاوية", "الكفيل"]:
                     if is_not_arrived:
