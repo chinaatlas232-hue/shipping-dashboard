@@ -334,7 +334,7 @@ def style_container_column(df_to_style):
                 sponsor_val = str(row[sponsor_col_check]).strip()
                 if "لم تصل بعد" in sponsor_val:
                     is_not_arrived = True
-                elif sponsor_val and sponsor_val != "nan" and sponsor_val != "غير محدد":
+                elif sponsor_val and sponsor_val != "nan" and sponsor_val != "غير محدد" and sponsor_val != "0":
                     is_arrived = True
             
             if is_not_arrived:
@@ -558,12 +558,22 @@ elif page == "sponsors":
                 
                 sub_df = base_pivot_df[base_pivot_df[pivot_container_col].astype(str) == str(col)]
                 is_not_arrived = False
+                is_arrived = False
+                
                 if not sub_df.empty and "الكفيل" in sub_df.columns:
                     sponsors_in_col = sub_df["الكفيل"].astype(str).unique()
                     if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
                         is_not_arrived = True
+                    elif any(s and str(s).strip() != "nan" and str(s).strip() != "غير محدد" and str(s).strip() != "0" for s in sponsors_in_col):
+                        is_arrived = True
                 
-                bg_color = "#fef08a" if is_not_arrived else "#bbf7d0"
+                if is_not_arrived:
+                    bg_color = "#fef08a"  # أصفر
+                elif is_arrived:
+                    bg_color = "#bbf7d0"  # أخضر
+                else:
+                    bg_color = "#e2e8f0"  # لون محايد افتراضي إذا لم يتوفر كفيل
+                
                 html_col_name = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{col}</div>'
                 new_columns.append(html_col_name)
 
@@ -617,7 +627,6 @@ elif page == "aging":
             if aging_pivot.empty:
                 st.info("لا توجد مبالغ متبقية أكبر من الصفر للعرض بناءً على الفلاتر المحددة.")
             else:
-                # حساب الإجماليات بشكل آمن
                 aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
                 aging_grand_total = aging_pivot.sum(axis=0)
                 
@@ -732,7 +741,7 @@ elif page == "collections":
                     sponsors_in_col = sub_df["الكفيل"].astype(str).unique()
                     if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
                         is_not_arrived = True
-                    elif any(s and s != "nan" and s != "غير محدد" for s in sponsors_in_col):
+                    elif any(s and str(s).strip() != "nan" and str(s).strip() != "غير محدد" and str(s).strip() != "0" for s in sponsors_in_col):
                         is_arrived = True
                 
                 col_idx = row.index.get_loc("رقم الحاوية")
