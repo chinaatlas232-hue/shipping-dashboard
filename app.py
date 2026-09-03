@@ -84,13 +84,11 @@ st.markdown(
         padding-top: 1rem !important;
     }
     
-    /* عنوان أو هيدر المسطرة الجانبية العلوي */
     [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
         color: #ffffff !important;
         text-align: right !important;
     }
 
-    /* ضبط مسافات وحجم الخطوط للعناصر والنصوص داخل السايدبار */
     [data-testid="stSidebar"] .element-container {
         margin-bottom: 0.5rem !important;
     }
@@ -108,7 +106,6 @@ st.markdown(
         text-align: right !important;
     }
 
-    /* إصلاح تداخل ألوان النصوص داخل مربعات الاختيار والرفع والازرار في السايدبار */
     [data-testid="stSidebar"] [data-testid="stFileUploader"] *, 
     [data-testid="stSidebar"] [data-testid="stButton"] *, 
     [data-testid="stSidebar"] [data-testid="stSelectbox"] *,
@@ -124,7 +121,6 @@ st.markdown(
         color: #ffffff !important;
     }
 
-    /* زر المسح الخاص بالملف في السايدبار */
     [data-testid="stSidebar"] button[kind="secondary"] {
         background-color: #dc2626 !important;
         color: #ffffff !important;
@@ -155,7 +151,6 @@ st.markdown(
         background: #ef4444 !important;
     }
 
-    /* تنسيقات الطباعة المحسنة (Print & PDF) */
     @media print {
         @page {
             size: A4 landscape;
@@ -373,10 +368,19 @@ st.sidebar.markdown("---")
 
 st.sidebar.markdown("### 👁️ التحكم بأعمدة العرض")
 all_columns = filtered_df.columns.tolist()
+
+# إصلاح مشكلة إعادة تعيين الأعمدة عند تحديث الصفحة أو التنقل
+if "selected_columns_key" not in st.session_state:
+    st.session_state["selected_columns_key"] = all_columns
+
+valid_defaults = [col for col in st.session_state["selected_columns_key"] if col in all_columns]
+if not valid_defaults:
+    valid_defaults = all_columns
+
 selected_columns = st.sidebar.multiselect(
     "اختر الأعمدة المراد إظهارها:",
     options=all_columns,
-    default=all_columns,
+    default=valid_defaults,
     key="selected_columns_key"
 )
 
