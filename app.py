@@ -14,7 +14,7 @@ st.markdown(
     <style>
     .main { background-color: #0e1117; }
     
-    /* تنسيق جدول HTML المخصص ليتوافق مع اتجاه اليمين لليسار */
+    /* تنسيق جدول HTML المخصص ليتوافق مع اتجاه اليمين لليسار (بدون شريط تمرير) */
     .custom-html-table {
         width: 100% !important;
         border-collapse: collapse !important;
@@ -145,7 +145,6 @@ st.markdown(
             margin: 8mm;
         }
         
-        /* إخفاء العناصر غير المطلوبة نهائياً في الطباعة */
         [data-testid="stSidebar"], 
         header, 
         .stDownloadButton, 
@@ -177,7 +176,6 @@ st.markdown(
             margin: 0 !important;
         }
 
-        /* تحويل البطاقات إلى تصميم متوافق ومبسط للطباعة بجوار بعضها */
         .metric-card {
             background-color: #f1f5f9 !important;
             color: #000000 !important;
@@ -198,7 +196,6 @@ st.markdown(
             font-size: 14px !important;
         }
 
-        /* تصغير الجدول وتنسيقه للطباعة بدون قص */
         .custom-html-table {
             font-size: 10px !important;
             width: 100% !important;
@@ -431,7 +428,8 @@ def display_custom_html_table(df_to_render):
 
     currency_keywords = ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "المتبقي"]
 
-    html = '<div style="width: 100%; overflow-x: auto; max-height: 600px;"><table class="custom-html-table"><thead><tr>'
+    # تم إزالة overflow-x: auto و max-height لكي يتمدد الجدول بحرية كلما زادت الأسطر بدون سكرول
+    html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
     for col in df_to_render.columns:
         html += f'<th>{col}</th>'
     html += '</tr></thead><tbody>'
@@ -444,15 +442,12 @@ def display_custom_html_table(df_to_render):
             
             cell_style = ""
             
-            # التنسيق الجديد لعمود متبقي حقيقي أو أي عمود يحتوي على "متبقي حقيقي"
             if "متبقي حقيقي" in col_str:
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
                     if num_val == 0.0:
-                        # خلفية خضراء هادئة إذا كانت القيمة 0.00
                         cell_style = ' style="background-color: #bbf7d0; color: #000000; font-weight: bold;"'
                     elif num_val > 0.0:
-                        # خلفية وردية إذا كانت القيمة أكبر من 0.0
                         cell_style = ' style="background-color: #fbcfe8; color: #000000; font-weight: bold;"'
                 except:
                     pass
@@ -732,7 +727,6 @@ elif page == "aging":
 
                 aging_pivot = aging_pivot.reset_index()
                 
-                # تحويل أسماء الأعمدة إلى نصوص لتفادي خطأ الـ TypeError عند القراءة في جدول العرض
                 aging_pivot.columns = [str(c) for c in aging_pivot.columns]
                 
                 render_download_buttons(aging_pivot)
