@@ -49,7 +49,7 @@ st.markdown(
         text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
-    .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
+    .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; direction: rtl; unicode-bidi: embed; }
     .metric-value { font-size: 20px; font-weight: bold; }
     
     .block-container { 
@@ -419,7 +419,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     df_with_seq = df_to_render.copy()
     seq_list = []
     for idx, row in enumerate(df_with_seq.iterrows(), start=1):
-        # التحقق إذا كان السطر هو سطر المجموع النهائي لعدم ترقيمه أو ترك خانته فارغة أو بعبارة تخصه
         is_total = (str(df_with_seq.iloc[idx-1].get("رقم الحاوية", "")) == "GrandTotal") or \
                    (str(df_with_seq.iloc[idx-1].get("رقم الحاوية", "")) == "Grand Total") or \
                    (str(df_with_seq.iloc[idx-1].get("code", "")) == "Grand Total") or \
@@ -516,7 +515,7 @@ if page == "dashboard":
 
     row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
     with row1_c1:
-        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات / الطرود</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطرود / الطلبات</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
     with row1_c2:
         st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">👥 إجمالي عدد العملاء</div><div class="metric-value">{total_clients:,}</div></div>', unsafe_allow_html=True)
     with row1_c3:
@@ -537,7 +536,6 @@ if page == "dashboard":
     st.markdown("---")
     render_download_buttons(filtered_df)
     
-    # فلترة الأعمدة لتقتصر حصراً على الأعمدة الافتراضية الموجودة في الجدول الأساسي للصورة (مع إخفاء الباقي)
     active_cols = [c for c in default_columns_to_show if c in filtered_df.columns]
     df_to_display = filtered_df[active_cols] if active_cols else filtered_df
     
