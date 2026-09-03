@@ -14,6 +14,14 @@ st.markdown(
     <style>
     .main { background-color: #0e1117; }
     
+    /* تنسيق الشريط العلوي ليكون بخلفية حبري داكن ونص أبيض */
+    header[data-testid="stHeader"] {
+        background-color: #07151a !important;
+    }
+    header[data-testid="stHeader"] * {
+        color: #ffffff !important;
+    }
+    
     .metric-card {
         padding: 16px; border-radius: 12px; color: white;
         text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
