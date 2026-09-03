@@ -77,10 +77,24 @@ st.markdown(
         color: #f8fafc !important;
     }
 
+    /* === التنسيقات المحسنة والمضبوطة للمسطرة الجانبية (Sidebar) === */
     [data-testid="stSidebar"] {
         background-color: #07151a !important;
+        direction: rtl !important;
+        padding-top: 1rem !important;
     }
     
+    /* عنوان أو هيدر المسطرة الجانبية العلوي */
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
+        color: #ffffff !important;
+        text-align: right !important;
+    }
+
+    /* ضبط مسافات وحجم الخطوط للعناصر والنصوص داخل السايدبار */
+    [data-testid="stSidebar"] .element-container {
+        margin-bottom: 0.5rem !important;
+    }
+
     [data-testid="stSidebar"] section div.stRadio label,
     [data-testid="stSidebar"] section div.stRadio p,
     [data-testid="stSidebar"] section div.stRadio span,
@@ -90,14 +104,17 @@ st.markdown(
     [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
         color: #ffffff !important;
         font-weight: 600 !important;
-        font-size: 18px !important;
+        font-size: 16px !important;
+        text-align: right !important;
     }
 
+    /* إصلاح تداخل ألوان النصوص داخل مربعات الاختيار والرفع والازرار في السايدبار */
     [data-testid="stSidebar"] [data-testid="stFileUploader"] *, 
     [data-testid="stSidebar"] [data-testid="stButton"] *, 
     [data-testid="stSidebar"] [data-testid="stSelectbox"] *,
     [data-testid="stSidebar"] [data-testid="stMultiSelect"] * {
         color: #000000 !important;
+        text-align: right !important;
     }
     
     [data-testid="stSidebar"] [data-testid="stFileUploader"], 
@@ -107,10 +124,12 @@ st.markdown(
         color: #ffffff !important;
     }
 
+    /* زر المسح الخاص بالملف في السايدبار */
     [data-testid="stSidebar"] button[kind="secondary"] {
         background-color: #dc2626 !important;
         color: #ffffff !important;
         border-color: #dc2626 !important;
+        width: 100% !important;
     }
     
     [data-testid="stSidebar"] button[kind="secondary"]:hover {
@@ -439,10 +458,8 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             
             cell_style = ""
             
-            # التحقق إذا كان السطر هو إجمالي الإجماليات (Grand Total)
             is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (col_str == "Grand Total")
             
-            # تلوين القيم الرقمية الأكبر من 0.0 باللون الوردي في تقرير أعمار الديون أو الديون على الكفلاء (ما عدا صف المجموع النهائي)
             if (is_sponsors_pivot or is_aging_report) and not is_grand_total_row and col_str != "رقم الحاوية" and col_str != "code":
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
@@ -451,7 +468,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 except:
                     pass
 
-            # تلوين عمود "متبقي حقيقي" في الجداول الأخرى إذا وجد
             if not is_sponsors_pivot and not is_aging_report and "متبقي حقيقي" in col_str:
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
@@ -462,7 +478,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 except:
                     pass
 
-            # تلوين عمود رقم الحاوية باللون الأخضر أو الاصفر في الجداول العامة
             if not is_sponsors_pivot and not is_aging_report and target_container_col and col_str == str(target_container_col):
                 is_arrived = False
                 is_not_arrived = False
@@ -479,7 +494,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                     cell_style = ' style="background-color: #bbf7d0; color: #000000; font-weight: bold;"'
 
             formatted_val = val
-            # معالجة القيم الفارغة أو NaN في جدول أعمار الديون لتظهر كـ 0.00 بدلاً من فراغ
             if pd.isna(val) or str(val).strip() == "" or str(val).lower() == "nan":
                 formatted_val = "0.00"
             elif pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float)):
@@ -732,11 +746,9 @@ elif page == "aging":
             if aging_pivot.empty:
                 st.info("لا توجد مبالغ متبقية أكبر من الصفر للعرض بناءً على الفلاتر المحددة.")
             else:
-                # ترتيب أعمدة أيام التأخير تصاعدياً (من الأقل للأكبر) كما في الصورة المطابقة (14, 21, 25, 45, 91)
                 sorted_cols = sorted(aging_pivot.columns, reverse=False)
                 aging_pivot = aging_pivot[sorted_cols]
 
-                # إضافة المجموع الأفقي (Grand Total) كعمود أخير على اليسار
                 aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
                 
                 aging_grand_total = aging_pivot.sum(axis=0)
@@ -847,4 +859,3 @@ elif page == "charts":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
-
