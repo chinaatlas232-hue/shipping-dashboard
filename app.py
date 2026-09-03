@@ -436,6 +436,10 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     html += '</tr></thead><tbody>'
 
     for _, row in df_with_seq.iterrows():
+        # التحقق مما إذا كان الكفيل يحتوي على "لم تصل بعد" لتلوين السطر بالكامل بالأصفر الفاتح
+        sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
+        is_not_arrived = "لم تصل بعد" in sponsor_val
+        
         html += '<tr>'
         for col in df_with_seq.columns:
             val = row[col]
@@ -444,15 +448,19 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             
             is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (col_str == "Grand Total") or (str(row.get("Row Labels", "")) == "Grand Total")
             
+            # التلوين الخاص بـ "لم تصل بعد" (أصفر فاتح جداً ومتناسق)
+            if is_not_arrived and not is_grand_total_row:
+                cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: 500;"'
+            
             if (is_sponsors_pivot or is_aging_report) and not is_grand_total_row and col_str != "رقم الحاوية" and col_str != "code" and col_str != "التسلسل" and col_str != "Row Labels":
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
-                    if num_val > 0.0:
+                    if num_val > 0.0 and not is_not_arrived:
                         cell_style = ' style="background-color: #fbcfe8; color: #000000; font-weight: bold;"'
                 except:
                     pass
 
-            if not is_sponsors_pivot and not is_aging_report and "متبقي حقيقي" in col_str:
+            if not is_sponsors_pivot and not is_aging_report and "متبقي حقيقي" in col_str and not is_not_arrived:
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
                     if num_val == 0.0:
