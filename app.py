@@ -441,9 +441,10 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             
             cell_style = ""
             
-            # تلوين القيم الرقمية الأكبر من 0.0 باللون الوردي في تقرير أعمار الديون
+            # تلوين القيم الرقمية الأكبر من 0.0 باللون الوردي في جدول الديون على الكفلاء أو تقرير أعمار الديون
             is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (col_str == "Grand Total")
-            if is_aging_report and not is_grand_total_row and col_str != "رقم الحاوية" and col_str != "code":
+            
+            if (is_sponsors_pivot or is_aging_report) and not is_grand_total_row and col_str != "رقم الحاوية" and col_str != "code":
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
                     if num_val > 0.0:
@@ -708,7 +709,6 @@ elif page == "aging":
         if aging_df.empty:
             st.info("لا توجد بيانات متاحة لأيام التأخير بعد التصفية الحالية.")
         else:
-            # التعديل الجذري هنا: تجميع البيانات حسب رقم الحاوية والكود معاً كأعمدة منفصلة (Groupby ثم Pivot)
             agg_aging_df = aging_df.groupby(["رقم الحاوية", code_field, "عدد الايام"])["متبقي حقيقي"].sum().reset_index()
             
             aging_pivot = agg_aging_df.pivot_table(
@@ -727,18 +727,13 @@ elif page == "aging":
                 aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
                 aging_grand_total = aging_pivot.sum(axis=0)
                 
-                # إضافة صف المجموع الكلي (Grand Total) مع ترك حقل الكود فارغاً لتجنب التداخل
                 aging_pivot.loc[("Grand Total", ""), "Grand Total"] = aging_grand_total["Grand Total"]
                 for col in aging_grand_total.index:
                     if col != "Grand Total":
                         aging_pivot.loc[("Grand Total", ""), col] = aging_grand_total[col]
 
-                # إعادة تعيين الFindex لفصل "رقم الحاوية" و "code" في عمودين مستقلين
                 aging_pivot = aging_pivot.reset_index()
-                
-                # تنظيف قيم Grand Total الفارغة في عمود الكود
                 aging_pivot.loc[aging_pivot["رقم الحاوية"] == "Grand Total", code_field] = ""
-                
                 aging_pivot.columns = [str(c) for c in aging_pivot.columns]
                 
                 render_download_buttons(aging_pivot)
