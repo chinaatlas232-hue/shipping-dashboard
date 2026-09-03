@@ -330,7 +330,7 @@ def style_container_column(df_to_style):
             else:
                 format_dict[col] = "{:,.2f}"
 
-    styler = df_to_style.style.format(format_dict)
+    styler = df_to_style.style.format(format_dict).hide(axis="index")
 
     if not target_container_col:
         return styler
@@ -476,12 +476,11 @@ elif page == "customs":
                 formatted_customs[col] = formatted_customs[col].apply(lambda x: f"¥{x:,.2f}" if isinstance(x, (int, float)) else x)
 
         def style_customs_table(row):
-            styles = [''] * len(row)
             if str(row["Row Labels"]) == "Grand Total":
                 return ['background-color: #e2e8f0; color: #000000; font-weight: bold; text-align: center;'] * len(row)
             return ['text-align: center;'] * len(row)
 
-        styled_customs_table = formatted_customs.style.apply(style_customs_table, axis=1)
+        styled_customs_table = formatted_customs.style.apply(style_customs_table, axis=1).hide(axis="index")
 
         render_download_buttons(customs_summary)
         table_height = max(300, min(len(formatted_customs) * 35 + 50, 1200))
@@ -580,11 +579,11 @@ elif page == "sponsors":
                         is_arrived = True
                 
                 if is_not_arrived:
-                    bg_color = "#fef08a"  # أصفر
+                    bg_color = "#fef08a"
                 elif is_arrived:
-                    bg_color = "#bbf7d0"  # أخضر
+                    bg_color = "#bbf7d0"
                 else:
-                    bg_color = "#e2e8f0"  # لون محايد افتراضي إذا لم يتوفر كفيل
+                    bg_color = "#e2e8f0"
                 
                 html_col_name = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{col}</div>'
                 new_columns.append(html_col_name)
@@ -652,7 +651,6 @@ elif page == "aging":
                 except Exception:
                     aging_pivot.loc["Grand Total"] = aging_grand_total
 
-                # تنسيق رؤوس الحاويات في الجدول (MultiIndex أو Index عادي) لتصبح ملونة مثل بقية الجداول
                 new_index_tuples = []
                 for idx in aging_pivot.index:
                     if idx == "Grand Total" or (isinstance(idx, tuple) and "Grand Total" in str(idx)):
@@ -678,11 +676,11 @@ elif page == "aging":
                             is_arrived = True
                     
                     if is_not_arrived:
-                        bg_color = "#fef08a"  # أصفر
+                        bg_color = "#fef08a"
                     elif is_arrived:
-                        bg_color = "#bbf7d0"  # أخضر
+                        bg_color = "#bbf7d0"
                     else:
-                        bg_color = "#e2e8f0"  # محايد
+                        bg_color = "#e2e8f0"
                     
                     html_badge = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{c_cont_str}</div>'
                     
@@ -784,11 +782,11 @@ elif page == "collections":
                     is_arrived = True
             
             if is_not_arrived:
-                bg_color = "#fef08a"  # أصفر
+                bg_color = "#fef08a"
             elif is_arrived:
-                bg_color = "#bbf7d0"  # أخضر
+                bg_color = "#bbf7d0"
             else:
-                bg_color = "#e2e8f0"  # محايد
+                bg_color = "#e2e8f0"
                 
             html_badge = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{val_str}</div>'
             formatted_container_col.append(html_badge)
@@ -813,7 +811,7 @@ elif page == "collections":
                 return ['background-color: #f1f5f9; color: #000000; font-weight: bold; text-align: center;'] * len(row)
             return styles
 
-        styled_summary = formatted_agg.style.apply(style_summary_cells, axis=1)
+        styled_summary = formatted_agg.style.apply(style_summary_cells, axis=1).hide(axis="index")
 
         summary_html = styled_summary.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center;" id')
         st.markdown(f'<div style="width: 100%; overflow-x: auto;">{summary_html}</div>', unsafe_allow_html=True)
