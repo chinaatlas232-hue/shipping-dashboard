@@ -93,7 +93,6 @@ st.markdown(
         text-align: right !important;
     }
 
-    /* تنسيق صندوق الفلاتر العلوي لتكون واضحة */
     .filter-box {
         background-color: #161b22;
         padding: 15px;
@@ -143,7 +142,7 @@ def load_data():
         df = pd.DataFrame(columns=[
             "No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن",
             "المكتب دفع", "الزبون دفع", "المجموع", "عدد الكارتون",
-            "الوزن", "حجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"
+            "الوزن", "حجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام", "نوع البضاعة"
         ])
 
     df.columns = df.columns.astype(str).str.strip()
@@ -183,10 +182,9 @@ def load_data():
 
     return df
 
-# تحميل البيانات الأساسية
 df = load_data()
 
-# ----------------- إعداد القائمة الجانبية (Sidebar) للأقسام والتحكم بالأعمدة فقط -----------------
+# ----------------- القائمة الجانبية (Sidebar) -----------------
 st.sidebar.title("🚢 شركة أطلس المحيط")
 st.sidebar.markdown("---")
 
@@ -230,62 +228,78 @@ st.sidebar.markdown("---")
 st.sidebar.info("متصل بملف Google Sheets بنجاح ✔️")
 
 
-# ----------------- نظام الفلاتر العلوي (المستقر والثابت في أعلى الصفحة) -----------------
-container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df.columns), None)
-code_col = next((c for c in ["code", "الكود", "كود"] if c in df.columns), "code")
-sponsor_filter_col = next((c for c in ["الكفيل", "كفيل"] if c in df.columns), None)
+# ----------------- نظام التصفية والبحث المخصص الحر (Custom Filtering System) -----------------
+st.markdown("### 🔍 نظام التصفية والبحث المخصص للجدول")
 
-st.markdown("### 🔍 لوحة الفلاتر السريعة")
-with st.container():
-    f_col1, f_col2, f_col3, f_col4 = st.columns([2, 2, 2, 1])
+with st.expander("📂 اضغط هنا لفتح خيارات التصفية المتقدمة حسب رغبتك", expanded=True):
+    fc1, fc2, fc3 = st.columns(3)
     
-    # 1. فلتر رقم الحاوية
-    containers = ["الكل"] + sorted(df[container_col].dropna().astype(str).unique().tolist()) if container_col and not df.empty else ["الكل"]
-    with f_col1:
-        selected_container = st.selectbox("🚢 رقم الحاوية:", containers, key="top_container_filter")
+    # 1. البحث النصي الحر الشامل
+    with fc1:
+        search_text = st.text_input("بحث نصي عام (في كل الأعمدة):", "").strip()
         
-    # 2. فلتر الكود
-    temp_df_for_codes = df.copy()
-    if selected_container != "الكل" and container_col:
-        temp_df_for_codes = temp_df_for_codes[temp_df_for_codes[container_col].astype(str) == selected_container]
-    
-    codes = ["الكل"] + sorted(temp_df_for_codes[code_col].dropna().astype(str).unique().tolist()) if code_col in temp_df_for_codes.columns else ["الكل"]
-    if st.session_state.get("top_code_filter", "الكل") not in codes:
-        st.session_state["top_code_filter"] = "الكل"
-        
-    with f_col2:
-        selected_code = st.selectbox("🏷️ الكود (Code):", codes, key="top_code_filter")
+    # 2. تصفية حسب رقم الحاوية (متعدد الخيارات)
+    container_col_name = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df.columns), None)
+    with fc2:
+        if container_col_name:
+            all_containers = sorted(df[container_col_name].dropna().astype(str).unique().tolist())
+            selected_containers_filter = st.multiselect("تصفية برقم الحاوية:", options=all_containers, default=[])
+        else:
+            selected_containers_filter = []
 
-    # 3. فلتر الكفيل
-    temp_df_for_sponsors = temp_df_for_codes.copy()
-    if selected_code != "الكل" and code_col in temp_df_for_sponsors.columns:
-        temp_df_for_sponsors = temp_df_for_sponsors[temp_df_for_sponsors[code_col].astype(str) == selected_code]
-        
-    sponsors = ["الكل"] + sorted(temp_df_for_sponsors[sponsor_filter_col].dropna().astype(str).unique().tolist()) if sponsor_filter_col and not temp_df_for_sponsors.empty else ["الكل"]
-    if st.session_state.get("top_sponsor_filter", "الكل") not in sponsors:
-        st.session_state["top_sponsor_filter"] = "الكل"
-        
-    with f_col3:
-        selected_sponsor = st.selectbox("👤 اسم الكفيل:", sponsors, key="top_sponsor_filter")
+    # 3. تصفية حسب الكود (متعدد الخيارات)
+    code_col_name = next((c for c in ["code", "الكود", "كود"] if c in df.columns), None)
+    with fc3:
+        if code_col_name:
+            all_codes = sorted(df[code_col_name].dropna().astype(str).unique().tolist())
+            selected_codes_filter = st.multiselect("تصفية بالكود (Code):", options=all_codes, default=[])
+        else:
+            selected_codes_filter = []
 
-    with f_col4:
+    fc4, fc5, fc6 = st.columns(3)
+    # 4. تصفية حسب الكفيل
+    sponsor_col_name = next((c for c in ["الكفيل", "كفيل"] if c in df.columns), None)
+    with fc4:
+        if sponsor_col_name:
+            all_sponsors = sorted(df[sponsor_col_name].dropna().astype(str).unique().tolist())
+            selected_sponsors_filter = st.multiselect("تصفية باسم الكفيل:", options=all_sponsors, default=[])
+        else:
+            selected_sponsors_filter = []
+
+    # 5. تصفية حسب نوع البضاعة
+    goods_col_name = next((c for c in ["نوع البضاعة", "البضاعة"] if c in df.columns), None)
+    with fc5:
+        if goods_col_name:
+            all_goods = sorted(df[goods_col_name].dropna().astype(str).unique().tolist())
+            selected_goods_filter = st.multiselect("تصفية بنوع البضاعة:", options=all_goods, default=[])
+        else:
+            selected_goods_filter = []
+
+    with fc6:
         st.markdown("<div style='margin-top: 27px;'></div>", unsafe_allow_html=True)
-        if st.button("🔄 إعادة ضبط", use_container_width=True):
-            st.session_state["top_container_filter"] = "الكل"
-            st.session_state["top_code_filter"] = "الكل"
-            st.session_state["top_sponsor_filter"] = "الكل"
+        if st.button("🗑️ مسح وإلغاء كل الفلاتر", use_container_width=True):
             st.rerun()
 
 st.markdown("---")
 
-# تطبيق الفلاتر النهائية على البيانات
+# تطبيق الفلاتر المخصصة على الداتا
 filtered_df = df.copy()
-if selected_container != "الكل" and container_col:
-    filtered_df = filtered_df[filtered_df[container_col].astype(str) == selected_container]
-if selected_code != "الكل" and code_col in filtered_df.columns:
-    filtered_df = filtered_df[filtered_df[code_col].astype(str) == selected_code]
-if selected_sponsor != "الكل" and sponsor_filter_col:
-    filtered_df = filtered_df[filtered_df[sponsor_filter_col].astype(str) == selected_sponsor]
+
+if search_text:
+    mask = filtered_df.astype(str).apply(lambda col: col.str.contains(search_text, case=False, na=False)).any(axis=1)
+    filtered_df = filtered_df[mask]
+
+if container_col_name and selected_containers_filter:
+    filtered_df = filtered_df[filtered_df[container_col_name].astype(str).isin(selected_containers_filter)]
+
+if code_col_name and selected_codes_filter:
+    filtered_df = filtered_df[filtered_df[code_col_name].astype(str).isin(selected_codes_filter)]
+
+if sponsor_col_name and selected_sponsors_filter:
+    filtered_df = filtered_df[filtered_df[sponsor_col_name].astype(str).isin(selected_sponsors_filter)]
+
+if goods_col_name and selected_goods_filter:
+    filtered_df = filtered_df[filtered_df[goods_col_name].astype(str).isin(selected_goods_filter)]
 
 
 # دوال التصدير والعرض
@@ -322,7 +336,7 @@ def render_download_buttons(data_to_download):
 
 def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_report=False):
     if df_to_render.empty:
-        st.info("لا توجد بيانات للعرض.")
+        st.info("لا توجد بيانات مطابقة لخيارات الفلترة الحالية.")
         return
         
     currency_keywords = ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "المتبقي"]
@@ -380,33 +394,25 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     
     st.markdown(html, unsafe_allow_html=True)
 
-# عرض الأقسام والصفحات بناءً على الـ Sidebar
+# عرض الأقسام
 if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
     st.markdown("---")
-    
-    search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
-    page_filtered_df = filtered_df.copy()
-    if search_query and not page_filtered_df.empty:
-        search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات", "Shipping mark"] if c in page_filtered_df.columns]
-        if search_cols:
-            mask = page_filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
-            page_filtered_df = page_filtered_df[mask.any(axis=1)]
 
-    total_orders = len(page_filtered_df)
-    total_weight = page_filtered_df["الوزن"].sum() if "الوزن" in page_filtered_df.columns else 0
-    total_ctns = page_filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in page_filtered_df.columns else 0
-    total_volume = page_filtered_df["حجم"].sum() if "حجم" in page_filtered_df.columns else 0
+    total_orders = len(filtered_df)
+    total_weight = filtered_df["الوزن"].sum() if "الوزن" in filtered_df.columns else 0
+    total_ctns = filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in filtered_df.columns else 0
+    total_volume = filtered_df["حجم"].sum() if "حجم" in filtered_df.columns else 0
     
-    client_field_candidates = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in page_filtered_df.columns]
-    total_clients = page_filtered_df[client_field_candidates[0]].nunique() if client_field_candidates and not page_filtered_df.empty else 0
-    total_containers_count = page_filtered_df[container_col].nunique() if container_col and container_col in page_filtered_df.columns and not page_filtered_df.empty else 0
+    client_field_candidates = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in filtered_df.columns]
+    total_clients = filtered_df[client_field_candidates[0]].nunique() if client_field_candidates and not filtered_df.empty else 0
+    total_containers_count = filtered_df[container_col_name].nunique() if container_col_name and container_col_name in filtered_df.columns and not filtered_df.empty else 0
 
-    office_paid_col = next((c for c in ["Office Paid", "المكتب دفع"] if c in page_filtered_df.columns), None)
-    client_paid_col = next((c for c in ["Client Paid", "الزبون دفع"] if c in page_filtered_df.columns), None)
+    office_paid_col = next((c for c in ["Office Paid", "المكتب دفع"] if c in filtered_df.columns), None)
+    client_paid_col = next((c for c in ["Client Paid", "الزبون دفع"] if c in filtered_df.columns), None)
     
-    total_office_paid = page_filtered_df[office_paid_col].sum() if office_paid_col else 0
-    total_client_paid = page_filtered_df[client_paid_col].sum() if client_paid_col else 0
+    total_office_paid = filtered_df[office_paid_col].sum() if office_paid_col else 0
+    total_client_paid = filtered_df[client_paid_col].sum() if client_paid_col else 0
 
     row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
     with row1_c1:
@@ -429,9 +435,9 @@ if page == "dashboard":
         st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">¥{total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
-    render_download_buttons(page_filtered_df)
+    render_download_buttons(filtered_df)
     
-    df_to_display = page_filtered_df[selected_columns] if selected_columns else page_filtered_df
+    df_to_display = filtered_df[selected_columns] if selected_columns else filtered_df
     display_custom_html_table(df_to_display)
 
 elif page == "customs":
@@ -481,7 +487,7 @@ elif page == "sponsors":
 
         for _, row in sponsor_summary.iterrows():
             st.markdown(f"""
-                <div style="background-color: #1e3a8a; padding: 12px; border-radius: 8px; color: white; margin-bottom: 10px;">
+                <div style="background-color: #1e3a8a; padding: 12.2px; border-radius: 8px; color: white; margin-bottom: 10px;">
                     <h4 style="margin:0 0 5px 0; color:white;">👤 الكفيل: {row["الكفيل"]}</h4>
                     <div style="display: flex; justify-content: space-between;">
                         <span>الطلبات: <b>{row["total_orders"]}</b></span>
@@ -495,8 +501,7 @@ elif page == "sponsors":
 elif page == "aging":
     st.title("⏳ تقرير أعمار الديون (Aging Report)")
     st.markdown("---")
-    st.info("استخدم الفلاتر العلوية لتخصيص عرض تقرير أعمار الديون الحقيقي بناءً على الحاوية أو الكود.")
-    if not filtered_df.empty and "عدد الايام" in filtered_df.columns:
+    if not filtered_df.empty:
         display_custom_html_table(filtered_df[selected_columns] if selected_columns else filtered_df)
 
 elif page == "collections":
@@ -508,5 +513,5 @@ elif page == "collections":
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية")
     st.markdown("---")
-    if not filtered_df.empty and container_col and "مبلغ الجمرك" in filtered_df.columns:
-        st.bar_chart(filtered_df.groupby(container_col)[["مبلغ الجمرك", "قيمة الاستحصالات"]].sum())
+    if not filtered_df.empty and container_col_name and "مبلغ الجمرك" in filtered_df.columns:
+        st.bar_chart(filtered_df.groupby(container_col_name)[["مبلغ الجمرك", "قيمة الاستحصالات"]].sum())
