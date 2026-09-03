@@ -309,9 +309,13 @@ def style_container_column(df_to_style):
     sponsor_col_check = "الكفيل" if "الكفيل" in df_to_style.columns else None
 
     format_dict = {}
+    currency_keywords = ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "المتبقي"]
     for col in df_to_style.columns:
         if pd.api.types.is_numeric_dtype(df_to_style[col]):
-            format_dict[col] = "{:,.2f}"
+            if any(kw in col for kw in currency_keywords):
+                format_dict[col] = "¥{:,.2f}"
+            else:
+                format_dict[col] = "{:,.2f}"
 
     styler = df_to_style.style.format(format_dict, na_rep="")
 
@@ -456,7 +460,7 @@ elif page == "customs":
         })
 
         formatted_customs = customs_summary.copy()
-        for col in ["Sum of عدد الكارتون", "Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
+        for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
             if col in formatted_customs.columns:
                 formatted_customs[col] = formatted_customs[col].apply(lambda x: f"¥{x:,.2f}" if isinstance(x, (int, float)) else x)
 
