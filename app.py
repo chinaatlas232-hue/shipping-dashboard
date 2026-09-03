@@ -244,7 +244,6 @@ if sponsor_filter_col and not df.empty:
 
 st.sidebar.markdown("---")
 
-# أداة التحكم بأعمدة جدول العرض الرئيسي
 st.sidebar.markdown("### 👁️ التحكم بأعمدة العرض")
 all_columns = filtered_df.columns.tolist()
 selected_columns = st.sidebar.multiselect(
@@ -644,29 +643,25 @@ elif page == "aging":
                     lambda val: f"¥{val:,.2f}" if isinstance(val, (int, float)) and val > 0 else ""
                 )
 
-                def style_aging_cells(row):
-                    styles = []
-                    is_total_row = False
+                def style_aging_pivot_cells(val):
+                    if val == "":
+                        return 'background-color: #f8fafc; color: transparent;'
+                    return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
+
+                styled_aging_matrix = formatted_aging.style.map(style_aging_pivot_cells)
+
+                def highlight_grand_total(row):
                     idx_val = row.name
                     if idx_val == "Grand Total" or (isinstance(idx_val, tuple) and "Grand Total" in str(idx_val)):
-                        is_total_row = True
-                        
-                    for val in row:
-                        if is_total_row:
-                            styles.append('background-color: #e2e8f0; color: #0f172a; font-weight: bold; text-align: center;')
-                        elif val == "":
-                            styles.append('background-color: #f8fafc; color: transparent; text-align: center;')
-                        else:
-                            styles.append('background-color: #ffffff; color: #000000; font-weight: bold; text-align: center;')
-                    return styles
+                        return ['background-color: #e2e8f0; color: #000000; font-weight: bold;'] * len(row)
+                    return [''] * len(row)
 
-                styled_aging_matrix = formatted_aging.style.apply(style_aging_cells, axis=1).set_table_styles([
-                    {"selector": "th", "props": [("text-align", "center"), ("vertical-align", "middle")]}
-                ])
+                styled_aging_matrix = styled_aging_matrix.apply(highlight_grand_total, axis=1)
+
                 render_download_buttons(aging_pivot.reset_index())
                 
-                aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center;" id')
-                st.markdown(f'<div style="width: 100%; overflow-x: auto; text-align: center;">{aging_html}</div>', unsafe_allow_html=True)
+                aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
+                st.markdown(f'<div style="width: 100%; overflow-x: auto;">{aging_html}</div>', unsafe_allow_html=True)
     else:
         st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
 
