@@ -349,7 +349,7 @@ container_col = next((c for c in ["رقم الحاوية", "رقم الحاوي�
 selected_container = "الكل"
 if container_col and not df.empty:
     containers = ["الكل"] + sorted(df[container_col].dropna().astype(str).unique().tolist())
-    selected_container = st.sidebar.selectbox("🚢 اختر رقم الحاوية:", containers)
+    selected_container = st.sidebar.selectbox("🚢 اختر رقم الحاوية:", containers, key="selected_container_key")
     if selected_container != "الكل":
         filtered_df = filtered_df[filtered_df[container_col].astype(str) == selected_container]
 
@@ -357,7 +357,7 @@ code_col = next((c for c in ["code", "الكود", "كود"] if c in df.columns)
 selected_code = "الكل"
 if code_col in df.columns and not df.empty:
     codes = ["الكل"] + sorted(df[code_col].dropna().astype(str).unique().tolist())
-    selected_code = st.sidebar.selectbox("🏷️ اختر الكود (Code):", codes)
+    selected_code = st.sidebar.selectbox("🏷️ اختر الكود (Code):", codes, key="selected_code_key")
     if selected_code != "الكل":
         filtered_df = filtered_df[filtered_df[code_col].astype(str) == selected_code]
 
@@ -365,7 +365,7 @@ sponsor_filter_col = next((c for c in ["الكفيل", "كفيل"] if c in df.co
 selected_sponsor = "الكل"
 if sponsor_filter_col and not df.empty:
     sponsors = ["الكل"] + sorted(df[sponsor_filter_col].dropna().astype(str).unique().tolist())
-    selected_sponsor = st.sidebar.selectbox("👤 اختر اسم الكفيل:", sponsors)
+    selected_sponsor = st.sidebar.selectbox("👤 اختر اسم الكفيل:", sponsors, key="selected_sponsor_key")
     if selected_sponsor != "الكل":
         filtered_df = filtered_df[filtered_df[sponsor_filter_col].astype(str) == selected_sponsor]
 
@@ -376,7 +376,8 @@ all_columns = filtered_df.columns.tolist()
 selected_columns = st.sidebar.multiselect(
     "اختر الأعمدة المراد إظهارها:",
     options=all_columns,
-    default=all_columns
+    default=all_columns,
+    key="selected_columns_key"
 )
 
 st.sidebar.markdown("---")
@@ -390,7 +391,7 @@ page_options = {
     "الرسوم البيانية": "charts"
 }
 
-selected_page_label = st.sidebar.radio("📌 القائمة الرئيسية", list(page_options.keys()))
+selected_page_label = st.sidebar.radio("📌 القائمة الرئيسية", list(page_options.keys()), key="selected_page_label_key")
 page = page_options[selected_page_label]
 
 st.sidebar.markdown("---")
