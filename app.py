@@ -14,14 +14,14 @@ st.markdown(
     <style>
     .main { background-color: #0e1117; }
     
-    /* تنسيق جدول HTML المخصص ليتوافق مع اتجاه اليمين لليسار (بدون شريط تمرير) */
+    /* تنسيق جدول HTML المخصص ليتوافق مع اتجاه اليمين لليسار */
     .custom-html-table {
         width: 100% !important;
         border-collapse: collapse !important;
         direction: rtl !important;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         background-color: #ffffff;
-        color: #8b0000;
+        color: #333333;
         margin-bottom: 20px;
     }
     .custom-html-table th {
@@ -38,11 +38,10 @@ st.markdown(
         padding: 8px !important;
         border: 1px solid #cbd5e1 !important;
         font-size: 13px !important;
-        color: #8b0000 !important;
-        font-weight: bold !important;
+        color: #333333 !important;
     }
     .custom-html-table tr:nth-child(even) {
-        background-color: #fdf2f2 !important;
+        background-color: #f8fafc !important;
     }
 
     .metric-card {
@@ -145,9 +144,6 @@ st.markdown(
         background: #5c0000 !important;
     }
 
-    /* ========================================================
-       تنسيقات الطباعة المحسنة وحل المشكلة جذرياً (Print & PDF)
-       ======================================================== */
     @media print {
         @page {
             size: A4 landscape;
@@ -172,7 +168,7 @@ st.markdown(
 
         body {
             background-color: #ffffff !important;
-            color: #8b0000 !important;
+            color: #333333 !important;
             font-size: 11px !important;
             direction: rtl !important;
             -webkit-print-color-adjust: exact !important;
@@ -221,7 +217,6 @@ st.markdown(
         .custom-html-table td {
             padding: 4px !important;
             font-size: 9.5px !important;
-            color: #8b0000 !important;
         }
         
         tr {
@@ -449,39 +444,16 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             col_str = str(col)
             
             cell_style = ""
+            is_code_cell = False
+
+            # تحديد ما إذا كان هذا العمود أو القيمة تمثل "كود" لجعلها باللون الأحمر الحصري
+            if col_str.lower() in ["code", "كود", "الكود", "index", "level_0"] or val == "Grand Total":
+                is_code_cell = True
             
-            if (is_sponsors_pivot or is_aging_report) and col_str != "code" and col_str != "Grand Total" and str(row.get("code", "")) != "Grand Total" and str(row.get("رقم الحاوية", "")) != "Grand Total":
-                try:
-                    num_val = float(str(val).replace("¥", "").replace(",", "").strip())
-                    if num_val > 0.0:
-                        cell_style = ' style="background-color: #fbcfe8; color: #8b0000; font-weight: bold;"'
-                except:
-                    pass
-
-            if not is_sponsors_pivot and not is_aging_report and "متبقي حقيقي" in col_str:
-                try:
-                    num_val = float(str(val).replace("¥", "").replace(",", "").strip())
-                    if num_val == 0.0:
-                        cell_style = ' style="background-color: #bbf7d0; color: #8b0000; font-weight: bold;"'
-                    elif num_val > 0.0:
-                        cell_style = ' style="background-color: #fbcfe8; color: #8b0000; font-weight: bold;"'
-                except:
-                    pass
-
-            if not is_sponsors_pivot and not is_aging_report and target_container_col and col_str == str(target_container_col):
-                is_arrived = False
-                is_not_arrived = False
-                if sponsor_col_check and sponsor_col_check in row:
-                    sponsor_val = str(row[sponsor_col_check]).strip()
-                    if "لم تصل بعد" in sponsor_val:
-                        is_not_arrived = True
-                    elif sponsor_val and sponsor_val != "nan" and sponsor_val != "غير محدد" and sponsor_val != "0":
-                        is_arrived = True
-                
-                if is_not_arrived:
-                    cell_style = ' style="background-color: #fef08a; color: #8b0000; font-weight: bold;"'
-                elif is_arrived:
-                    cell_style = ' style="background-color: #bbf7d0; color: #8b0000; font-weight: bold;"'
+            # في الجداول المحورية أو التقارير إذا كانت القيمة عبارة عن كود (مثل Tuples أو نصوص تحتوي على أكواد)
+            if is_sponsors_pivot or is_aging_report:
+                if col_str in ["code", "الكود", "كود", "index"] or "RQ" in str(val) or "B" in str(val):
+                    is_code_cell = True
 
             formatted_val = val
             if pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float)):
@@ -489,6 +461,10 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                     formatted_val = f"¥{val:,.2f}"
                 else:
                     formatted_val = f"{val:,.2f}" if isinstance(val, float) else f"{val:,}"
+
+            # تطبيق اللون الأحمر حصراً للنص إذا كان كود
+            if is_code_cell:
+                cell_style = ' style="color: #8b0000; font-weight: bold;"'
 
             html += f'<td{cell_style}>{formatted_val}</td>'
         html += '</tr>'
@@ -791,7 +767,7 @@ elif page == "collections":
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
 
-    st.markdown("<div style='margin-block: 50px;'>`</div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-block: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
