@@ -108,6 +108,19 @@ st.markdown(
     ::-webkit-scrollbar-thumb:hover {
         background: #ef4444 !important;
     }
+
+    /* إخفاء القائمة الجانبية وأزرار التحميل عند الطباعة للحصول على ورقة PDF نظيفة */
+    @media print {
+        [data-testid="stSidebar"] {
+            display: none !important;
+        }
+        header {
+            display: none !important;
+        }
+        .stDownloadButton, button {
+            display: none !important;
+        }
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -257,16 +270,27 @@ def render_download_buttons(data_to_download):
         )
     
     with btn_col2:
-        # زر يعتمد على ميزة الطباعة لحفظ الصفحة أو الجدول بصيغة PDF مباشرة من المتصفح دون الحاجة لمكتبات خارجية معقدة
-        st.markdown("""
-            <script>
-            function printTable() {
-                window.print();
-            }
-            </script>
-        """, unsafe_allow_html=True)
-        if st.button("📄 طباعة / حفظ كـ PDF"):
-            st.markdown('<script>window.print();</script>', unsafe_allow_html=True)
+        # طريقة مضمونة ومحدثة لتشغيل الطباعة وحفظ PDF عبر مكونات streamlit باستخدام مكون HTML/JS متفاعل
+        print_html = """
+            <div>
+                <button onclick="parent.window.print();" style="
+                    background-color: #ff4b4b;
+                    color: white;
+                    padding: 0.45rem 0.75rem;
+                    border: none;
+                    border-radius: 0.3rem;
+                    font-weight: 500;
+                    cursor: pointer;
+                    width: 100%;
+                    font-size: 14px;
+                    font-family: inherit;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                ">
+                    📄 طباعة / حفظ كـ PDF
+                </button>
+            </div>
+        """
+        st.markdown(print_html, unsafe_allow_html=True)
 
 def style_container_column(df_to_style):
     target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_style.columns), None)
