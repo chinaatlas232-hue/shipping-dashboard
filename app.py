@@ -1,8 +1,8 @@
 import io
 import os
 import pandas as pd
-import streamlit.components.v1 as components
 import streamlit as st
+import streamlit.components.v1 as components
 
 # 1. إعداد الصفحة والتنسيقات
 st.set_page_config(
@@ -121,9 +121,9 @@ st.markdown(
         border-radius: 4px !important;
     }
 
-    /* تنسيقات الطباعة الصارمة لإخفاء الأزرار والقوائم تماماً */
+    /* تنسيقات الطباعة الصارمة لإخفاء الأزرار وقوائم الإدخال تماماً */
     @media print {
-        /* إخفاء الشريط الجانبي والرأس ومكونات الـ Iframe والأزرار */
+        /* إخفاء الشريط الجانبي والرأس ومكونات الـ Iframe والأزرار وحقول البحث */
         [data-testid="stSidebar"],
         header,
         .no-print,
@@ -277,7 +277,6 @@ st.sidebar.markdown("---")
 st.sidebar.info("متصل بملف Google Sheets بنجاح ✔️")
 
 def render_download_buttons(data_to_download):
-    # وضعنا الأزرار داخل الحاوية المصنفة بـ no-print لضمان اختفائها تماماً عند الطباعة
     st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
     btn_col1, btn_col2 = st.columns([1, 1])
     with btn_col1:
@@ -395,7 +394,11 @@ if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
     st.markdown("---")
     
+    # تغليف خانة البحث الذكي بـ no-print لإخفائها تماماً عند الطباعة
+    st.markdown('<div class="no-print">', unsafe_allow_html=True)
     search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
+    st.markdown('</div>', unsafe_allow_html=True)
+
     if search_query and not filtered_df.empty:
         search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات", "Shipping mark"] if c in filtered_df.columns]
         if search_cols:
