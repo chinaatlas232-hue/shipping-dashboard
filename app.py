@@ -442,7 +442,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             # التحقق إذا كان السطر هو إجمالي الإجماليات (Grand Total)
             is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (col_str == "Grand Total")
             
-            # تلوين القيم الرقمية الأكبر من 0.0 باللون الوردي في جدول الديون على الكفلاء أو تقرير أعمار الديون (ما عدا صف المجموع النهائي)
+            # تلوين القيم الرقمية الأكبر من 0.0 باللون الوردي في تقرير أعمار الديون أو الديون على الكفلاء (ما عدا صف المجموع النهائي)
             if (is_sponsors_pivot or is_aging_report) and not is_grand_total_row and col_str != "رقم الحاوية" and col_str != "code":
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
@@ -462,7 +462,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 except:
                     pass
 
-            # تلوين عمود رقم الحاوية باللون الأخضر في الجداول العامة
+            # تلوين عمود رقم الحاوية باللون الأخضر أو الاصفر في الجداول العامة
             if not is_sponsors_pivot and not is_aging_report and target_container_col and col_str == str(target_container_col):
                 is_arrived = False
                 is_not_arrived = False
@@ -488,7 +488,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 else:
                     formatted_val = f"{val:,.2f}" if isinstance(val, float) else f"{val:,}"
             else:
-                # محاولة تحويل القيم العددية النصية
                 try:
                     num_try = float(str(val).replace(",", "").strip())
                     formatted_val = f"{num_try:,.2f}"
@@ -718,10 +717,8 @@ elif page == "aging":
         if aging_df.empty:
             st.info("لا توجد بيانات متاحة لأيام التأخير بعد التصفية الحالية.")
         else:
-            # تجميع البيانات حسب رقم الحاوية، الكود، وعدد الأيام
             agg_aging_df = aging_df.groupby(["رقم الحاوية", code_field, "عدد الايام"])["متبقي حقيقي"].sum().reset_index()
             
-            # بناء Pivot Table دقيق حيث تكون صفوفه عبارة عن (رقم الحاوية, code) وأعمدته هي (عدد الايام)
             aging_pivot = agg_aging_df.pivot_table(
                 index=["رقم الحاوية", code_field],
                 columns="عدد الايام",
@@ -730,27 +727,21 @@ elif page == "aging":
                 fill_value=0.0
             )
 
-            # تصفية الصفوف والأعمدة التي تحتوي على قيم أكبر من الصفر فقط
             aging_pivot = aging_pivot.loc[(aging_pivot > 0).any(axis=1), (aging_pivot > 0).any(axis=0)]
 
             if aging_pivot.empty:
                 st.info("لا توجد مبالغ متبقية أكبر من الصفر للعرض بناءً على الفلاتر المحددة.")
             else:
-                # ترتيب أعمدة أيام التأخير تصاعدياً (من الأقل للأكبر أو العكس حسب الرغبة، الأكبر للأقل يبدو مطابقاً للصورة 91, 45, 25, 21, 14 أو تصاعدي حسب الموجود)
-                # ترتيب الأعمدة تنازلياً كما في الصورة المرفقة إذا وجد
-                sorted_cols = sorted(aging_pivot.columns, reverse=True)
+                # ترتيب أعمدة أيام التأخير تصاعدياً (من الأقل للأكبر) كما في الصورة المطابقة (14, 21, 25, 45, 91)
+                sorted_cols = sorted(aging_pivot.columns, reverse=False)
                 aging_pivot = aging_pivot[sorted_cols]
 
                 # إضافة المجموع الأفقي (Grand Total) كعمود أخير على اليسار
                 aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
                 
-                # إضافة المجموع الرأسي كصف أخيرة (Grand Total)
                 aging_grand_total = aging_pivot.sum(axis=0)
-                
-                # إعادة ضبط الـ Index لتصبح الأعمدة عادية
                 aging_pivot = aging_pivot.reset_index()
                 
-                # إضافة صف الإجمالي النهائي بوضعية متطابقة للصورة
                 grand_total_row_dict = {
                     "رقم الحاوية": "Grand Total",
                     code_field: ""
@@ -820,7 +811,7 @@ elif page == "collections":
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
 
-    st.markdown("<div style='margin-block: 50px;'>`</div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-block: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
