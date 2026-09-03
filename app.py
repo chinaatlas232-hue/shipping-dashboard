@@ -1,6 +1,7 @@
 import io
 import os
 import pandas as pd
+import streamlit.components.v1 as components
 import streamlit as st
 
 # 1. إعداد الصفحة والتنسيقات
@@ -13,12 +14,39 @@ st.markdown(
     <style>
     .main { background-color: #0e1117; }
     
+    /* تنسيق جدول HTML المخصص */
+    .custom-html-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        direction: rtl !important;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #ffffff;
+        color: #000000;
+        margin-bottom: 20px;
+    }
+    .custom-html-table th {
+        background-color: #0b2239 !important;
+        color: #ffffff !important;
+        text-align: center !important;
+        font-weight: bold !important;
+        padding: 10px 8px !important;
+        border: 1px solid #cbd5e1 !important;
+        font-size: 14px !important;
+    }
+    .custom-html-table td {
+        text-align: center !important;
+        padding: 8px !important;
+        border: 1px solid #cbd5e1 !important;
+        font-size: 13px !important;
+        color: #1e293b !important;
+    }
+
     .metric-card {
         padding: 16px; border-radius: 12px; color: white;
         text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
-    .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
+    .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; direction: rtl; unicode-bidi: embed; }
     .metric-value { font-size: 20px; font-weight: bold; }
     
     .block-container { 
@@ -27,35 +55,30 @@ st.markdown(
         padding-left: 1rem !important; 
         padding-right: 1rem !important; 
         max-width: 100% !important; 
-    }
-
-    [data-testid="stDataFrame"], [data-testid="stTable"], table {
-        width: 100% !important;
-    }
-    
-    [data-testid="stDataFrame"] div[data-baseweb="block"] {
-        width: 100% !important;
+        direction: rtl !important;
     }
 
     h1 {
-        background-color: #e2e8f0 !important;
-        color: #0f172a !important;
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
         padding: 15px 20px !important;
         border-radius: 8px !important;
         margin-bottom: 20px !important;
         margin-top: 10px !important;
-    }
-
-    [data-testid="stTextInput"] label {
-        font-size: 18px !important;
-        font-weight: bold !important;
-        color: #1f2937 !important;
+        text-align: right !important;
     }
 
     [data-testid="stSidebar"] {
         background-color: #07151a !important;
+        direction: rtl !important;
+        padding-top: 1rem !important;
     }
     
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
+        color: #ffffff !important;
+        text-align: right !important;
+    }
+
     [data-testid="stSidebar"] section div.stRadio label,
     [data-testid="stSidebar"] section div.stRadio p,
     [data-testid="stSidebar"] section div.stRadio span,
@@ -65,31 +88,23 @@ st.markdown(
     [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
         color: #ffffff !important;
         font-weight: 600 !important;
-        font-size: 18px !important;
+        font-size: 16px !important;
+        text-align: right !important;
     }
 
     [data-testid="stSidebar"] [data-testid="stFileUploader"] *, 
     [data-testid="stSidebar"] [data-testid="stButton"] *, 
-    [data-testid="stSidebar"] [data-testid="stSelectbox"] * {
+    [data-testid="stSidebar"] [data-testid="stSelectbox"] *,
+    [data-testid="stSidebar"] [data-testid="stMultiSelect"] * {
         color: #000000 !important;
-    }
-    
-    [data-testid="stSidebar"] [data-testid="stFileUploader"], 
-    [data-testid="stSidebar"] [data-testid="stButton"], 
-    [data-testid="stSidebar"] [data-testid="stSelectbox"] {
-        color: #ffffff !important;
+        text-align: right !important;
     }
 
     [data-testid="stSidebar"] button[kind="secondary"] {
         background-color: #dc2626 !important;
         color: #ffffff !important;
         border-color: #dc2626 !important;
-    }
-    
-    [data-testid="stSidebar"] button[kind="secondary"]:hover {
-        background-color: #b91c1c !important;
-        color: #ffffff !important;
-        border-color: #b91c1c !important;
+        width: 100% !important;
     }
 
     ::-webkit-scrollbar {
@@ -105,15 +120,10 @@ st.markdown(
         background: #f87171 !important;
         border-radius: 4px !important;
     }
-    ::-webkit-scrollbar-thumb:hover {
-        background: #ef4444 !important;
-    }
     </style>
 """,
     unsafe_allow_html=True,
 )
-
-DATA_FILE = "shipping_data.xlsx"
 
 def clean_numeric(series):
     return pd.to_numeric(
@@ -125,23 +135,17 @@ def clean_numeric(series):
         errors="coerce"
     ).fillna(0)
 
-def load_data(uploaded_file):
+@st.cache_data(ttl=60)
+def load_data():
     df = None
-    if uploaded_file is not None:
-        try:
-            df = pd.read_excel(uploaded_file)
-            df.to_excel(DATA_FILE, index=False)
-            st.sidebar.success("تم حفظ الملف الجديد بنجاح ✔️")
-        except Exception as e:
-            st.sidebar.error(f"خطأ في قراءة الملف: {e}")
+    try:
+        sheet_id = "1amOmnZgzn2bhWTgje_9W2sUK6V-OygWk"
+        sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
+        df = pd.read_csv(sheet_url)
+    except Exception as e:
+        st.sidebar.error(f"خطأ في الاتصال بملف Google Sheets: {e}")
 
-    if df is None and os.path.exists(DATA_FILE):
-        try:
-            df = pd.read_excel(DATA_FILE)
-        except Exception:
-            df = None
-
-    if df is None:
+    if df is None or df.empty:
         df = pd.DataFrame(columns=[
             "No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن",
             "المكتب دفع", "الزبون دفع", "المجموع", "عدد الكارتون",
@@ -150,8 +154,12 @@ def load_data(uploaded_file):
 
     df.columns = df.columns.astype(str).str.strip()
 
-    office_col_candidate = next((c for c in df.columns if any(k in c for k in ["المكتب دفع", "Office Paid", "دفع الشركة"])), None)
-    client_col_candidate = next((c for c in df.columns if any(k in c for k in ["الزبون دفع", "Client Paid", "دفع الزبون"])), None)
+    for col in df.columns:
+        if any(kw in str(col).lower() for kw in ["تاريخ", "date"]):
+            df[col] = pd.to_datetime(df[col], errors="coerce").dt.strftime("%Y-%m-%d").fillna(df[col])
+
+    office_col_candidate = next((c for c in df.columns if any(k in str(c) for k in ["المكتب دفع", "Office Paid", "دفع الشركة"])), None)
+    client_col_candidate = next((c for c in df.columns if any(k in str(c) for k in ["الزبون دفع", "Client Paid", "دفع الزبون"])), None)
 
     if office_col_candidate and "Office Paid" not in df.columns:
         df["Office Paid"] = df[office_col_candidate]
@@ -184,20 +192,11 @@ def load_data(uploaded_file):
 st.sidebar.title("🚢 شركة أطلس المحيط")
 st.sidebar.markdown("---")
 
-uploaded_file = st.sidebar.file_uploader("📁 رفع ملف Excel جديد", type=["xlsx", "xls"])
+if st.sidebar.button("🔄 تحديث البيانات من جوجل شيت"):
+    st.cache_data.clear()
+    st.rerun()
 
-if st.sidebar.button("🗑️ مسح بيانات الملف الحالي"):
-    if os.path.exists(DATA_FILE):
-        try:
-            os.remove(DATA_FILE)
-            st.sidebar.success("تم مسح بيانات الشيت بنجاح! ✔️")
-            st.rerun()
-        except Exception as e:
-            st.sidebar.error(f"خطأ أثناء حذف الملف: {e}")
-    else:
-        st.sidebar.info("لا توجد بيانات مسجلة مسبقاً.")
-
-df = load_data(uploaded_file)
+df = load_data()
 filtered_df = df.copy()
 
 st.sidebar.markdown("### 🔍 الفلاتر الجانبية")
@@ -206,7 +205,7 @@ container_col = next((c for c in ["رقم الحاوية", "رقم الحاوي�
 selected_container = "الكل"
 if container_col and not df.empty:
     containers = ["الكل"] + sorted(df[container_col].dropna().astype(str).unique().tolist())
-    selected_container = st.sidebar.selectbox("🚢 اختر رقم الحاوية:", containers)
+    selected_container = st.sidebar.selectbox("🚢 اختر رقم الحاوية:", containers, key="selected_container_key")
     if selected_container != "الكل":
         filtered_df = filtered_df[filtered_df[container_col].astype(str) == selected_container]
 
@@ -214,7 +213,7 @@ code_col = next((c for c in ["code", "الكود", "كود"] if c in df.columns)
 selected_code = "الكل"
 if code_col in df.columns and not df.empty:
     codes = ["الكل"] + sorted(df[code_col].dropna().astype(str).unique().tolist())
-    selected_code = st.sidebar.selectbox("🏷️ اختر الكود (Code):", codes)
+    selected_code = st.sidebar.selectbox("🏷️ اختر الكود (Code):", codes, key="selected_code_key")
     if selected_code != "الكل":
         filtered_df = filtered_df[filtered_df[code_col].astype(str) == selected_code]
 
@@ -222,11 +221,18 @@ sponsor_filter_col = next((c for c in ["الكفيل", "كفيل"] if c in df.co
 selected_sponsor = "الكل"
 if sponsor_filter_col and not df.empty:
     sponsors = ["الكل"] + sorted(df[sponsor_filter_col].dropna().astype(str).unique().tolist())
-    selected_sponsor = st.sidebar.selectbox("👤 اختر اسم الكفيل:", sponsors)
+    selected_sponsor = st.sidebar.selectbox("👤 اختر اسم الكفيل:", sponsors, key="selected_sponsor_key")
     if selected_sponsor != "الكل":
         filtered_df = filtered_df[filtered_df[sponsor_filter_col].astype(str) == selected_sponsor]
 
 st.sidebar.markdown("---")
+
+default_columns_to_show = [
+    "No", "code", "Shipping mark", "عدد الكارتون", "الوزن", "حجم", 
+    "رقم الحاوية", "الكفيل", "المجموع", "الزبون دفع", "المكتب دفع", "نقل داخلي", 
+    "سعر البيع", "مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي", 
+    "تاريخ التوزيع", "عدد الايام"
+]
 
 page_options = {
     "لوحة التحكم (Dashboard)": "dashboard",
@@ -237,13 +243,14 @@ page_options = {
     "الرسوم البيانية": "charts"
 }
 
-selected_page_label = st.sidebar.radio("📌 القائمة الرئيسية", list(page_options.keys()))
+selected_page_label = st.sidebar.radio("📌 القائمة الرئيسية", list(page_options.keys()), key="selected_page_label_key")
 page = page_options[selected_page_label]
 
 st.sidebar.markdown("---")
-st.sidebar.info("النظام يعمل بكفاءة ✔️")
+st.sidebar.info("متصل بملف Google Sheets بنجاح ✔️")
 
 def render_download_buttons(data_to_download):
+    st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
     btn_col1, btn_col2 = st.columns([1, 1])
     with btn_col1:
         buffer = io.BytesIO()
@@ -253,51 +260,122 @@ def render_download_buttons(data_to_download):
             label="📊 Download as Excel",
             data=buffer.getvalue(),
             file_name="filtered_details.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
         )
     
     with btn_col2:
-        st.download_button(
-            label="📥 Download as CSV",
-            data=data_to_download.to_csv(index=False).encode('utf-8'),
-            file_name="filtered_details.csv",
-            mime="text/csv"
-        )
+        print_html = """
+            <div class="no-print" style="width: 100%;">
+                <button onclick="window.parent.print();" style="
+                    background-color: #ff4b4b;
+                    color: white;
+                    padding: 0.45rem 0.75rem;
+                    border: none;
+                    border-radius: 0.3rem;
+                    font-weight: 500;
+                    cursor: pointer;
+                    width: 100%;
+                    height: 38px;
+                    font-size: 14px;
+                    font-family: inherit;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                ">
+                    📄 طباعة / حفظ كـ PDF
+                </button>
+            </div>
+        """
+        components.html(print_html, height=45)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-def style_container_column(df_to_style):
-    target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_style.columns), None)
-    sponsor_col_check = "الكفيل" if "الكفيل" in df_to_style.columns else None
-
-    if not target_container_col:
-        return df_to_style.style
-
-    def highlight_cells(row):
-        styles = [''] * len(row)
-        if target_container_col in df_to_style.columns:
-            col_idx = df_to_style.columns.get_loc(target_container_col)
-            is_arrived = False
-            is_not_arrived = False
+def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_report=False):
+    if df_to_render.empty:
+        st.info("لا توجد بيانات للعرض.")
+        return
+        
+    df_with_seq = df_to_render.copy()
+    seq_list = []
+    for idx, row in enumerate(df_with_seq.iterrows(), start=1):
+        is_total = (str(df_with_seq.iloc[idx-1].get("رقم الحاوية", "")) == "GrandTotal") or \
+                   (str(df_with_seq.iloc[idx-1].get("رقم الحاوية", "")) == "Grand Total") or \
+                   (str(df_with_seq.iloc[idx-1].get("code", "")) == "Grand Total") or \
+                   (str(df_with_seq.iloc[idx-1].get("Row Labels", "")) == "Grand Total")
+        if is_total:
+            seq_list.append("")
+        else:
+            seq_list.append(idx)
             
-            if sponsor_col_check and sponsor_col_check in row:
-                sponsor_val = str(row[sponsor_col_check]).strip()
-                if "لم تصل بعد" in sponsor_val:
-                    is_not_arrived = True
-                elif sponsor_val and sponsor_val != "nan" and sponsor_val != "غير محدد":
-                    is_arrived = True
-            
-            if is_not_arrived:
-                styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold;'
-            elif is_arrived:
-                styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
-                
-        return styles
+    df_with_seq.insert(0, "التسلسل", seq_list)
 
-    return df_to_style.style.apply(highlight_cells, axis=1)
+    currency_keywords = ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "المتبقي"]
+
+    html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
+    for col in df_with_seq.columns:
+        html += f'<th>{col}</th>'
+    html += '</tr></thead><tbody>'
+
+    for _, row in df_with_seq.iterrows():
+        sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
+        is_not_arrived = "لم تصل بعد" in sponsor_val
+        is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (str(row.get("Row Labels", "")) == "Grand Total")
+
+        html += '<tr>'
+        for col in df_with_seq.columns:
+            val = row[col]
+            col_str = str(col)
+            cell_style = ""
+            
+            # فحص دقيق للقيم الرقمية بغض النظر عن نوع البيانات الحالي
+            numeric_val = None
+            try:
+                clean_val_str = str(val).replace("¥", "").replace("$", "").replace(",", "").strip()
+                numeric_val = float(clean_val_str)
+            except (ValueError, TypeError):
+                pass
+
+            # التلوين بالوردي للأرقام الأكبر من صفر (باستثناء صف الإجمالي العام)
+            if numeric_val is not None and numeric_val > 0.0 and not is_grand_total_row and col_str != "التسلسل":
+                cell_style = ' style="background-color: #fbcfe8 !important; color: #831843 !important; font-weight: bold;"'
+            else:
+                if not is_grand_total_row:
+                    if is_not_arrived:
+                        cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important;"'
+                        if col_str in ["رقم الحاوية", "الكفيل"]:
+                            cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
+                    else:
+                        if col_str in ["رقم الحاوية", "الكفيل"]:
+                            cell_style = ' style="background-color: #bbf7d0 !important; color: #065f46 !important; font-weight: bold;"'
+
+            formatted_val = val
+            if col_str == "التسلسل":
+                formatted_val = val if val != "" else "-"
+            elif pd.isna(val) or str(val).strip() == "" or str(val).lower() == "nan":
+                formatted_val = "0.00"
+            elif numeric_val is not None:
+                if any(kw in col_str for kw in currency_keywords):
+                    formatted_val = f"¥{numeric_val:,.2f}"
+                else:
+                    formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}" if numeric_val.is_integer() else f"{numeric_val:,.2f}"
+            else:
+                formatted_val = str(val)
+
+            html += f'<td{cell_style}>{formatted_val}</td>'
+        html += '</tr>'
+    html += '</tbody></table></div>'
+    
+    st.markdown(html, unsafe_allow_html=True)
 
 if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
     st.markdown("---")
     
+    search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
+    if search_query and not filtered_df.empty:
+        search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات", "Shipping mark"] if c in filtered_df.columns]
+        if search_cols:
+            mask = filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
+            filtered_df = filtered_df[mask.any(axis=1)]
+
     total_orders = len(filtered_df)
     total_weight = filtered_df["الوزن"].sum() if "الوزن" in filtered_df.columns else 0
     total_ctns = filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in filtered_df.columns else 0
@@ -315,19 +393,19 @@ if page == "dashboard":
 
     row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
     with row1_c1:
-        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات / الطرود</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
     with row1_c2:
         st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">👥 إجمالي عدد العملاء</div><div class="metric-value">{total_clients:,}</div></div>', unsafe_allow_html=True)
     with row1_c3:
         st.markdown(f'<div class="metric-card" style="background-color: #1d4ed8;"><div class="metric-title">🚢 إجمالي عدد الحاويات</div><div class="metric-value">{total_containers_count:,}</div></div>', unsafe_allow_html=True)
     with row1_c4:
-        st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.0f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.2f}</div></div>', unsafe_allow_html=True)
 
     row2_c1, row2_c2, row2_c3, row2_c4 = st.columns(4)
     with row2_c1:
         st.markdown(f'<div class="metric-card" style="background-color: #047857;"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c2:
-        st.markdown(f'<div class="metric-card" style="background-color: #7c2d12;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.3f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #7c2d12;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c3:
         st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">💰 مبالغ دفعت من المكتب</div><div class="metric-value">¥{total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c4:
@@ -336,9 +414,10 @@ if page == "dashboard":
     st.markdown("---")
     render_download_buttons(filtered_df)
     
-    styled_filtered_df = style_container_column(filtered_df)
-    table_height = max(300, min(len(filtered_df) * 35 + 50, 1200))
-    st.dataframe(styled_filtered_df, use_container_width=True, height=table_height)
+    active_cols = [c for c in default_columns_to_show if c in filtered_df.columns]
+    df_to_display = filtered_df[active_cols] if active_cols else filtered_df
+    
+    display_custom_html_table(df_to_display)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "customs":
@@ -362,17 +441,15 @@ elif page == "customs":
     if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
         not_arrived_remaining = pivot_filtered_df[pivot_filtered_df["الكفيل"].astype(str).str.contains("لم تصل بعد", na=False)]["متبقي حقيقي"].sum()
 
-    arrived_remaining = total_remaining - not_arrived_remaining
-
     m1, m2, m3, m4 = st.columns(4)
     with m1:
-        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">${total_customs:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">¥{total_customs:,.2f}</div></div>', unsafe_allow_html=True)
     with m2:
-        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">${total_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">¥{total_remaining:,.2f}</div></div>', unsafe_allow_html=True)
     with m3:
-        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">إجمالي الاستحصالات (المسدد)</div><div class="metric-value">${total_collected:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">إجمالي الاستحصالات (المسدد)</div><div class="metric-value">¥{total_collected:,.2f}</div></div>', unsafe_allow_html=True)
     with m4:
-        st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">${not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">¥{not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### 📊 جدول ملخص أجور الكمارك والاستحصالات حسب الكود")
@@ -407,21 +484,8 @@ elif page == "customs":
             "متبقي حقيقي": "Sum of متبقي حقيقي"
         })
 
-        formatted_customs = customs_summary.copy()
-        for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
-            formatted_customs[col] = formatted_customs[col].apply(lambda x: f"${x:,.2f}" if isinstance(x, (int, float)) else x)
-
-        def style_customs_table(row):
-            styles = [''] * len(row)
-            if str(row["Row Labels"]) == "Grand Total":
-                return ['background-color: #e2e8f0; color: #000000; font-weight: bold;'] * len(row)
-            return styles
-
-        styled_customs_table = formatted_customs.style.apply(style_customs_table, axis=1)
-
         render_download_buttons(customs_summary)
-        table_height = max(300, min(len(formatted_customs) * 35 + 50, 1200))
-        st.dataframe(styled_customs_table, use_container_width=True, height=table_height)
+        display_custom_html_table(customs_summary)
     else:
         st.warning("الأعمدة المطلوبة لإنشاء الجدول غير متوفرة أو البيانات فارغة.")
 
@@ -459,9 +523,9 @@ elif page == "sponsors":
             
             st.markdown(f"""
                 <div style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; color: #ffffff !important;">👤 الكفيل: {sponsor_name}</h3>
+                    <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; color: #ffffff !important; text-align: right;">👤 الكفيل: {sponsor_name}</h3>
                     <div style="display: flex; justify-content: space-between; font-size: 15px; text-align: center; color: #ffffff !important;">
-                        <div>📦 الطلبات: <b style="color: #ffffff;">{s_orders:,}</b></div>
+                        <div>📦 الطلبات: <b style="color: #ffffff;">{s_orders:,.2f}</b></div>
                         <div>💰 الجمرك: <b style="color: #ffffff;">¥{s_customs:,.2f}</b></div>
                         <div>✅ المسدد: <b style="color: #ffffff;">¥{s_collected:,.2f}</b></div>
                         <div>⏳ المتبقي: <b style="color: #ffffff;">¥{s_remaining:,.2f}</b></div>
@@ -474,7 +538,7 @@ elif page == "sponsors":
         
         pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
         pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
-        pivot_value_col = "مبلغ الجمرك" if "مبلغ الجمرك" in filtered_df.columns else None
+        pivot_value_col = "متبقي حقيقي" if "متبقي حقيقي" in filtered_df.columns else None
 
         if pivot_code_col and pivot_container_col and pivot_value_col:
             base_pivot_df = df.copy()
@@ -492,44 +556,13 @@ elif page == "sponsors":
                 fill_value=0
             )
 
-            pivot_table_df = pivot_table_df[(pivot_table_df > 0).any(axis=1)]
-
+            pivot_table_df = pivot_table_df.loc[(pivot_table_df > 0).any(axis=1), (pivot_table_df > 0).any(axis=0)]
             pivot_table_df["Grand Total"] = pivot_table_df.sum(axis=1)
             grand_total_row = pivot_table_df.sum(axis=0)
             pivot_table_df.loc["Grand Total"] = grand_total_row
+            pivot_table_df = pivot_table_df.reset_index()
 
-            new_columns = []
-            for col in pivot_table_df.columns:
-                if col == "Grand Total":
-                    new_columns.append(col)
-                    continue
-                
-                sub_df = base_pivot_df[base_pivot_df[pivot_container_col].astype(str) == str(col)]
-                is_not_arrived = False
-                if not sub_df.empty and "الكفيل" in sub_df.columns:
-                    sponsors_in_col = sub_df["الكفيل"].astype(str).unique()
-                    if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
-                        is_not_arrived = True
-                
-                bg_color = "#fef08a" if is_not_arrived else "#bbf7d0"
-                html_col_name = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{col}</div>'
-                new_columns.append(html_col_name)
-
-            pivot_table_df.columns = new_columns
-
-            formatted_pivot = pivot_table_df.map(
-                lambda val: f"¥{val:,.0f}" if isinstance(val, (int, float)) and val > 0 else ""
-            )
-            
-            def style_pivot_cells(val):
-                if val == "":
-                    return 'background-color: #f8fafc; color: transparent;'
-                return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
-
-            styled_matrix = formatted_pivot.style.map(style_pivot_cells)
-            
-            matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
-            st.markdown(f'<div style="width: 100%; overflow-x: auto;">{matrix_html}</div>', unsafe_allow_html=True)
+            display_custom_html_table(pivot_table_df, is_sponsors_pivot=True)
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
 
@@ -543,63 +576,52 @@ elif page == "aging":
     aging_df = filtered_df.copy()
     code_field = next((c for c in ["code", "الكود", "كود"] if c in aging_df.columns), None)
     
-    if not aging_df.empty and "رقم الحاوية" in aging_df.columns and "عدد الايام" in aging_df.columns and "متبقي حقيقي" in aging_df.columns:
+    if not aging_df.empty and "رقم الحاوية" in aging_df.columns and "عدد الايام" in aging_df.columns and "متبقي حقيقي" in aging_df.columns and code_field:
         
         aging_df["عدد الايام"] = pd.to_numeric(aging_df["عدد الايام"], errors="coerce").fillna(0).astype(int)
         aging_df = aging_df[aging_df["عدد الايام"] > 0]
         
-        # التعديل الجذري والآمن لتجنب أخطاء التنسيق والفهارس الثنائية
-        aging_pivot = aging_df.pivot_table(
-            index=[code_field, "رقم الحاوية"] if code_field else "رقم الحاوية",
-            columns="عدد الايام",
-            values="متبقي حقيقي",
-            aggfunc="sum",
-            fill_value=0
-        )
-
-        aging_pivot = aging_pivot[(aging_pivot > 0).any(axis=1)]
-
-        # حساب المجاميع الكلية بشكل متوافق مع بنية الجدول الجديدة
-        aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
-        aging_grand_total = aging_pivot.sum(axis=0)
-        
-        if code_field:
-            aging_pivot.loc[("Grand Total", "")] = aging_grand_total
+        if aging_df.empty:
+            st.info("لا توجد بيانات متاحة لأيام التأخير بعد التصفية الحالية.")
         else:
-            aging_pivot.loc["Grand Total"] = aging_grand_total
-
-        # تحويل البيانات لنصوص منسقة مع الحفاظ على هيكل الجدول تماماً
-        formatted_aging = aging_pivot.map(
-            lambda val: f"¥{val:,.2f}" if isinstance(val, (int, float)) and val > 0 else ""
-        )
-
-        def style_aging_cells(row):
-            styles = []
-            is_total_row = False
-            idx_val = row.name
+            agg_aging_df = aging_df.groupby(["رقم الحاوية", code_field, "عدد الايام"])["متبقي حقيقي"].sum().reset_index()
             
-            if idx_val == "Grand Total" or (isinstance(idx_val, tuple) and idx_val[0] == "Grand Total"):
-                is_total_row = True
-                
-            for val in row:
-                if is_total_row:
-                    styles.append('background-color: #e2e8f0; color: #0f172a; font-weight: bold; text-align: center;')
-                elif val == "":
-                    styles.append('background-color: #f8fafc; color: transparent; text-align: center;')
-                else:
-                    styles.append('background-color: #ffffff; color: #000000; font-weight: bold; text-align: center;')
-            return styles
+            aging_pivot = agg_aging_df.pivot_table(
+                index=["رقم الحاوية", code_field],
+                columns="عدد الايام",
+                values="متبقي حقيقي",
+                aggfunc="sum",
+                fill_value=0.0
+            )
 
-        styled_aging_matrix = formatted_aging.style.apply(style_aging_cells, axis=1).set_table_styles([
-            {"selector": "th", "props": [("text-align", "center"), ("vertical-align", "middle")]}
-        ])
-        
-        render_download_buttons(aging_pivot.reset_index())
-        
-        aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center;" id')
-        st.markdown(f'<div style="width: 100%; overflow-x: auto; text-align: center;">{aging_html}</div>', unsafe_allow_html=True)
+            aging_pivot = aging_pivot.loc[(aging_pivot > 0).any(axis=1), (aging_pivot > 0).any(axis=0)]
+
+            if aging_pivot.empty:
+                st.info("لا توجد مبالغ متبقية أكبر من الصفر للعرض بناءً على الفلاتر المحددة.")
+            else:
+                sorted_cols = sorted(aging_pivot.columns, reverse=False)
+                aging_pivot = aging_pivot[sorted_cols]
+
+                aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
+                
+                aging_grand_total = aging_pivot.sum(axis=0)
+                aging_pivot = aging_pivot.reset_index()
+                
+                grand_total_row_dict = {
+                    "رقم الحاوية": "Grand Total",
+                    code_field: ""
+                }
+                for c in aging_pivot.columns:
+                    if c not in ["رقم الحاوية", code_field]:
+                        grand_total_row_dict[c] = aging_grand_total[c]
+                
+                aging_pivot = pd.concat([aging_pivot, pd.DataFrame([grand_total_row_dict])], ignore_index=True)
+                aging_pivot.columns = [str(c) for c in aging_pivot.columns]
+                
+                render_download_buttons(aging_pivot)
+                display_custom_html_table(aging_pivot, is_aging_report=True)
     else:
-        st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
+        st.warning("عذراً، الأعمدة الأساسية المطلوبة (رقم الحاوية، الكود، عدد الأيام، متبقي حقيقي) غير متوفرة بالكامل في البيانات الحالية.")
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
@@ -643,7 +665,6 @@ elif page == "collections":
         })
         
         agg_df = pd.concat([agg_df, grand_totals], ignore_index=True)
-
         agg_df = agg_df.rename(columns={
             container_field: "رقم الحاوية",
             "مبلغ الجمرك": "Sum of مبلغ الجمرك",
@@ -651,46 +672,11 @@ elif page == "collections":
             "متبقي حقيقي": "Sum of متبقي حقيقي"
         })
 
-        formatted_agg = agg_df.copy()
-        for col in ["Sum of مبلغ الجمرك", "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]:
-            formatted_agg[col] = formatted_agg[col].apply(lambda x: f"¥{x:,.2f}" if x > 0 else "")
-
-        def style_summary_cells(row):
-            styles = [''] * len(row)
-            container_val = str(row["رقم الحاوية"])
-            
-            if container_val == "Grand Total":
-                return ['background-color: #f1f5f9; color: #000000; font-weight: bold;'] * len(row)
-            
-            container_col_name = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
-            if container_col_name and "الكفيل" in filtered_df.columns:
-                sub_df = filtered_df[filtered_df[container_col_name].astype(str) == container_val]
-                is_arrived = False
-                is_not_arrived = False
-                
-                if not sub_df.empty:
-                    sponsors_in_col = sub_df["الكفيل"].astype(str).unique()
-                    if any("لم تصل بعد" in str(s) for s in sponsors_in_col):
-                        is_not_arrived = True
-                    elif any(s and s != "nan" and s != "غير محدد" for s in sponsors_in_col):
-                        is_arrived = True
-                
-                col_idx = row.index.get_loc("رقم الحاوية")
-                if is_not_arrived:
-                    styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold;'
-                elif is_arrived:
-                    styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
-            
-            return styles
-
-        styled_summary = formatted_agg.style.apply(style_summary_cells, axis=1)
-
-        summary_height = max(300, min(len(formatted_agg) * 35 + 50, 1200))
-        st.dataframe(styled_summary, use_container_width=True, height=summary_height)
+        display_custom_html_table(agg_df)
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
 
-    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-block: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
@@ -726,3 +712,4 @@ elif page == "charts":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
