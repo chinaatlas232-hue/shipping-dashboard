@@ -136,12 +136,24 @@ st.markdown(
         background: #ef4444 !important;
     }
 
+    /* ========================================================
+       تنسيقات الطباعة المحسنة وحل المشكلة جذرياً (Print & PDF)
+       ======================================================== */
     @media print {
         @page {
             size: A4 landscape;
-            margin: 3mm;
+            margin: 8mm;
         }
-        [data-testid="stSidebar"], header, .stDownloadButton, button, .stButton, .no-print, iframe, [data-testid="stIFrame"] {
+        
+        /* إخفاء العناصر غير المطلوبة نهائياً في الطباعة */
+        [data-testid="stSidebar"], 
+        header, 
+        .stDownloadButton, 
+        button, 
+        .stButton, 
+        .no-print, 
+        iframe, 
+        [data-testid="stIFrame"] {
             display: none !important;
             visibility: hidden !important;
             height: 0 !important;
@@ -149,21 +161,75 @@ st.markdown(
             margin: 0 !important;
             padding: 0 !important;
         }
+
         body {
             background-color: #ffffff !important;
             color: #000000 !important;
-            font-size: 9px !important;
+            font-size: 11px !important;
             direction: rtl !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
+
         .block-container {
             padding: 0rem !important;
             max-width: 100% !important;
+            margin: 0 !important;
         }
+
+        /* تحويل البطاقات إلى تصميم متوافق ومبسط للطباعة بجوار بعضها */
+        .metric-card {
+            background-color: #f1f5f9 !important;
+            color: #000000 !important;
+            border: 1px solid #cbd5e1 !important;
+            box-shadow: none !important;
+            padding: 8px !important;
+            margin-bottom: 8px !important;
+            break-inside: avoid;
+        }
+        
+        .metric-title {
+            color: #334155 !important;
+            font-size: 11px !important;
+        }
+        
+        .metric-value {
+            color: #0f172a !important;
+            font-size: 14px !important;
+        }
+
+        /* تصغير الجدول وتنسيقه للطباعة بدون قص */
         .custom-html-table {
-            font-size: 8px !important;
+            font-size: 10px !important;
+            width: 100% !important;
+            page-break-inside: auto;
         }
-        .custom-html-table th, .custom-html-table td {
-            padding: 3px !important;
+        
+        .custom-html-table th {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+            padding: 5px !important;
+            font-size: 10px !important;
+        }
+        
+        .custom-html-table td {
+            padding: 4px !important;
+            font-size: 9.5px !important;
+            color: #000000 !important;
+        }
+        
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        
+        h1 {
+            background-color: transparent !important;
+            color: #000000 !important;
+            padding: 5px 0 !important;
+            font-size: 16px !important;
+            border-bottom: 2px solid #000;
+            margin-bottom: 10px !important;
         }
     }
     </style>
@@ -209,7 +275,6 @@ def load_data(uploaded_file):
 
     df.columns = df.columns.astype(str).str.strip()
 
-    # معالجة وتنسيق أعمدة التواريخ إن وجدت
     for col in df.columns:
         if any(kw in col for kw in ["تاريخ", "date", "Date"]):
             df[col] = pd.to_datetime(df[col], errors="coerce").dt.strftime("%Y-%m-%d").fillna(df[col])
@@ -409,7 +474,6 @@ if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
     st.markdown("---")
     
-    # إضافة شريط البحث الذكي في لوحة التحكم الرئيسية
     search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
     if search_query and not filtered_df.empty:
         search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات", "Shipping mark"] if c in filtered_df.columns]
@@ -727,7 +791,7 @@ elif page == "charts":
 
         col_chart1, col_chart2 = st.columns(2)
         with col_chart1:
-            if container_col and "الوزن" in filtered_df.columns:
+            if container_col and "`الوزن`" in filtered_df.columns or container_col and "الوزن" in filtered_df.columns:
                 st.subheader("⚖️ إجمالي الوزن حسب الحاوية (kg)")
                 weight_data = filtered_df.groupby(container_col)["الوزن"].sum()
                 st.bar_chart(weight_data)
