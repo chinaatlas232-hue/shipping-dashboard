@@ -325,16 +325,16 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             col_str = str(col)
             cell_style = ""
             
-            # التحقق من قيمة الخلية إذا كانت رقماً أكبر من 0.0 لتلوينها باللون الوردي
-            numeric_val = 0.0
-            is_num = False
+            # فحص دقيق للقيم الرقمية بغض النظر عن نوع البيانات الحالي
+            numeric_val = None
             try:
-                numeric_val = float(str(val).replace("¥", "").replace("$", "").replace(",", "").strip())
-                is_num = True
-            except:
+                clean_val_str = str(val).replace("¥", "").replace("$", "").replace(",", "").strip()
+                numeric_val = float(clean_val_str)
+            except (ValueError, TypeError):
                 pass
 
-            if is_num and numeric_val > 0.0:
+            # التلوين بالوردي للأرقام الأكبر من صفر (باستثناء صف الإجمالي العام)
+            if numeric_val is not None and numeric_val > 0.0 and not is_grand_total_row and col_str != "التسلسل":
                 cell_style = ' style="background-color: #fbcfe8 !important; color: #831843 !important; font-weight: bold;"'
             else:
                 if not is_grand_total_row:
@@ -351,17 +351,13 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 formatted_val = val if val != "" else "-"
             elif pd.isna(val) or str(val).strip() == "" or str(val).lower() == "nan":
                 formatted_val = "0.00"
-            elif pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float)):
+            elif numeric_val is not None:
                 if any(kw in col_str for kw in currency_keywords):
-                    formatted_val = f"¥{val:,.2f}"
+                    formatted_val = f"¥{numeric_val:,.2f}"
                 else:
-                    formatted_val = f"{val:,.2f}" if isinstance(val, float) else f"{val:,}"
+                    formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}" if numeric_val.is_integer() else f"{numeric_val:,.2f}"
             else:
-                try:
-                    num_try = float(str(val).replace(",", "").strip())
-                    formatted_val = f"{num_try:,.2f}"
-                except:
-                    pass
+                formatted_val = str(val)
 
             html += f'<td{cell_style}>{formatted_val}</td>'
         html += '</tr>'
