@@ -22,19 +22,28 @@ st.markdown(
         color: #ffffff !important;
     }
     
-    /* === تعديل ترويسة الجدول (Headers) لتكون بلون حبري داكن ونص أبيض === */
+    /* === تعديل ترويسة الجدول (Headers) بقوة إضافية لتشمل كافة الهياكل الداخلية === */
     [data-testid="stDataFrame"] th, 
     [data-testid="stTable"] th, 
     table th,
-    [data-testid="stDataFrame"] div[data-baseweb="base-input"] + div th,
-    thead tr th {
+    thead tr th,
+    .stDataFrame th,
+    div[data-testid="stDataFrame"] table thead tr th,
+    div[data-testid="stTable"] table thead tr th,
+    div[data-baseweb="data-table"] th,
+    div.dvn-scroller th {
         background-color: #0b192c !important;
+        background: #0b192c !important;
         color: #ffffff !important;
+        font-weight: bold !important;
     }
     
     [data-testid="stDataFrame"] th *, 
     [data-testid="stTable"] th *, 
-    table th * {
+    table th *,
+    thead tr th *,
+    div[data-testid="stDataFrame"] th span,
+    div[data-testid="stDataFrame"] th div {
         color: #ffffff !important;
         font-weight: bold !important;
     }
@@ -684,7 +693,7 @@ elif page == "collections":
     if not filtered_df.empty:
         total_c = filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in filtered_df.columns else 0
         total_coll = filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in filtered_df.columns else 0
-        total_rem = filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in filtered_df.columns else 0
+        total_rem = filtered_df["متبقي حقيقي" if "متبقي حقيقي" in filtered_df.columns else filtered_df.columns[0]].sum() if "متبقي حقيقي" in filtered_df.columns else 0
 
         mc1, mc2, mc3 = st.columns(3)
         with mc1:
