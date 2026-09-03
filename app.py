@@ -14,18 +14,18 @@ st.markdown(
     <style>
     .main { background-color: #0e1117; }
     
-    /* تنسيق جدول HTML المخصص ليتوافق مع اتجاه اليمين لليسار */
+    /* تنسيق جدول HTML المخصص ليتوافق مع اتجاه اليمين لليسار (بدون شريط تمرير) */
     .custom-html-table {
         width: 100% !important;
         border-collapse: collapse !important;
         direction: rtl !important;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         background-color: #ffffff;
-        color: #333333;
+        color: #000000;
         margin-bottom: 20px;
     }
     .custom-html-table th {
-        background-color: #8b0000 !important;
+        background-color: #0b2239 !important;
         color: #ffffff !important;
         text-align: center !important;
         font-weight: bold !important;
@@ -38,21 +38,19 @@ st.markdown(
         padding: 8px !important;
         border: 1px solid #cbd5e1 !important;
         font-size: 13px !important;
-        color: #333333 !important;
+        color: #1e293b !important;
     }
     .custom-html-table tr:nth-child(even) {
         background-color: #f8fafc !important;
     }
 
     .metric-card {
-        padding: 16px; border-radius: 12px; color: #8b0000;
+        padding: 16px; border-radius: 12px; color: white;
         text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        border: 2px solid #8b0000;
-        background-color: #fff5f5 !important;
     }
-    .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: bold; color: #8b0000 !important; }
-    .metric-value { font-size: 20px; font-weight: bold; color: #8b0000 !important; }
+    .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
+    .metric-value { font-size: 20px; font-weight: bold; }
     
     .block-container { 
         padding-top: 3.5rem !important; 
@@ -63,26 +61,20 @@ st.markdown(
         direction: rtl !important;
     }
 
-    h1, h2, h3, h4, h5, h6 {
-        color: #8b0000 !important;
-    }
-
     h1 {
-        background-color: #fff5f5 !important;
-        color: #8b0000 !important;
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
         padding: 15px 20px !important;
         border-radius: 8px !important;
-        border: 2px solid #8b0000 !important;
         margin-bottom: 20px !important;
         margin-top: 10px !important;
         text-align: right !important;
-        font-weight: bold !important;
     }
 
     [data-testid="stTextInput"] label {
         font-size: 18px !important;
         font-weight: bold !important;
-        color: #8b0000 !important;
+        color: #f8fafc !important;
     }
 
     [data-testid="stSidebar"] {
@@ -96,8 +88,8 @@ st.markdown(
     [data-testid="stSidebar"] .element-container span,
     [data-testid="stSidebar"] .stMarkdown p,
     [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
-        color: #ff4d4d !important;
-        font-weight: bold !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
         font-size: 18px !important;
     }
 
@@ -105,26 +97,26 @@ st.markdown(
     [data-testid="stSidebar"] [data-testid="stButton"] *, 
     [data-testid="stSidebar"] [data-testid="stSelectbox"] *,
     [data-testid="stSidebar"] [data-testid="stMultiSelect"] * {
-        color: #8b0000 !important;
+        color: #000000 !important;
     }
     
     [data-testid="stSidebar"] [data-testid="stFileUploader"], 
     [data-testid="stSidebar"] [data-testid="stButton"], 
     [data-testid="stSidebar"] [data-testid="stSelectbox"],
     [data-testid="stSidebar"] [data-testid="stMultiSelect"] {
-        color: #8b0000 !important;
+        color: #ffffff !important;
     }
 
     [data-testid="stSidebar"] button[kind="secondary"] {
-        background-color: #8b0000 !important;
+        background-color: #dc2626 !important;
         color: #ffffff !important;
-        border-color: #8b0000 !important;
+        border-color: #dc2626 !important;
     }
     
     [data-testid="stSidebar"] button[kind="secondary"]:hover {
-        background-color: #5c0000 !important;
+        background-color: #b91c1c !important;
         color: #ffffff !important;
-        border-color: #5c0000 !important;
+        border-color: #b91c1c !important;
     }
 
     ::-webkit-scrollbar {
@@ -137,13 +129,16 @@ st.markdown(
         margin: 5px !important;
     }
     ::-webkit-scrollbar-thumb {
-        background: #8b0000 !important;
+        background: #f87171 !important;
         border-radius: 4px !important;
     }
     ::-webkit-scrollbar-thumb:hover {
-        background: #5c0000 !important;
+        background: #ef4444 !important;
     }
 
+    /* ========================================================
+       تنسيقات الطباعة المحسنة وحل المشكلة جذرياً (Print & PDF)
+       ======================================================== */
     @media print {
         @page {
             size: A4 landscape;
@@ -168,7 +163,7 @@ st.markdown(
 
         body {
             background-color: #ffffff !important;
-            color: #333333 !important;
+            color: #000000 !important;
             font-size: 11px !important;
             direction: rtl !important;
             -webkit-print-color-adjust: exact !important;
@@ -182,9 +177,9 @@ st.markdown(
         }
 
         .metric-card {
-            background-color: #fff5f5 !important;
-            color: #8b0000 !important;
-            border: 1px solid #8b0000 !important;
+            background-color: #f1f5f9 !important;
+            color: #000000 !important;
+            border: 1px solid #cbd5e1 !important;
             box-shadow: none !important;
             padding: 8px !important;
             margin-bottom: 8px !important;
@@ -192,12 +187,12 @@ st.markdown(
         }
         
         .metric-title {
-            color: #8b0000 !important;
+            color: #334155 !important;
             font-size: 11px !important;
         }
         
         .metric-value {
-            color: #8b0000 !important;
+            color: #0f172a !important;
             font-size: 14px !important;
         }
 
@@ -208,7 +203,7 @@ st.markdown(
         }
         
         .custom-html-table th {
-            background-color: #8b0000 !important;
+            background-color: #1e293b !important;
             color: #ffffff !important;
             padding: 5px !important;
             font-size: 10px !important;
@@ -217,6 +212,7 @@ st.markdown(
         .custom-html-table td {
             padding: 4px !important;
             font-size: 9.5px !important;
+            color: #000000 !important;
         }
         
         tr {
@@ -226,10 +222,10 @@ st.markdown(
         
         h1 {
             background-color: transparent !important;
-            color: #8b0000 !important;
+            color: #000000 !important;
             padding: 5px 0 !important;
             font-size: 16px !important;
-            border-bottom: 2px solid #8b0000;
+            border-bottom: 2px solid #000;
             margin-bottom: 10px !important;
         }
     }
@@ -402,12 +398,12 @@ def render_download_buttons(data_to_download):
         print_html = """
             <div class="no-print" style="width: 100%;">
                 <button onclick="window.parent.print();" style="
-                    background-color: #8b0000;
+                    background-color: #ff4b4b;
                     color: white;
                     padding: 0.45rem 0.75rem;
                     border: none;
                     border-radius: 0.3rem;
-                    font-weight: bold;
+                    font-weight: 500;
                     cursor: pointer;
                     width: 100%;
                     height: 38px;
@@ -444,16 +440,43 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             col_str = str(col)
             
             cell_style = ""
-            is_code_cell = False
-
-            # تحديد ما إذا كان هذا العمود أو القيمة تمثل "كود" لجعلها باللون الأحمر الحصري
-            if col_str.lower() in ["code", "كود", "الكود", "index", "level_0"] or val == "Grand Total":
-                is_code_cell = True
             
-            # في الجداول المحورية أو التقارير إذا كانت القيمة عبارة عن كود (مثل Tuples أو نصوص تحتوي على أكواد)
-            if is_sponsors_pivot or is_aging_report:
-                if col_str in ["code", "الكود", "كود", "index"] or "RQ" in str(val) or "B" in str(val):
-                    is_code_cell = True
+            # التعديل المطلوب حصراً في نافذة "الديون على الكفلاء" (الجدول المفصلي / Pivot Table) وفي تقرير أعمار الديون
+            # إذا كانت القيم الرقمية أكبر من 0.0 يتم تلوين الخلية باللون الوردي (#fbcfe8) حصراً
+            if (is_sponsors_pivot or is_aging_report) and col_str != "code" and col_str != "Grand Total" and str(row.get("code", "")) != "Grand Total" and str(row.get("رقم الحاوية", "")) != "Grand Total":
+                try:
+                    num_val = float(str(val).replace("¥", "").replace(",", "").strip())
+                    if num_val > 0.0:
+                        cell_style = ' style="background-color: #fbcfe8; color: #000000; font-weight: bold;"'
+                except:
+                    pass
+
+            # تلوين عمود "متبقي حقيقي" في الجداول الأخرى إذا وجد
+            if not is_sponsors_pivot and not is_aging_report and "متبقي حقيقي" in col_str:
+                try:
+                    num_val = float(str(val).replace("¥", "").replace(",", "").strip())
+                    if num_val == 0.0:
+                        cell_style = ' style="background-color: #bbf7d0; color: #000000; font-weight: bold;"'
+                    elif num_val > 0.0:
+                        cell_style = ' style="background-color: #fbcfe8; color: #000000; font-weight: bold;"'
+                except:
+                    pass
+
+            # تلوين عمود رقم الحاوية بناءً على حالة الكفيل إذا وجد
+            if not is_sponsors_pivot and not is_aging_report and target_container_col and col_str == str(target_container_col):
+                is_arrived = False
+                is_not_arrived = False
+                if sponsor_col_check and sponsor_col_check in row:
+                    sponsor_val = str(row[sponsor_col_check]).strip()
+                    if "لم تصل بعد" in sponsor_val:
+                        is_not_arrived = True
+                    elif sponsor_val and sponsor_val != "nan" and sponsor_val != "غير محدد" and sponsor_val != "0":
+                        is_arrived = True
+                
+                if is_not_arrived:
+                    cell_style = ' style="background-color: #fef08a; color: #000000; font-weight: bold;"'
+                elif is_arrived:
+                    cell_style = ' style="background-color: #bbf7d0; color: #000000; font-weight: bold;"'
 
             formatted_val = val
             if pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float)):
@@ -461,10 +484,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                     formatted_val = f"¥{val:,.2f}"
                 else:
                     formatted_val = f"{val:,.2f}" if isinstance(val, float) else f"{val:,}"
-
-            # تطبيق اللون الأحمر حصراً للنص إذا كان كود
-            if is_code_cell:
-                cell_style = ' style="color: #8b0000; font-weight: bold;"'
 
             html += f'<td{cell_style}>{formatted_val}</td>'
         html += '</tr>'
@@ -500,23 +519,23 @@ if page == "dashboard":
 
     row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
     with row1_c1:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">📦 عدد الطلبات / الطرود</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات / الطرود</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
     with row1_c2:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">👥 إجمالي عدد العملاء</div><div class="metric-value">{total_clients:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">👥 إجمالي عدد العملاء</div><div class="metric-value">{total_clients:,}</div></div>', unsafe_allow_html=True)
     with row1_c3:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">🚢 إجمالي عدد الحاويات</div><div class="metric-value">{total_containers_count:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #1d4ed8;"><div class="metric-title">🚢 إجمالي عدد الحاويات</div><div class="metric-value">{total_containers_count:,}</div></div>', unsafe_allow_html=True)
     with row1_c4:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.2f}</div></div>', unsafe_allow_html=True)
 
     row2_c1, row2_c2, row2_c3, row2_c4 = st.columns(4)
     with row2_c1:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #047857;"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c2:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #7c2d12;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c3:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">💰 مبالغ دفعت من المكتب</div><div class="metric-value">¥{total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">💰 مبالغ دفعت من المكتب</div><div class="metric-value">¥{total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c4:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">¥{total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">¥{total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     render_download_buttons(filtered_df)
@@ -548,13 +567,13 @@ elif page == "customs":
 
     m1, m2, m3, m4 = st.columns(4)
     with m1:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">¥{total_customs:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">¥{total_customs:,.2f}</div></div>', unsafe_allow_html=True)
     with m2:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">¥{total_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">¥{total_remaining:,.2f}</div></div>', unsafe_allow_html=True)
     with m3:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">إجمالي الاستحصالات (المسدد)</div><div class="metric-value">¥{total_collected:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">إجمالي الاستحصالات (المسدد)</div><div class="metric-value">¥{total_collected:,.2f}</div></div>', unsafe_allow_html=True)
     with m4:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">¥{not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">¥{not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### 📊 جدول ملخص أجور الكمارك والاستحصالات حسب الكود")
@@ -622,14 +641,18 @@ elif page == "sponsors":
             s_remaining = row["total_remaining"]
             s_orders = row["total_orders"]
             
+            card_bg = "#1e3a8a"
+            if "لم تصل بعد" in str(sponsor_name):
+                card_bg = "#b45309"
+            
             st.markdown(f"""
-                <div style="background-color: #fff5f5; border: 2px solid #8b0000; padding: 15px; border-radius: 10px; color: #8b0000; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid #8b0000; padding-bottom: 5px; color: #8b0000 !important; text-align: right; font-weight: bold;">👤 الكفيل: {sponsor_name}</h3>
-                    <div style="display: flex; justify-content: space-between; font-size: 15px; text-align: center; color: #8b0000 !important; font-weight: bold;">
-                        <div>📦 الطلبات: <b style="color: #8b0000;">{s_orders:,.2f}</b></div>
-                        <div>💰 الجمرك: <b style="color: #8b0000;">¥{s_customs:,.2f}</b></div>
-                        <div>✅ المسدد: <b style="color: #8b0000;">¥{s_collected:,.2f}</b></div>
-                        <div>⏳ المتبقي: <b style="color: #8b0000;">¥{s_remaining:,.2f}</b></div>
+                <div style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; color: #ffffff !important; text-align: right;">👤 الكفيل: {sponsor_name}</h3>
+                    <div style="display: flex; justify-content: space-between; font-size: 15px; text-align: center; color: #ffffff !important;">
+                        <div>📦 الطلبات: <b style="color: #ffffff;">{s_orders:,.2f}</b></div>
+                        <div>💰 الجمرك: <b style="color: #ffffff;">¥{s_customs:,.2f}</b></div>
+                        <div>✅ المسدد: <b style="color: #ffffff;">¥{s_collected:,.2f}</b></div>
+                        <div>⏳ المتبقي: <b style="color: #ffffff;">¥{s_remaining:,.2f}</b></div>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
@@ -663,6 +686,7 @@ elif page == "sponsors":
             pivot_table_df.loc["Grand Total"] = grand_total_row
             pivot_table_df = pivot_table_df.reset_index()
 
+            # تم تفعيل تلوين القيم الأكبر من 0.0 باللون الوردي حصراً في هذا الجدول عبر الوسيط is_sponsors_pivot=True
             display_custom_html_table(pivot_table_df, is_sponsors_pivot=True)
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
@@ -685,6 +709,7 @@ elif page == "aging":
         if aging_df.empty:
             st.info("لا توجد بيانات متاحة لأيام التأخير بعد التصفية الحالية.")
         else:
+            # تم تعديل ترتيب الـ index ليكون رقم الحاوية أولاً ثم الـ code ثانياً ليتطابق مع الصورة المطلوبة
             index_cols = ["رقم الحاوية", code_field] if code_field else ["رقم الحاوية"]
             
             aging_pivot = aging_df.pivot_table(
@@ -710,6 +735,7 @@ elif page == "aging":
                 aging_pivot.columns = [str(c) for c in aging_pivot.columns]
                 
                 render_download_buttons(aging_pivot)
+                # تم تمرير الوسيط is_aging_report=True لتصحيح مشكلة ظهور nan وتلوين القيم أكبر من 0.0 بالوردي
                 display_custom_html_table(aging_pivot, is_aging_report=True)
     else:
         st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
@@ -728,11 +754,11 @@ elif page == "collections":
 
         mc1, mc2, mc3 = st.columns(3)
         with mc1:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">إجمالي مبالغ الجمرك</div><div class="metric-value">¥{total_c:,.2f}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">إجمالي مبالغ الجمرك</div><div class="metric-value">¥{total_c:,.2f}</div></div>', unsafe_allow_html=True)
         with mc2:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">إجمالي الاستحصالات</div><div class="metric-value">¥{total_coll:,.2f}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">إجمالي الاستحصالات</div><div class="metric-value">¥{total_coll:,.2f}</div></div>', unsafe_allow_html=True)
         with mc3:
-            st.markdown(f'<div class="metric-card"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">¥{total_rem:,.2f}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">¥{total_rem:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     render_download_buttons(filtered_df)
@@ -767,7 +793,7 @@ elif page == "collections":
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
 
-    st.markdown("<div style='margin-block: 50px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-block: 50px;'>`</div>", unsafe_allow_html=True)
 
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
@@ -803,3 +829,4 @@ elif page == "charts":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
