@@ -290,7 +290,8 @@ page_options = {
     "الديون على الكفلاء": "sponsors",
     "اعمار الديون (Aging Report)": "aging",
     "كمرك الشحنات والاستحصالات": "collections",
-    "الرسوم البيانية": "charts"
+    "الرسوم البيانية": "charts",
+    "إدخال وتعديل البيانات": "data_entry"
 }
 
 selected_page_label = st.sidebar.radio("📌 القائمة الرئيسية", list(page_options.keys()), key="selected_page_label_key")
@@ -766,3 +767,15 @@ elif page == "charts":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
+elif page == "data_entry":
+    st.title("📝 إدخال وتعديل البيانات محلياً")
+    st.markdown("---")
+    st.markdown("يمكنك تعديل البيانات مباشرة في الجدول أدناه، أو إضافة سجل جديد:")
+
+    # عرض جدول قابل للتعديل باستخدام st.data_editor
+    edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="data_editor_grid")
+
+    if st.button("💾 حفظ التغييرات وتحديث العرض"):
+        st.session_state["df_updated"] = edited_df
+        st.success("تم تحديث البيانات بنجاح في الجلسة الحالية!")
