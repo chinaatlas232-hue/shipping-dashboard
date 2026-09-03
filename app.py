@@ -121,7 +121,7 @@ st.markdown(
         border-radius: 4px !important;
     }
 
-    /* تعديلات الطباعة لإزالة الفراغات الشاغرة وتنسيق الصفحة بالكامل */
+    /* تعديلات الطباعة: إظهار الإحصائيات والجدول والعنوان، وإخفاء القائمة الجانبية وأزرار التنزيل فقط */
     @media print {
         @page {
             size: A4 landscape;
@@ -136,11 +136,11 @@ st.markdown(
             -webkit-print-color-adjust: exact !important;
         }
 
+        /* إخفاء القائمة الجانبية والعناصر غير الضرورية أثناء الطباعة */
         [data-testid="stSidebar"],
         header,
         .no-print,
         div[data-testid="stTextInput"],
-        div[data-testid="stHorizontalBlock"],
         iframe {
             display: none !important;
             height: 0 !important;
@@ -159,14 +159,24 @@ st.markdown(
             position: relative !important;
         }
 
+        /* ضمان طباعة ألوان الخلفية والنصوص للمربعات الإحصائية والجداول بنجاح */
+        .metric-card {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            box-shadow: none !important;
+            border: 1px solid #cbd5e1 !important;
+            margin-bottom: 10px !important;
+        }
+
         h1 {
             margin-top: 0 !important;
-            margin-bottom: 5px !important;
-            padding: 6px 10px !important;
-            font-size: 12px !important;
+            margin-bottom: 10px !important;
+            padding: 8px 12px !important;
+            font-size: 14px !important;
             background-color: #1e293b !important;
             color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
             page-break-after: avoid !important;
             break-after: avoid !important;
         }
@@ -192,12 +202,15 @@ st.markdown(
             background-color: #0b2239 !important;
             color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
-            padding: 3px !important;
+            print-color-adjust: exact !important;
+            padding: 4px !important;
         }
 
         .custom-html-table td {
-            padding: 2px 2px !important;
+            padding: 3px 2px !important;
             font-size: 9px !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
     }
     </style>
@@ -331,6 +344,7 @@ st.sidebar.markdown("---")
 st.sidebar.info("متصل بملف Google Sheets بنجاح ✔️")
 
 def render_download_buttons(data_to_download):
+    # وضعنا الفئة no-print هنا لكي تختفي أزرار التنزيل والطباعة نفسها عند إخراج الورقة النهائية
     st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
     btn_col1, btn_col2 = st.columns([1, 1])
     with btn_col1:
@@ -607,7 +621,7 @@ elif page == "sponsors":
                 card_bg = "#b45309"
             
             st.markdown(f"""
-                <div style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div class="metric-card" style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; color: #ffffff !important; text-align: right;">👤 الكفيل: {sponsor_name}</h3>
                     <div style="display: flex; justify-content: space-between; font-size: 15px; text-align: center; color: #ffffff !important;">
                         <div>📦 الطلبات: <b style="color: #ffffff;">{s_orders:,.2f}</b></div>
