@@ -348,11 +348,12 @@ if sponsor_filter_col and not df.empty:
 
 st.sidebar.markdown("---")
 
+# تمت إعادة عمود "الكفيل" إلى قائمة الأعمدة الافتراضية للجدول الرئيسي
 default_columns_to_show = [
     "No", "code", "Shipping mark", "عدد الكارتون", "الوزن", "حجم", 
-    "رقم الحاوية", "المجموع", "الزبون دفع", "المكتب دفع", "نقل داخلي", 
+    "رقم الحاوية", "الكفيل", "المجموع", "الزبون دفع", "المكتب دفع", "نقل داخلي", 
     "سعر البيع", "مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي", 
-    "الكفيل", "تاريخ التوزيع", "عدد الايام"
+    "تاريخ التوزيع", "عدد الايام"
 ]
 
 page_options = {
@@ -436,22 +437,10 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     html += '</tr></thead><tbody>'
 
     for _, row in df_with_seq.iterrows():
-        # التحقق المحسن والشامل من حالة الشحنة بالاعتماد على الجدول الكامل df
+        # الفحص المباشر لعمود الكفيل لتمييز حالة الشحنة
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
-        container_val_row = str(row.get("رقم الحاوية", "")) if "رقم الحاوية" in df_with_seq.columns else ""
-        
         is_not_arrived = "لم تصل بعد" in sponsor_val
         is_arrived = sponsor_val != "" and sponsor_val != "nan" and sponsor_val != "غير محدد" and not is_not_arrived
-
-        # فحص إضافي عبر رقم الحاوية في الجدول الرئيسي الكامل لضمان دقة التلوين حتى لو غاب عمود الكفيل
-        if not is_not_arrived and not is_arrived and container_val_row and container_val_row != "nan":
-            sub_check = df.loc[df[container_col].astype(str) == container_val_row] if container_col else pd.DataFrame()
-            if not sub_check.empty and "الكفيل" in sub_check.columns:
-                s_vals = sub_check["الكفيل"].astype(str).unique()
-                if any("لم تصل بعد" in str(s) for s in s_vals):
-                    is_not_arrived = True
-                elif any(s and s != "nan" and s != "غير محدد" for s in s_vals):
-                    is_arrived = True
 
         html += '<tr>'
         for col in df_with_seq.columns:
@@ -461,7 +450,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             
             is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (col_str == "Grand Total") or (str(row.get("Row Labels", "")) == "Grand Total")
             
-            # تطبيق ألوان التلوين المطلوبة (أصفر لغير الواصل، أخضر للواصل)
+            # تطبيق التلوين (أصفر لغير الواصل، أخضر للواصل) على أعمدة الحاوية والكفيل
             if not is_grand_total_row:
                 if col_str in ["رقم الحاوية", "الكفيل"]:
                     if is_not_arrived:
