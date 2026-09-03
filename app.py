@@ -260,16 +260,10 @@ def clean_numeric(series):
 def load_data():
     df = None
     try:
-        # يمكنك وضع الرابط مباشرة هنا بين علامتي التنصيص أو جذبه من st.secrets
-        # مثال: sheet_url = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/export?format=csv"
-        sheet_url = st.secrets.get("GOOGLE_SHEET_URL", "ضع_رابط_الشيت_هنا")
-        
-        if "docs.google.com" in sheet_url:
-            if "/edit" in sheet_url:
-                sheet_url = sheet_url.split("/edit")[0] + "/export?format=csv"
-            elif not sheet_url.endswith("export?format=csv"):
-                sheet_url = sheet_url.rstrip("/") + "/export?format=csv"
-            df = pd.read_csv(sheet_url)
+        # استخدام معرف جدولك المباشر لجلب البيانات
+        sheet_id = "1amOmnZgzn2bhWTgje_9W2sUK6V-OygWk"
+        sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
+        df = pd.read_csv(sheet_url)
     except Exception as e:
         st.sidebar.error(f"خطأ في الاتصال بملف Google Sheets: {e}")
 
