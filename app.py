@@ -177,9 +177,9 @@ def load_data():
 df = load_data()
 all_columns = df.columns.tolist()
 
-# تهيئة حالة الذاكرة لإخفاء الأعمدة بشكل دائم
-if "hidden_columns_state" not in st.session_state:
-    st.session_state["hidden_columns_state"] = []
+# تهيئة الذاكرة لحفظ الأعمدة المخفية بشكل دائم وثابت
+if "hidden_cols_memory" not in st.session_state:
+    st.session_state["hidden_cols_memory"] = []
 
 # ----------------- القائمة الجانبية (Sidebar) -----------------
 st.sidebar.title("🚢 شركة أطلس المحيط")
@@ -193,19 +193,14 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 👁️ إخفاء الأعمدة غير المرغوبة")
 st.sidebar.markdown("<small style='color: #cbd5e1;'>حدد الأعمدة التي تريد إخفاءها من الجدول:</small>", unsafe_allow_html=True)
 
-# دالة تحديث الحالة تلقائياً عند تغيير الـ multiselect لمنع إعادة الضبط
-def update_hidden_cols():
-    st.session_state["hidden_columns_state"] = st.session_state["columns_to_hide_unique_key"]
-
+# ربط الـ multiselect مباشرة بـ session_state لتثبيت الاختيارات وحل مشكلة العودة نهائياً
 st.sidebar.multiselect(
     "اختر الأعمدة لإخفائها:",
     options=all_columns,
-    default=[c for c in st.session_state["hidden_columns_state"] if c in all_columns],
-    key="columns_to_hide_unique_key",
-    on_change=update_hidden_cols
+    key="hidden_cols_memory"
 )
 
-hidden_columns = st.session_state["hidden_columns_state"]
+hidden_columns = st.session_state["hidden_cols_memory"]
 
 st.sidebar.markdown("---")
 
