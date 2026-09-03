@@ -348,7 +348,6 @@ if sponsor_filter_col and not df.empty:
 
 st.sidebar.markdown("---")
 
-# تمت إعادة عمود "الكفيل" إلى قائمة الأعمدة الافتراضية للجدول الرئيسي
 default_columns_to_show = [
     "No", "code", "Shipping mark", "عدد الكارتون", "الوزن", "حجم", 
     "رقم الحاوية", "الكفيل", "المجموع", "الزبون دفع", "المكتب دفع", "نقل داخلي", 
@@ -437,7 +436,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     html += '</tr></thead><tbody>'
 
     for _, row in df_with_seq.iterrows():
-        # الفحص المباشر لعمود الكفيل لتمييز حالة الشحنة
+        # التحقق من حالة الكفيل والشحنة لتطبيق الألوان (أصفر لـ "لم تصل بعد"، أخضر لوجود اسم كفيل فعلي)
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
         is_arrived = sponsor_val != "" and sponsor_val != "nan" and sponsor_val != "غير محدد" and not is_not_arrived
@@ -450,7 +449,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             
             is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (col_str == "Grand Total") or (str(row.get("Row Labels", "")) == "Grand Total")
             
-            # تطبيق التلوين (أصفر لغير الواصل، أخضر للواصل) على أعمدة الحاوية والكفيل
+            # التلوين الشرطي لأعمدة رقم الحاوية والكفيل (أصفر إذا لم تصل بعد، أخضر في حال وجود اسم كفيل حقيقي)
             if not is_grand_total_row:
                 if col_str in ["رقم الحاوية", "الكفيل"]:
                     if is_not_arrived:
