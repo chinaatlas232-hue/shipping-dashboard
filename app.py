@@ -177,6 +177,10 @@ def load_data():
 df = load_data()
 all_columns = df.columns.tolist()
 
+# ضبط الـ Session State للاختيارات لكي تثبت تماماً ولا تتصفر أبداً
+if "user_selected_columns" not in st.session_state:
+    st.session_state["user_selected_columns"] = all_columns
+
 # ----------------- القائمة الجانبية (Sidebar) -----------------
 st.sidebar.title("🚢 شركة أطلس المحيط")
 st.sidebar.markdown("---")
@@ -188,19 +192,16 @@ if st.sidebar.button("🔄 تحديث البيانات من جوجل شيت", us
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 👁️ التحكم بأعمدة العرض الثابتة")
 
-# الحل الجذري النهائي: استخدام st.multiselect الاحترافي الذي يحفظ حالته تماماً دون أن يعود ويفتح بالكامل
-if "selected_columns_state" not in st.session_state:
-    st.session_state["selected_columns_state"] = all_columns  # افتراضياً تظهر كلها أول مرة فقط
-
+# عنصر اختيار الأعمدة المرتبط حصرياً بذاكرة الجلسة الثابتة
 selected_columns = st.sidebar.multiselect(
     "اختر الأعمدة المراد إظهارها:",
     options=all_columns,
-    default=st.session_state["selected_columns_state"],
-    key="selected_columns_multiselect_key"
+    default=st.session_state["user_selected_columns"],
+    key="fixed_multiselect_columns_key"
 )
 
-# تحديث الحالة مباشرة
-st.session_state["selected_columns_state"] = selected_columns
+# حفظ التحديثات المباشرة دون ضياع
+st.session_state["user_selected_columns"] = selected_columns
 
 st.sidebar.markdown("---")
 
