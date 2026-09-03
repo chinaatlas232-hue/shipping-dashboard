@@ -428,7 +428,6 @@ def display_custom_html_table(df_to_render):
 
     currency_keywords = ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "المتبقي"]
 
-    # تم إزالة overflow-x: auto و max-height لكي يتمدد الجدول بحرية كلما زادت الأسطر بدون سكرول
     html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
     for col in df_to_render.columns:
         html += f'<th>{col}</th>'
@@ -442,6 +441,18 @@ def display_custom_html_table(df_to_render):
             
             cell_style = ""
             
+            # تلوين المبالغ الأكبر من 0.0 بلون وردي في أي خلية أو عمود رقمي
+            try:
+                num_val = float(str(val).replace("¥", "").replace(",", "").strip())
+                if num_val > 0.0:
+                    # استثناء أعمدة معينة مثل أرقام الحاويات إذا تم اعتبارها رقماً بالخطأ
+                    if not (target_container_col and col_str == str(target_container_col)):
+                        cell_style = ' style="background-color: #fbcfe8; color: #000000; font-weight: bold;"'
+                elif num_val == 0.0 and "متبقي حقيقي" in col_str:
+                    cell_style = ' style="background-color: #bbf7d0; color: #000000; font-weight: bold;"'
+            except:
+                pass
+
             if "متبقي حقيقي" in col_str:
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
