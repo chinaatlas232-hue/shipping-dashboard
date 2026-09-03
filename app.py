@@ -177,10 +177,6 @@ def load_data():
 df = load_data()
 all_columns = df.columns.tolist()
 
-# ضبط الـ Session State للاختيارات لكي تثبت تماماً ولا تتصفر أبداً
-if "user_selected_columns" not in st.session_state:
-    st.session_state["user_selected_columns"] = all_columns
-
 # ----------------- القائمة الجانبية (Sidebar) -----------------
 st.sidebar.title("🚢 شركة أطلس المحيط")
 st.sidebar.markdown("---")
@@ -190,18 +186,19 @@ if st.sidebar.button("🔄 تحديث البيانات من جوجل شيت", us
     st.rerun()
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 👁️ التحكم بأعمدة العرض الثابتة")
+st.sidebar.markdown("### 👁️ إخفاء الأعمدة غير المرغوبة")
+st.sidebar.markdown("<small style='color: #cbd5e1;'>حدد الأعمدة التي تريد إخفاءها فقط (اتركه فارغاً لتظهر كلها):</small>", unsafe_allow_html=True)
 
-# عنصر اختيار الأعمدة المرتبط حصرياً بذاكرة الجلسة الثابتة
-selected_columns = st.sidebar.multiselect(
-    "اختر الأعمدة المراد إظهارها:",
+# الطريقة المبتكرة: اختيار الأعمدة المراد إخفاؤها فقط (افتراضياً فارغ = الكل ظاهر وثابت لا يتصفر أبداً)
+hidden_columns = st.sidebar.multiselect(
+    "اختر الأعمدة لإخفائها:",
     options=all_columns,
-    default=st.session_state["user_selected_columns"],
-    key="fixed_multiselect_columns_key"
+    default=[],
+    key="columns_to_hide_unique_key"
 )
 
-# حفظ التحديثات المباشرة دون ضياع
-st.session_state["user_selected_columns"] = selected_columns
+# تصفية الأعمدة المتبقية للعرض
+selected_columns = [col for col in all_columns if col not in hidden_columns]
 
 st.sidebar.markdown("---")
 
@@ -425,7 +422,6 @@ if page == "dashboard":
     st.markdown("---")
     render_download_buttons(filtered_df)
     
-    # الاعتماد على القائمة المختارة عبر الـ multiselect الثابت
     df_to_display = filtered_df[selected_columns] if selected_columns else filtered_df
     display_custom_html_table(df_to_display)
 
