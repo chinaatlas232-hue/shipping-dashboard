@@ -415,8 +415,6 @@ elif page == "customs":
     if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
         not_arrived_remaining = pivot_filtered_df[pivot_filtered_df["الكفيل"].astype(str).str.contains("لم تصل بعد", na=False)]["متبقي حقيقي"].sum()
 
-    arrived_remaining = total_remaining - not_arrived_remaining
-
     m1, m2, m3, m4 = st.columns(4)
     with m1:
         st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">¥{total_customs:,.2f}</div></div>', unsafe_allow_html=True)
@@ -613,13 +611,16 @@ elif page == "aging":
 
         aging_pivot = aging_pivot[(aging_pivot > 0).any(axis=1)]
 
+        # حساب الإجماليات بشكل صحيح وآمن لتفادي أخطاء الفهرس المتعدد
         aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
         aging_grand_total = aging_pivot.sum(axis=0)
         
         if code_field:
-            aging_pivot.loc[("Grand Total", "")] = aging_grand_total
+            total_idx = ("Grand Total", "")
         else:
-            aging_pivot.loc["Grand Total"] = aging_grand_total
+            total_idx = "Grand Total"
+            
+        aging_pivot.loc[total_idx] = aging_grand_total
 
         formatted_aging = aging_pivot.map(
             lambda val: f"¥{val:,.2f}" if isinstance(val, (int, float)) and val > 0 else ""
