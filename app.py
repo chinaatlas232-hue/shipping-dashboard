@@ -14,7 +14,6 @@ st.markdown(
     <style>
     .main { background-color: #0e1117; }
     
-    /* تنسيق جدول HTML المخصص ليتوافق مع اتجاه اليمين لليسار */
     .custom-html-table {
         width: 100% !important;
         border-collapse: collapse !important;
@@ -77,7 +76,6 @@ st.markdown(
         color: #f8fafc !important;
     }
 
-    /* === التنسيقات المحسنة والمضبوطة للمسطرة الجانبية (Sidebar) === */
     [data-testid="stSidebar"] {
         background-color: #07151a !important;
         direction: rtl !important;
@@ -260,12 +258,11 @@ def clean_numeric(series):
 def load_data():
     df = None
     try:
-        # استخدام معرف جدولك المباشر لجلب البيانات
         sheet_id = "1amOmnZgzn2bhWTgje_9W2sUK6V-OygWk"
         sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
         df = pd.read_csv(sheet_url)
     except Exception as e:
-        st.sidebar.error(f"خطأ في الاتصال بملف Google Sheets: {e}")
+        pass
 
     if df is None or df.empty:
         df = pd.DataFrame(columns=[
@@ -319,38 +316,42 @@ if st.sidebar.button("🔄 تحديث البيانات من جوجل شيت"):
     st.rerun()
 
 df = load_data()
-filtered_df = df.copy()
 
 st.sidebar.markdown("### 🔍 الفلاتر الجانبية")
 
 container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df.columns), None)
-selected_container = "الكل"
-if container_col and not df.empty:
-    containers = ["الكل"] + sorted(df[container_col].dropna().astype(str).unique().tolist())
-    selected_container = st.sidebar.selectbox("🚢 اختر رقم الحاوية:", containers, key="selected_container_key")
-    if selected_container != "الكل":
-        filtered_df = filtered_df[filtered_df[container_col].astype(str) == selected_container]
-
 code_col = next((c for c in ["code", "الكود", "كود"] if c in df.columns), "code")
-selected_code = "الكل"
-if code_col in df.columns and not df.empty:
-    codes = ["الكل"] + sorted(df[code_col].dropna().astype(str).unique().tolist())
-    selected_code = st.sidebar.selectbox("🏷️ اختر الكود (Code):", codes, key="selected_code_key")
-    if selected_code != "الكل":
-        filtered_df = filtered_df[filtered_df[code_col].astype(str) == selected_code]
-
 sponsor_filter_col = next((c for c in ["الكفيل", "كفيل"] if c in df.columns), None)
-selected_sponsor = "الكل"
-if sponsor_filter_col and not df.empty:
-    sponsors = ["الكل"] + sorted(df[sponsor_filter_col].dropna().astype(str).unique().tolist())
-    selected_sponsor = st.sidebar.selectbox("👤 اختر اسم الكفيل:", sponsors, key="selected_sponsor_key")
-    if selected_sponsor != "الكل":
-        filtered_df = filtered_df[filtered_df[sponsor_filter_col].astype(str) == selected_sponsor]
+
+# تصفية تدريجية وثابتة عبر Session State
+filtered_df = df.copy()
+
+# 1. فلتر رقم الحاوية
+containers = ["الكل"] + sorted(df[container_col].dropna().astype(str).unique().tolist()) if container_col and not df.empty else ["الكل"]
+selected_container = st.sidebar.selectbox("🚢 اختر رقم الحاوية:", containers, key="selected_container_key")
+if selected_container != "الكل" and container_col:
+    filtered_df = filtered_df[filtered_df[container_col].astype(str) == selected_container]
+
+# 2. فلتر الكود
+codes = ["الكل"] + sorted(filtered_df[code_col].dropna().astype(str).unique().tolist()) if code_col in filtered_df.columns and not filtered_df.empty else ["الكل"]
+if st.session_state.get("selected_code_key", "الكل") not in codes:
+    st.session_state["selected_code_key"] = "الكل"
+selected_code = st.sidebar.selectbox("🏷️ اختر الكود (Code):", codes, key="selected_code_key")
+if selected_code != "الكل" and code_col in filtered_df.columns:
+    filtered_df = filtered_df[filtered_df[code_col].astype(str) == selected_code]
+
+# 3. فلتر الكفيل
+sponsors = ["الكل"] + sorted(filtered_df[sponsor_filter_col].dropna().astype(str).unique().tolist()) if sponsor_filter_col and not filtered_df.empty else ["الكل"]
+if st.session_state.get("selected_sponsor_key", "الكل") not in sponsors:
+    st.session_state["selected_sponsor_key"] = "الكل"
+selected_sponsor = st.sidebar.selectbox("👤 اختر اسم الكفيل:", sponsors, key="selected_sponsor_key")
+if selected_sponsor != "الكل" and sponsor_filter_col:
+    filtered_df = filtered_df[filtered_df[sponsor_filter_col].astype(str) == selected_sponsor]
 
 st.sidebar.markdown("---")
 
 st.sidebar.markdown("### 👁️ التحكم بأعمدة العرض")
-all_columns = filtered_df.columns.tolist()
+all_columns = df.columns.tolist()
 
 if "selected_columns_key" not in st.session_state:
     st.session_state["selected_columns_key"] = all_columns
@@ -427,9 +428,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         st.info("لا توجد بيانات للعرض.")
         return
         
-    target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_render.columns), None)
-    sponsor_col_check = "الكفيل" if "الكفيل" in df_to_render.columns else None
-
     currency_keywords = ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "المتبقي"]
 
     html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
@@ -490,26 +488,27 @@ if page == "dashboard":
     st.markdown("---")
     
     search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
-    if search_query and not filtered_df.empty:
-        search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات", "Shipping mark"] if c in filtered_df.columns]
+    page_filtered_df = filtered_df.copy()
+    if search_query and not page_filtered_df.empty:
+        search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات", "Shipping mark"] if c in page_filtered_df.columns]
         if search_cols:
-            mask = filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
-            filtered_df = filtered_df[mask.any(axis=1)]
+            mask = page_filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
+            page_filtered_df = page_filtered_df[mask.any(axis=1)]
 
-    total_orders = len(filtered_df)
-    total_weight = filtered_df["الوزن"].sum() if "الوزن" in filtered_df.columns else 0
-    total_ctns = filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in filtered_df.columns else 0
-    total_volume = filtered_df["حجم"].sum() if "حجم" in filtered_df.columns else 0
+    total_orders = len(page_filtered_df)
+    total_weight = page_filtered_df["الوزن"].sum() if "الوزن" in page_filtered_df.columns else 0
+    total_ctns = page_filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in page_filtered_df.columns else 0
+    total_volume = page_filtered_df["حجم"].sum() if "حجم" in page_filtered_df.columns else 0
     
-    client_field_candidates = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in filtered_df.columns]
-    total_clients = filtered_df[client_field_candidates[0]].nunique() if client_field_candidates and not filtered_df.empty else 0
-    total_containers_count = filtered_df[container_col].nunique() if container_col and container_col in filtered_df.columns and not filtered_df.empty else 0
+    client_field_candidates = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in page_filtered_df.columns]
+    total_clients = page_filtered_df[client_field_candidates[0]].nunique() if client_field_candidates and not page_filtered_df.empty else 0
+    total_containers_count = page_filtered_df[container_col].nunique() if container_col and container_col in page_filtered_df.columns and not page_filtered_df.empty else 0
 
-    office_paid_col = next((c for c in ["Office Paid", "المكتب دفع"] if c in filtered_df.columns), None)
-    client_paid_col = next((c for c in ["Client Paid", "الزبون دفع"] if c in filtered_df.columns), None)
+    office_paid_col = next((c for c in ["Office Paid", "المكتب دفع"] if c in page_filtered_df.columns), None)
+    client_paid_col = next((c for c in ["Client Paid", "الزبون دفع"] if c in page_filtered_df.columns), None)
     
-    total_office_paid = filtered_df[office_paid_col].sum() if office_paid_col else 0
-    total_client_paid = filtered_df[client_paid_col].sum() if client_paid_col else 0
+    total_office_paid = page_filtered_df[office_paid_col].sum() if office_paid_col else 0
+    total_client_paid = page_filtered_df[client_paid_col].sum() if client_paid_col else 0
 
     row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
     with row1_c1:
@@ -532,9 +531,9 @@ if page == "dashboard":
         st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">¥{total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
-    render_download_buttons(filtered_df)
+    render_download_buttons(page_filtered_df)
     
-    df_to_display = filtered_df[selected_columns] if selected_columns else filtered_df
+    df_to_display = page_filtered_df[selected_columns] if selected_columns else page_filtered_df
     display_custom_html_table(df_to_display)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
@@ -575,9 +574,7 @@ elif page == "customs":
     pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
     
     if pivot_code_col and not pivot_filtered_df.empty:
-        base_pivot_df = pivot_filtered_df.copy()
-
-        customs_summary = base_pivot_df.groupby(pivot_code_col, dropna=False).agg({
+        customs_summary = pivot_filtered_df.groupby(pivot_code_col, dropna=False).agg({
             "عدد الكارتون": "sum",
             "مبلغ الجمرك": "sum",
             "قيمة الاستحصالات": "sum",
@@ -659,12 +656,7 @@ elif page == "sponsors":
         pivot_value_col = "متبقي حقيقي" if "متبقي حقيقي" in filtered_df.columns else None
 
         if pivot_code_col and pivot_container_col and pivot_value_col:
-            base_pivot_df = df.copy()
-            
-            if selected_code != "الكل":
-                base_pivot_df = base_pivot_df[base_pivot_df[pivot_code_col].astype(str) == selected_code]
-            if selected_sponsor != "الكل" and "الكفيل" in base_pivot_df.columns:
-                base_pivot_df = base_pivot_df[base_pivot_df["الكفيل"].astype(str) == selected_sponsor]
+            base_pivot_df = filtered_df.copy()
 
             pivot_table_df = base_pivot_df.pivot_table(
                 index=pivot_code_col,
@@ -675,12 +667,15 @@ elif page == "sponsors":
             )
 
             pivot_table_df = pivot_table_df.loc[(pivot_table_df > 0).any(axis=1), (pivot_table_df > 0).any(axis=0)]
-            pivot_table_df["Grand Total"] = pivot_table_df.sum(axis=1)
-            grand_total_row = pivot_table_df.sum(axis=0)
-            pivot_table_df.loc["Grand Total"] = grand_total_row
-            pivot_table_df = pivot_table_df.reset_index()
+            if not pivot_table_df.empty:
+                pivot_table_df["Grand Total"] = pivot_table_df.sum(axis=1)
+                grand_total_row = pivot_table_df.sum(axis=0)
+                pivot_table_df.loc["Grand Total"] = grand_total_row
+                pivot_table_df = pivot_table_df.reset_index()
 
-            display_custom_html_table(pivot_table_df, is_sponsors_pivot=True)
+                display_custom_html_table(pivot_table_df, is_sponsors_pivot=True)
+            else:
+                st.info("لا توجد بيانات كافية لعرض جدول البايفت بناءً على الفلاتر المحددة.")
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
 
@@ -829,4 +824,4 @@ elif page == "charts":
             sponsor_chart_data = filtered_df.groupby("الكفيل")[["مبلغ الجمرك", "قيمة الاستحصالات"]].sum()
             st.bar_chart(sponsor_chart_data)
 
-    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=Test if False else True)
