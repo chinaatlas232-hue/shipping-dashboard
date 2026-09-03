@@ -1,6 +1,3 @@
-المطلوب ل: - ا اريد  ان يكون اعمد الجدول انا من يتحكم باظهارها في جدول العرض 
-
-حافظ علا الكود الاصلي من اي متغيرا وتنسيقات فقط قم بتحديث الكود علما ان الكود هو :- 
 import io
 import os
 import pandas as pd
@@ -74,13 +71,15 @@ st.markdown(
 
     [data-testid="stSidebar"] [data-testid="stFileUploader"] *, 
     [data-testid="stSidebar"] [data-testid="stButton"] *, 
-    [data-testid="stSidebar"] [data-testid="stSelectbox"] * {
+    [data-testid="stSidebar"] [data-testid="stSelectbox"] *,
+    [data-testid="stSidebar"] [data-testid="stMultiSelect"] * {
         color: #000000 !important;
     }
     
     [data-testid="stSidebar"] [data-testid="stFileUploader"], 
     [data-testid="stSidebar"] [data-testid="stButton"], 
-    [data-testid="stSidebar"] [data-testid="stSelectbox"] {
+    [data-testid="stSidebar"] [data-testid="stSelectbox"],
+    [data-testid="stSidebar"] [data-testid="stMultiSelect"] {
         color: #ffffff !important;
     }
 
@@ -113,7 +112,6 @@ st.markdown(
         background: #ef4444 !important;
     }
 
-    /* إخفاء القائمة الجانبية وأزرار التحميل عند الطباعة للحصول على ورقة PDF نظيفة */
     @media print {
         [data-testid="stSidebar"] {
             display: none !important;
@@ -245,6 +243,17 @@ if sponsor_filter_col and not df.empty:
 
 st.sidebar.markdown("---")
 
+# أداة التحكم بأعمدة جدول العرض الرئيسي
+st.sidebar.markdown("### 👁️ التحكم بأعمدة العرض")
+all_columns = filtered_df.columns.tolist()
+selected_columns = st.sidebar.multiselect(
+    "اختر الأعمدة المراد إظهارها:",
+    options=all_columns,
+    default=all_columns
+)
+
+st.sidebar.markdown("---")
+
 page_options = {
     "لوحة التحكم (Dashboard)": "dashboard",
     "كشف اجور الكمارك": "customs",
@@ -274,7 +283,6 @@ def render_download_buttons(data_to_download):
         )
     
     with btn_col2:
-        # استخدام st.components.v1.html للتحكم الصحيح في تفاعل زر الطباعة عبر الـ iframe
         print_html = """
             <div>
                 <button onclick="window.parent.print();" style="
@@ -368,7 +376,9 @@ if page == "dashboard":
     st.markdown("---")
     render_download_buttons(filtered_df)
     
-    styled_filtered_df = style_container_column(filtered_df)
+    # تطبيق الأعمدة المختارة من قبل المستخدم للعرض
+    df_to_display = filtered_df[selected_columns] if selected_columns else filtered_df
+    styled_filtered_df = style_container_column(df_to_display)
     table_height = max(300, min(len(filtered_df) * 35 + 50, 1200))
     st.dataframe(styled_filtered_df, use_container_width=True, height=table_height)
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
@@ -407,7 +417,6 @@ elif page == "customs":
         st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">${not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
-    
     st.markdown("### 📊 جدول ملخص أجور الكمارك والاستحصالات حسب الكود")
     
     pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
@@ -507,7 +516,6 @@ elif page == "sponsors":
         
         pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
         pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
-        
         pivot_value_col = "متبقي حقيقي" if "متبقي حقيقي" in filtered_df.columns else None
 
         if pivot_code_col and pivot_container_col and pivot_value_col:
@@ -561,7 +569,6 @@ elif page == "sponsors":
                 return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
-            
             matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
             st.markdown(f'<div style="width: 100%; overflow-x: auto;">{matrix_html}</div>', unsafe_allow_html=True)
         else:
