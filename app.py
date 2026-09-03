@@ -14,44 +14,10 @@ st.markdown(
     <style>
     .main { background-color: #0e1117; }
     
-    /* تنسيق الشريط العلوي */
-    header[data-testid="stHeader"] {
-        background-color: #07151a !important;
-    }
-    header[data-testid="stHeader"] * {
-        color: #ffffff !important;
-    }
-    
-    /* === تعديل ترويسة الجدول (Headers) بقوة إضافية لتشمل كافة الهياكل الداخلية === */
-    [data-testid="stDataFrame"] th, 
-    [data-testid="stTable"] th, 
-    table th,
-    thead tr th,
-    .stDataFrame th,
-    div[data-testid="stDataFrame"] table thead tr th,
-    div[data-testid="stTable"] table thead tr th,
-    div[data-baseweb="data-table"] th,
-    div.dvn-scroller th {
-        background-color: #0b192c !important;
-        background: #0b192c !important;
-        color: #ffffff !important;
-        font-weight: bold !important;
-    }
-    
-    [data-testid="stDataFrame"] th *, 
-    [data-testid="stTable"] th *, 
-    table th *,
-    thead tr th *,
-    div[data-testid="stDataFrame"] th span,
-    div[data-testid="stDataFrame"] th div {
-        color: #ffffff !important;
-        font-weight: bold !important;
-    }
-
     .metric-card {
         padding: 16px; border-radius: 12px; color: white;
         text-align: center; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+        margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
     .metric-title { font-size: 14px; margin-bottom: 6px; opacity: 0.95; font-weight: 600; }
     .metric-value { font-size: 20px; font-weight: bold; }
@@ -179,6 +145,7 @@ def load_data(uploaded_file):
     if uploaded_file is not None:
         try:
             df = pd.read_excel(uploaded_file)
+            df.columns = df.columns.astype(str).str.strip()
             df.to_excel(DATA_FILE, index=False)
             st.sidebar.success("تم حفظ الملف الجديد بنجاح ✔️")
         except Exception as e:
@@ -277,6 +244,7 @@ if sponsor_filter_col and not df.empty:
 
 st.sidebar.markdown("---")
 
+# أداة التحكم بأعمدة جدول العرض الرئيسي
 st.sidebar.markdown("### 👁️ التحكم بأعمدة العرض")
 all_columns = filtered_df.columns.tolist()
 selected_columns = st.sidebar.multiselect(
@@ -319,7 +287,7 @@ def render_download_buttons(data_to_download):
         print_html = """
             <div>
                 <button onclick="window.parent.print();" style="
-                    background-color: #64748b;
+                    background-color: #ff4b4b;
                     color: white;
                     padding: 0.45rem 0.75rem;
                     border: none;
@@ -350,7 +318,7 @@ def style_container_column(df_to_style):
             else:
                 format_dict[col] = "{:,.2f}"
 
-    styler = df_to_style.style.format(format_dict, na_rep="")
+    styler = df_to_style.style.format(format_dict)
 
     if not target_container_col:
         return styler
@@ -370,9 +338,9 @@ def style_container_column(df_to_style):
                     is_arrived = True
             
             if is_not_arrived:
-                styles[col_idx] = 'background-color: #fef08a !important; color: #000000 !important; font-weight: bold;'
+                styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold;'
             elif is_arrived:
-                styles[col_idx] = 'background-color: #bbf7d0 !important; color: #000000 !important; font-weight: bold;'
+                styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
                 
         return styles
 
@@ -397,26 +365,25 @@ if page == "dashboard":
     total_office_paid = filtered_df[office_paid_col].sum() if office_paid_col else 0
     total_client_paid = filtered_df[client_paid_col].sum() if client_paid_col else 0
 
-    # === استخدام ألوان هادئة ومريحة للمربعات (Soft Pastel / Muted Tones) ===
     row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
     with row1_c1:
-        st.markdown(f'<div class="metric-card" style="background-color: #475569;"><div class="metric-title">📦 عدد الطلبات / الطرود</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات / الطرود</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
     with row1_c2:
-        st.markdown(f'<div class="metric-card" style="background-color: #334155;"><div class="metric-title">👥 إجمالي عدد العملاء</div><div class="metric-value">{total_clients:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">👥 إجمالي عدد العملاء</div><div class="metric-value">{total_clients:,}</div></div>', unsafe_allow_html=True)
     with row1_c3:
-        st.markdown(f'<div class="metric-card" style="background-color: #3b82f6;"><div class="metric-title">🚢 إجمالي عدد الحاويات</div><div class="metric-value">{total_containers_count:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #1d4ed8;"><div class="metric-title">🚢 إجمالي عدد الحاويات</div><div class="metric-value">{total_containers_count:,}</div></div>', unsafe_allow_html=True)
     with row1_c4:
-        st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.2f}</div></div>', unsafe_allow_html=True)
 
     row2_c1, row2_c2, row2_c3, row2_c4 = st.columns(4)
     with row2_c1:
-        st.markdown(f'<div class="metric-card" style="background-color: #0d9488;"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #047857;"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c2:
-        st.markdown(f'<div class="metric-card" style="background-color: #78350f;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #7c2d12;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c3:
-        st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">💰 مبالغ دفعت من المكتب</div><div class="metric-value">¥{total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">💰 مبالغ دفعت من المكتب</div><div class="metric-value">¥{total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c4:
-        st.markdown(f'<div class="metric-card" style="background-color: #8b5cf6;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">¥{total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">¥{total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     render_download_buttons(filtered_df)
@@ -452,13 +419,13 @@ elif page == "customs":
 
     m1, m2, m3, m4 = st.columns(4)
     with m1:
-        st.markdown(f'<div class="metric-card" style="background-color: #3b82f6;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">¥{total_customs:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">¥{total_customs:,.2f}</div></div>', unsafe_allow_html=True)
     with m2:
-        st.markdown(f'<div class="metric-card" style="background-color: #0d9488;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">¥{total_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">¥{total_remaining:,.2f}</div></div>', unsafe_allow_html=True)
     with m3:
-        st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">إجمالي الاستحصالات (المسدد)</div><div class="metric-value">¥{total_collected:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">إجمالي الاستحصالات (المسدد)</div><div class="metric-value">¥{total_collected:,.2f}</div></div>', unsafe_allow_html=True)
     with m4:
-        st.markdown(f'<div class="metric-card" style="background-color: #64748b;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">¥{not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">¥{not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### 📊 جدول ملخص أجور الكمارك والاستحصالات حسب الكود")
@@ -501,7 +468,7 @@ elif page == "customs":
         def style_customs_table(row):
             styles = [''] * len(row)
             if str(row["Row Labels"]) == "Grand Total":
-                return ['background-color: #e2e8f0 !important; color: #000000 !important; font-weight: bold;'] * len(row)
+                return ['background-color: #e2e8f0; color: #000000; font-weight: bold;'] * len(row)
             return styles
 
         styled_customs_table = formatted_customs.style.apply(style_customs_table, axis=1)
@@ -540,9 +507,9 @@ elif page == "sponsors":
             s_remaining = row["total_remaining"]
             s_orders = row["total_orders"]
             
-            card_bg = "#334155"
+            card_bg = "#1e3a8a"
             if "لم تصل بعد" in str(sponsor_name):
-                card_bg = "#64748b"
+                card_bg = "#b45309"
             
             st.markdown(f"""
                 <div style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -610,8 +577,8 @@ elif page == "sponsors":
             
             def style_pivot_cells(val):
                 if val == "":
-                    return 'background-color: #f8fafc !important; color: transparent !important;'
-                return 'background-color: #f1f5f9 !important; color: #000000 !important; font-weight: bold;'
+                    return 'background-color: #f8fafc; color: transparent;'
+                return 'background-color: #fce7f3; color: #000000; font-weight: bold;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
             matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%;" id')
@@ -667,11 +634,11 @@ elif page == "aging":
                 
             for val in row:
                 if is_total_row:
-                    styles.append('background-color: #e2e8f0 !important; color: #0f172a !important; font-weight: bold; text-align: center;')
+                    styles.append('background-color: #e2e8f0; color: #0f172a; font-weight: bold; text-align: center;')
                 elif val == "":
-                    styles.append('background-color: #f8fafc !important; color: transparent !important; text-align: center;')
+                    styles.append('background-color: #f8fafc; color: transparent; text-align: center;')
                 else:
-                    styles.append('background-color: #ffffff !important; color: #000000 !important; font-weight: bold; text-align: center;')
+                    styles.append('background-color: #ffffff; color: #000000; font-weight: bold; text-align: center;')
             return styles
 
         styled_aging_matrix = formatted_aging.style.apply(style_aging_cells, axis=1).set_table_styles([
@@ -694,11 +661,11 @@ elif page == "collections":
     if not filtered_df.empty:
         total_c = filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in filtered_df.columns else 0
         total_coll = filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in filtered_df.columns else 0
-        total_rem = filtered_df["متبقي حقيقي" if "متبقي حقيقي" in filtered_df.columns else filtered_df.columns[0]].sum() if "متبقي حقيقي" in filtered_df.columns else 0
+        total_rem = filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in filtered_df.columns else 0
 
         mc1, mc2, mc3 = st.columns(3)
         with mc1:
-            st.markdown(f'<div class="metric-card" style="background-color: #3b82f6;"><div class="metric-title">إجمالي مبالغ الجمرك</div><div class="metric-value">¥{total_c:,.2f}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">إجمالي مبالغ الجمرك</div><div class="metric-value">¥{total_c:,.2f}</div></div>', unsafe_allow_html=True)
         with mc2:
             st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">إجمالي الاستحصالات</div><div class="metric-value">¥{total_coll:,.2f}</div></div>', unsafe_allow_html=True)
         with mc3:
@@ -743,7 +710,7 @@ elif page == "collections":
             container_val = str(row["رقم الحاوية"])
             
             if container_val == "Grand Total":
-                return ['background-color: #f1f5f9 !important; color: #000000 !important; font-weight: bold;'] * len(row)
+                return ['background-color: #f1f5f9; color: #000000; font-weight: bold;'] * len(row)
             
             container_col_name = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
             if container_col_name and "الكفيل" in filtered_df.columns:
@@ -760,9 +727,9 @@ elif page == "collections":
                 
                 col_idx = row.index.get_loc("رقم الحاوية")
                 if is_not_arrived:
-                    styles[col_idx] = 'background-color: #fef08a !important; color: #000000 !important; font-weight: bold;'
+                    styles[col_idx] = 'background-color: #fef08a; color: #000000; font-weight: bold;'
                 elif is_arrived:
-                    styles[col_idx] = 'background-color: #bbf7d0 !important; color: #000000 !important; font-weight: bold;'
+                    styles[col_idx] = 'background-color: #bbf7d0; color: #000000; font-weight: bold;'
             
             return styles
 
