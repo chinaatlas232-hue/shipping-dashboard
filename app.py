@@ -177,6 +177,10 @@ def load_data():
 df = load_data()
 all_columns = df.columns.tolist()
 
+# تهيئة حالة الذاكرة لإخفاء الأعمدة بشكل دائم
+if "hidden_columns_state" not in st.session_state:
+    st.session_state["hidden_columns_state"] = []
+
 # ----------------- القائمة الجانبية (Sidebar) -----------------
 st.sidebar.title("🚢 شركة أطلس المحيط")
 st.sidebar.markdown("---")
@@ -189,17 +193,19 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 👁️ إخفاء الأعمدة غير المرغوبة")
 st.sidebar.markdown("<small style='color: #cbd5e1;'>حدد الأعمدة التي تريد إخفاءها من الجدول:</small>", unsafe_allow_html=True)
 
-# استخدام مفتاح ثابث وتخزين الحالة لضمان عدم ضياع الاختيارات عند التحديث
-if "hidden_columns_state" not in st.session_state:
-    st.session_state["hidden_columns_state"] = []
+# دالة تحديث الحالة تلقائياً عند تغيير الـ multiselect لمنع إعادة الضبط
+def update_hidden_cols():
+    st.session_state["hidden_columns_state"] = st.session_state["columns_to_hide_unique_key"]
 
-hidden_columns = st.sidebar.multiselect(
+st.sidebar.multiselect(
     "اختر الأعمدة لإخفائها:",
     options=all_columns,
-    default=st.session_state["hidden_columns_state"],
-    key="columns_to_hide_unique_key"
+    default=[c for c in st.session_state["hidden_columns_state"] if c in all_columns],
+    key="columns_to_hide_unique_key",
+    on_change=update_hidden_cols
 )
-st.session_state["hidden_columns_state"] = hidden_columns
+
+hidden_columns = st.session_state["hidden_columns_state"]
 
 st.sidebar.markdown("---")
 
@@ -294,7 +300,7 @@ if hidden_columns:
     view_df = view_df.drop(columns=cols_to_drop)
 
 
-# دُوَل التصدير والعرض المحدثة بالكامل
+# دوال التصدير والعرض المحدثة بالكامل
 def render_download_buttons(data_to_download):
     st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
     btn_col1, btn_col2 = st.columns([1, 1])
@@ -327,7 +333,6 @@ def render_download_buttons(data_to_download):
     st.markdown('</div>', unsafe_allow_html=True)
 
 def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_report=False):
-    # التأكد التام من استبعاد الأعمدة المخفية حتى داخل دالة الرسم
     if hidden_columns:
         df_to_render = df_to_render.drop(columns=[c for c in hidden_columns if c in df_to_render.columns])
 
