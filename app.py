@@ -108,7 +108,7 @@ st.markdown(
     }
 
     ::-webkit-scrollbar {
-        width: 100px !important;
+        width: 10px !important;
         height: 10px !important;
     }
     ::-webkit-scrollbar-track {
@@ -121,14 +121,15 @@ st.markdown(
         border-radius: 4px !important;
     }
 
+    /* تعديلات الطباعة لإزالة الفراغات الكبيرة وتنسيق الصفحات */
     @media print {
         @page {
             size: A4 landscape;
-            margin: 0mm !important;
+            margin: 10mm !important;
         }
         
         html, body {
-            height: 100% !important;
+            height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
             background-color: #ffffff !important;
@@ -142,6 +143,10 @@ st.markdown(
         div[data-testid="stHorizontalBlock"],
         iframe {
             display: none !important;
+            height: 0 !important;
+            max-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         
         .main, .block-container {
@@ -151,9 +156,7 @@ st.markdown(
             max-width: 100% !important;
             width: 100% !important;
             display: block !important;
-            position: absolute !important;
-            top: 0 !important;
-            right: 0 !important;
+            position: relative !important;
         }
 
         h1 {
@@ -169,7 +172,12 @@ st.markdown(
         .custom-html-table {
             width: 100% !important;
             font-size: 10px !important;
-            page-break-inside: auto;
+            page-break-inside: auto !important;
+        }
+
+        .custom-html-table tr {
+            page-break-inside: avoid !important;
+            page-break-after: auto !important;
         }
 
         .custom-html-table th {
@@ -177,16 +185,13 @@ st.markdown(
             color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
             padding: 4px !important;
+            page-break-inside: avoid !important;
+            page-break-after: avoid !important;
         }
 
         .custom-html-table td {
             padding: 3px 2px !important;
             font-size: 10px !important;
-        }
-        
-        tr {
-            page-break-inside: avoid;
-            page-break-after: auto;
         }
     }
     </style>
