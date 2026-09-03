@@ -121,7 +121,6 @@ st.markdown(
         border-radius: 4px !important;
     }
 
-    /* تنسيقات الطباعة الصارمة: فرض العرض الأفقي A4 وإخفاء حقول البحث والأزرار تماماً */
     @media print {
         @page {
             size: A4 landscape;
@@ -339,12 +338,13 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         
     df_with_seq = df_to_render.copy()
     seq_list = []
-    for idx, row in enumerate(df_with_seq.iterrows(), start=1):
+    
+    for _, row in df_with_seq.iterrows():
         is_total = any(str(val).strip() in ["Grand Total", "GrandTotal"] for val in row.values)
         if is_total:
             seq_list.append("")
         else:
-            seq_list.append(idx)
+            seq_list.append(len(seq_list) + 1)
             
     df_with_seq.insert(0, "التسلسل", seq_list)
 
@@ -366,7 +366,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             val_str = str(val).strip()
             cell_style = ""
             
-            # تلوين أي خلية تحتوي على Grand Total بلون رصاصي طوخ (داكن)
+            # تلوين أي خلية تحتوي على Grand Total بلون رصاصي داكن
             if val_str in ["Grand Total", "GrandTotal"]:
                 cell_style = ' style="background-color: #4b5563 !important; color: #ffffff !important; font-weight: bold;"'
             else:
