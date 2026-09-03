@@ -108,7 +108,7 @@ st.markdown(
     }
 
     ::-webkit-scrollbar {
-        width: 10px !important;
+        width: 100px !important;
         height: 10px !important;
     }
     ::-webkit-scrollbar-track {
@@ -124,13 +124,15 @@ st.markdown(
     @media print {
         @page {
             size: A4 landscape;
-            margin: 5mm;
+            margin: 0mm !important;
         }
         
         html, body {
-            height: auto !important;
-            overflow: visible !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
             background-color: #ffffff !important;
+            -webkit-print-color-adjust: exact !important;
         }
 
         [data-testid="stSidebar"],
@@ -149,16 +151,19 @@ st.markdown(
             max-width: 100% !important;
             width: 100% !important;
             display: block !important;
+            position: absolute !important;
+            top: 0 !important;
+            right: 0 !important;
         }
 
         h1 {
             margin-top: 0 !important;
             margin-bottom: 10px !important;
-            padding: 5px 10px !important;
+            padding: 8px 12px !important;
             font-size: 14px !important;
             background-color: #1e293b !important;
             color: #ffffff !important;
-            -webkit-print-color-adjust: exact;
+            -webkit-print-color-adjust: exact !important;
         }
 
         .custom-html-table {
@@ -170,7 +175,7 @@ st.markdown(
         .custom-html-table th {
             background-color: #0b2239 !important;
             color: #ffffff !important;
-            -webkit-print-color-adjust: exact;
+            -webkit-print-color-adjust: exact !important;
             padding: 4px !important;
         }
 
