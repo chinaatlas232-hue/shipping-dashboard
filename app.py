@@ -121,14 +121,14 @@ st.markdown(
         border-radius: 4px !important;
     }
 
-    /* تنسيقات الطباعة الصارمة لإخفاء الأزرار وقوائم الإدخال تماماً */
+    /* تنسيقات الطباعة الصارمة لإخفاء حقول البحث، الأزرار، الشريط الجانبي تماماً */
     @media print {
-        /* إخفاء الشريط الجانبي والرأس ومكونات الـ Iframe والأزرار وحقول البحث */
         [data-testid="stSidebar"],
         header,
         .no-print,
-        iframe,
-        div[data-testid="stHorizontalBlock"] {
+        div[data-testid="stTextInput"],
+        div[data-testid="stHorizontalBlock"],
+        iframe {
             display: none !important;
         }
         
@@ -394,7 +394,6 @@ if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
     st.markdown("---")
     
-    # تغليف خانة البحث الذكي بـ no-print لإخفائها تماماً عند الطباعة
     st.markdown('<div class="no-print">', unsafe_allow_html=True)
     search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
     st.markdown('</div>', unsafe_allow_html=True)
@@ -453,7 +452,10 @@ elif page == "customs":
     st.title("💰 كشف اجور الكمارك")
     st.markdown("---")
     
+    st.markdown('<div class="no-print">', unsafe_allow_html=True)
     search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
+    st.markdown('</div>', unsafe_allow_html=True)
+
     pivot_filtered_df = filtered_df.copy()
     
     if search_query and not pivot_filtered_df.empty:
