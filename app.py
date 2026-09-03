@@ -125,7 +125,7 @@ st.markdown(
         background: #ef4444 !important;
     }
 
-    /* إعدادات الطباعة المخصصة لصفحة A4 */
+    /* إعدادات الطباعة المخصصة لصفحة A4 وتجنب تداخل الأزرار */
     @page {
         size: A4 portrait;
         margin: 10mm;
@@ -138,13 +138,14 @@ st.markdown(
         header {
             display: none !important;
         }
-        .stDownloadButton, button {
+        .stDownloadButton, button, .stButton, .no-print {
             display: none !important;
         }
         body {
             background-color: #ffffff !important;
             color: #000000 !important;
             font-size: 12px !important;
+            direction: rtl !important;
         }
         table, tr, td, th {
             page-break-inside: avoid !important;
@@ -300,6 +301,8 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 def render_download_buttons(data_to_download):
+    # استخدام فئة no-print لمنع ظهور الأزرار أثناء الطباعة أو الحفظ كـ PDF
+    st.markdown('<div class="no-print">', unsafe_allow_html=True)
     btn_col1, btn_col2 = st.columns([1, 1])
     with btn_col1:
         buffer = io.BytesIO()
@@ -314,7 +317,7 @@ def render_download_buttons(data_to_download):
     
     with btn_col2:
         print_html = """
-            <div>
+            <div style="width: 100%;">
                 <button onclick="window.parent.print();" style="
                     background-color: #ff4b4b;
                     color: white;
@@ -333,6 +336,7 @@ def render_download_buttons(data_to_download):
             </div>
         """
         components.html(print_html, height=45)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 def style_container_column(df_to_style):
     target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_style.columns), None)
@@ -493,7 +497,6 @@ elif page == "customs":
                 formatted_customs[col] = formatted_customs[col].apply(lambda x: f"¥{x:,.2f}" if isinstance(x, (int, float)) else x)
 
         def style_customs_table(row):
-            styles = [''] * len(row)
             if str(row["Row Labels"]) == "Grand Total":
                 return ['background-color: #e2e8f0; color: #000000; font-weight: bold; text-align: center;'] * len(row)
             return ['text-align: center;'] * len(row)
@@ -597,11 +600,11 @@ elif page == "sponsors":
                         is_arrived = True
                 
                 if is_not_arrived:
-                    bg_color = "#fef08a"  # أصفر
+                    bg_color = "#fef08a"
                 elif is_arrived:
-                    bg_color = "#bbf7d0"  # أخضر
+                    bg_color = "#bbf7d0"
                 else:
-                    bg_color = "#e2e8f0"  # لون محايد افتراضي إذا لم يتوفر كفيل
+                    bg_color = "#e2e8f0"
                 
                 html_col_name = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{col}</div>'
                 new_columns.append(html_col_name)
@@ -694,11 +697,11 @@ elif page == "aging":
                             is_arrived = True
                     
                     if is_not_arrived:
-                        bg_color = "#fef08a"  # أصفر
+                        bg_color = "#fef08a"
                     elif is_arrived:
-                        bg_color = "#bbf7d0"  # أخضر
+                        bg_color = "#bbf7d0"
                     else:
-                        bg_color = "#e2e8f0"  # محايد
+                        bg_color = "#e2e8f0"
                     
                     html_badge = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{c_cont_str}</div>'
                     
@@ -800,11 +803,11 @@ elif page == "collections":
                     is_arrived = True
             
             if is_not_arrived:
-                bg_color = "#fef08a"  # أصفر
+                bg_color = "#fef08a"
             elif is_arrived:
-                bg_color = "#bbf7d0"  # أخضر
+                bg_color = "#bbf7d0"
             else:
-                bg_color = "#e2e8f0"  # محايد
+                bg_color = "#e2e8f0"
                 
             html_badge = f'<div style="background-color: {bg_color}; padding: 4px 8px; border-radius: 4px; color: black; font-weight: bold; text-align: center;">{val_str}</div>'
             formatted_container_col.append(html_badge)
