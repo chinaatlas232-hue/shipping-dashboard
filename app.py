@@ -187,18 +187,15 @@ if st.sidebar.button("🔄 تحديث البيانات من جوجل شيت", us
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 👁️ إخفاء الأعمدة غير المرغوبة")
-st.sidebar.markdown("<small style='color: #cbd5e1;'>حدد الأعمدة التي تريد إخفاءها فقط (اتركه فارغاً لتظهر كلها):</small>", unsafe_allow_html=True)
+st.sidebar.markdown("<small style='color: #cbd5e1;'>حدد الأعمدة التي تريد إخفاءها من الجدول:</small>", unsafe_allow_html=True)
 
-# الطريقة المبتكرة: اختيار الأعمدة المراد إخفاؤها فقط (افتراضياً فارغ = الكل ظاهر وثابت لا يتصفر أبداً)
+# اختيار الأعمدة المراد إخفاؤها
 hidden_columns = st.sidebar.multiselect(
     "اختر الأعمدة لإخفائها:",
     options=all_columns,
     default=[],
     key="columns_to_hide_unique_key"
 )
-
-# تصفية الأعمدة المتبقية للعرض
-selected_columns = [col for col in all_columns if col not in hidden_columns]
 
 st.sidebar.markdown("---")
 
@@ -285,6 +282,13 @@ if sponsor_col_name and selected_sponsors_filter:
 
 if goods_col_name and selected_goods_filter:
     filtered_df = filtered_df[filtered_df[goods_col_name].astype(str).isin(selected_goods_filter)]
+
+# **تطبيق إخفاء الأعمدة المحددة فوراً هنا**
+if hidden_columns:
+    cols_to_drop = [c for c in hidden_columns if c in filtered_df.columns]
+    view_df = filtered_df.drop(columns=cols_to_drop)
+else:
+    view_df = filtered_df.copy()
 
 
 # دوال التصدير والعرض
@@ -420,10 +424,8 @@ if page == "dashboard":
         st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">¥{total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
-    render_download_buttons(filtered_df)
-    
-    df_to_display = filtered_df[selected_columns] if selected_columns else filtered_df
-    display_custom_html_table(df_to_display)
+    render_download_buttons(view_df)
+    display_custom_html_table(view_df)
 
 elif page == "customs":
     st.title("💰 كشف اجور الكمارك")
@@ -456,6 +458,11 @@ elif page == "customs":
             "متبقي حقيقي": [customs_summary["متبقي حقيقي"].sum()]
         })
         customs_summary = pd.concat([customs_summary, grand_total_row], ignore_index=True)
+        
+        # تطبيق إخفاء الأعمدة على ملخص الكمارك أيضاً
+        if hidden_columns:
+            customs_summary = customs_summary.drop(columns=[c for c in hidden_columns if c in customs_summary.columns])
+            
         render_download_buttons(customs_summary)
         display_custom_html_table(customs_summary)
 
@@ -487,13 +494,13 @@ elif page == "aging":
     st.title("⏳ تقرير أعمار الديون (Aging Report)")
     st.markdown("---")
     if not filtered_df.empty:
-        display_custom_html_table(filtered_df[selected_columns] if selected_columns else filtered_df)
+        display_custom_html_table(view_df)
 
 elif page == "collections":
     st.title("🛃 كمرك الشحنات والاستحصالات")
     st.markdown("---")
-    render_download_buttons(filtered_df)
-    display_custom_html_table(filtered_df[selected_columns] if selected_columns else filtered_df)
+    render_download_buttons(view_df)
+    display_custom_html_table(view_df)
 
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية")
