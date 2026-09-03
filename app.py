@@ -348,8 +348,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             
     df_with_seq.insert(0, "التسلسل", seq_list)
 
-    currency_keywords = ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "المتبقي"]
-
     html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
     for col in df_with_seq.columns:
         html += f'<th>{col}</th>'
@@ -366,7 +364,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             val_str = str(val).strip()
             cell_style = ""
             
-            # تلوين أي خلية تحتوي على Grand Total بلون رصاصي داكن
             if val_str in ["Grand Total", "GrandTotal"]:
                 cell_style = ' style="background-color: #4b5563 !important; color: #ffffff !important; font-weight: bold;"'
             else:
@@ -394,7 +391,10 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             elif pd.isna(val) or val_str == "" or val_str.lower() == "nan":
                 formatted_val = "0.00"
             elif numeric_val is not None:
-                if any(kw in col_str for kw in currency_keywords):
+                # التحقق الشامل من الكلمات المالية أو أعمدة النواتج لتطبيق رمز العملة ¥
+                is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
+                
+                if is_currency_col:
                     formatted_val = f"¥{numeric_val:,.2f}"
                 else:
                     formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}" if numeric_val.is_integer() else f"{numeric_val:,.2f}"
