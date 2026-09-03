@@ -443,6 +443,20 @@ def display_custom_html_table(df_to_render):
             col_str = str(col)
             
             cell_style = ""
+            
+            # التنسيق الجديد لعمود متبقي حقيقي أو أي عمود يحتوي على "متبقي حقيقي"
+            if "متبقي حقيقي" in col_str:
+                try:
+                    num_val = float(str(val).replace("¥", "").replace(",", "").strip())
+                    if num_val == 0.0:
+                        # خلفية خضراء هادئة إذا كانت القيمة 0.00
+                        cell_style = ' style="background-color: #bbf7d0; color: #000000; font-weight: bold;"'
+                    elif num_val > 0.0:
+                        # خلفية وردية إذا كانت القيمة أكبر من 0.0
+                        cell_style = ' style="background-color: #fbcfe8; color: #000000; font-weight: bold;"'
+                except:
+                    pass
+
             if target_container_col and col_str == str(target_container_col):
                 is_arrived = False
                 is_not_arrived = False
