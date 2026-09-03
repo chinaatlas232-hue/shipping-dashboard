@@ -125,33 +125,34 @@ st.markdown(
         background: #ef4444 !important;
     }
 
-    /* إعدادات الطباعة المخصصة لصفحة A4 وتجنب تداخل الأزرار */
-    @page {
-        size: A4 portrait;
-        margin: 10mm;
-    }
-
+    /* إعدادات الطباعة المخصصة لمنع انقسام الجداول على صفحتين وضبط المقاسات */
     @media print {
-        [data-testid="stSidebar"] {
-            display: none !important;
+        @page {
+            size: A4 landscape;
+            margin: 3mm;
         }
-        header {
-            display: none !important;
-        }
-        .stDownloadButton, button, .stButton, .no-print {
+        [data-testid="stSidebar"], header, .stDownloadButton, button, .stButton, .no-print {
             display: none !important;
         }
         body {
             background-color: #ffffff !important;
             color: #000000 !important;
-            font-size: 12px !important;
+            font-size: 9px !important;
             direction: rtl !important;
+            zoom: 80%;
+        }
+        .block-container {
+            padding: 0rem !important;
+            max-width: 100% !important;
         }
         table, tr, td, th {
             page-break-inside: avoid !important;
+            font-size: 9px !important;
+            padding: 3px !important;
         }
-        div {
-            page-break-inside: avoid;
+        div, table {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
         }
     }
     </style>
@@ -301,7 +302,6 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 def render_download_buttons(data_to_download):
-    # استخدام فئة no-print لمنع ظهور الأزرار أثناء الطباعة أو الحفظ كـ PDF
     st.markdown('<div class="no-print">', unsafe_allow_html=True)
     btn_col1, btn_col2 = st.columns([1, 1])
     with btn_col1:
