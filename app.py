@@ -14,17 +14,19 @@ st.markdown(
     <style>
     .main { background-color: #0e1117; }
     
-    /* تنسيق رؤوس الجداول لتكون بلون الحبري الداكن ونص أبيض وتوسيط */
+    /* تنسيق رؤوس الجداول لتكون بلون الحبري الداكن ونص أبيض وتوسيط واتجاه صحيح */
     table tr th, [data-testid="stDataFrame"] th, [data-testid="stTable"] th {
         background-color: #0b2239 !important;
         color: #ffffff !important;
         text-align: center !important;
         font-weight: bold !important;
+        direction: rtl !important;
     }
 
-    /* توسيط المحتوى والأرقام داخل خلايا الجداول */
+    /* توسيط المحتوى والأرقام داخل خلايا الجداول وضبط الاتجاه */
     table tr td, [data-testid="stDataFrame"] td, [data-testid="stTable"] td {
         text-align: center !important;
+        direction: rtl !important;
     }
     
     .metric-card {
@@ -41,6 +43,7 @@ st.markdown(
         padding-left: 1rem !important; 
         padding-right: 1rem !important; 
         max-width: 100% !important; 
+        direction: rtl !important;
     }
 
     [data-testid="stDataFrame"], [data-testid="stTable"], table {
@@ -52,18 +55,19 @@ st.markdown(
     }
 
     h1 {
-        background-color: #e2e8f0 !important;
-        color: #0f172a !important;
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
         padding: 15px 20px !important;
         border-radius: 8px !important;
         margin-bottom: 20px !important;
         margin-top: 10px !important;
+        text-align: right !important;
     }
 
     [data-testid="stTextInput"] label {
         font-size: 18px !important;
         font-weight: bold !important;
-        color: #1f2937 !important;
+        color: #f8fafc !important;
     }
 
     [data-testid="stSidebar"] {
@@ -131,7 +135,6 @@ st.markdown(
             size: A4 landscape;
             margin: 3mm;
         }
-        /* إخفاء القائمة الجانبية، الهيدر، الأزرار، الحاويات الخاصة المكونة، والإطارات تماماً */
         [data-testid="stSidebar"], header, .stDownloadButton, button, .stButton, .no-print, iframe, [data-testid="stIFrame"] {
             display: none !important;
             visibility: hidden !important;
@@ -308,7 +311,6 @@ st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
 def render_download_buttons(data_to_download):
-    # استخدام فئة no-print مباشرة على الحاوية الخارجية لمنع طباعتها نهائياً
     st.markdown('<div class="no-print">', unsafe_allow_html=True)
     btn_col1, btn_col2 = st.columns([1, 1])
     with btn_col1:
@@ -550,7 +552,7 @@ elif page == "sponsors":
             
             st.markdown(f"""
                 <div style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; color: #ffffff !important;">👤 الكفيل: {sponsor_name}</h3>
+                    <h3 style="margin: 0 0 10px 0; font-size: 18px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px; color: #ffffff !important; text-align: right;">👤 الكفيل: {sponsor_name}</h3>
                     <div style="display: flex; justify-content: space-between; font-size: 15px; text-align: center; color: #ffffff !important;">
                         <div>📦 الطلبات: <b style="color: #ffffff;">{s_orders:,.2f}</b></div>
                         <div>💰 الجمرك: <b style="color: #ffffff;">¥{s_customs:,.2f}</b></div>
@@ -628,7 +630,7 @@ elif page == "sponsors":
                 return 'background-color: #fce7f3; color: #000000; font-weight: bold; text-align: center;'
 
             styled_matrix = formatted_pivot.style.map(style_pivot_cells)
-            matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center;" id')
+            matrix_html = styled_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center; direction: rtl;" id')
             st.markdown(f'<div style="width: 100%; overflow-x: auto;">{matrix_html}</div>', unsafe_allow_html=True)
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
@@ -743,7 +745,7 @@ elif page == "aging":
 
                 render_download_buttons(aging_pivot.reset_index())
                 
-                aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center;" id')
+                aging_html = styled_aging_matrix.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center; direction: rtl;" id')
                 st.markdown(f'<div style="width: 100%; overflow-x: auto;">{aging_html}</div>', unsafe_allow_html=True)
     else:
         st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
@@ -841,12 +843,12 @@ elif page == "collections":
 
         styled_summary = formatted_agg.style.apply(style_summary_cells, axis=1)
 
-        summary_summary_html = styled_summary.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center;" id')
+        summary_summary_html = styled_summary.to_html(escape=False).replace('<table id', '<table style="width: 100%; text-align: center; direction: rtl;" id')
         st.markdown(f'<div style="width: 100%; overflow-x: auto;">{summary_summary_html}</div>', unsafe_allow_html=True)
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
 
-    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-block: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
