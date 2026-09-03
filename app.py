@@ -325,25 +325,15 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             col_str = str(col)
             cell_style = ""
             
-            # فحص عمود متبقي حقيقي وتلوين الخلفية بالوردي إذا كان الرقم أكبر من 0.0
-            if "متبقي حقيقي" in col_str:
-                try:
-                    num_check = float(str(val).replace("¥", "").replace(",", "").strip())
-                    if num_check > 0.0:
-                        cell_style = ' style="background-color: #fbcfe8 !important; color: #9d174d !important; font-weight: bold;"'
-                except:
-                    pass
-
             if not is_grand_total_row:
                 if is_not_arrived:
-                    # تلوين الصف بالكامل باللون الأصفر إذا كانت الشحنة لم تصل بعد (ما لم يكن عمود المتبقي الحقيقي مخصصاً بالوردي)
-                    if not ("متبقي حقيقي" in col_str and cell_style != ""):
-                        cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important;"'
+                    # تلوين الصف بالكامل باللون الأصفر إذا كانت الشحنة لم تصل بعد
+                    cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important;"'
                     if col_str in ["رقم الحاوية", "الكفيل"]:
                         cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
                 else:
                     # تلوين أعمدة الحاوية والكفيل بالأخضر للشحنات الواصلة التي لها كفيل
-                    if col_str in ["رقم الحاوية", "الكفيل"] and cell_style == "":
+                    if col_str in ["رقم الحاوية", "الكفيل"]:
                         cell_style = ' style="background-color: #bbf7d0 !important; color: #065f46 !important; font-weight: bold;"'
 
             formatted_val = val
@@ -716,3 +706,4 @@ elif page == "charts":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
