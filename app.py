@@ -2,12 +2,6 @@ import io
 import os
 import pandas as pd
 import streamlit as st
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib import colors
 
 # 1. إعداد الصفحة والتنسيقات
 st.set_page_config(
@@ -249,47 +243,6 @@ page = page_options[selected_page_label]
 st.sidebar.markdown("---")
 st.sidebar.info("النظام يعمل بكفاءة ✔️")
 
-def generate_pdf_buffer(data_to_download):
-    pdf_buffer = io.BytesIO()
-    doc = SimpleDocTemplate(pdf_buffer, pagesize=letter, rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
-    elements = []
-    
-    styles = getSampleStyleSheet()
-    
-    # محاولة دعم الخطوط العربية إن وجدت أو استخدام النمط الافتراضي
-    try:
-        # تسجيل خط يدعم العربية إن توفر في بيئة التشغيل
-        pdfmetrics.registerFont(TTFont('ArabicFont', 'Cairo-Regular.ttf'))
-        style_normal = ParagraphStyle('ArabicNormal', parent=styles['Normal'], fontName='ArabicFont', fontSize=9, alignment=1)
-        style_title = ParagraphStyle('ArabicTitle', parent=styles['Heading1'], fontName='ArabicFont', fontSize=14, alignment=1)
-    except:
-        style_normal = ParagraphStyle('ArabicNormal', parent=styles['Normal'], fontSize=9, alignment=1)
-        style_title = ParagraphStyle('ArabicTitle', parent=styles['Heading1'], fontSize=14, alignment=1)
-
-    elements.append(Paragraph("شركة أطلس المحيط - تقرير البيانات", style_title))
-    elements.append(Spacer(1, 15))
-    
-    # تجهيز محتوى الجدول للـ PDF
-    df_str = data_to_download.astype(str)
-    table_data = [[Paragraph(str(col), style_normal) for col in df_str.columns]]
-    for _, row in df_str.iterrows():
-        table_data.append([Paragraph(str(val), style_normal) for val in row])
-        
-    pdf_table = Table(table_data)
-    pdf_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTSIZE', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
-    ]))
-    
-    elements.append(pdf_table)
-    doc.build(elements)
-    pdf_buffer.seek(0)
-    return pdf_buffer.getvalue()
-
 def render_download_buttons(data_to_download):
     btn_col1, btn_col2 = st.columns([1, 1])
     with btn_col1:
@@ -304,13 +257,16 @@ def render_download_buttons(data_to_download):
         )
     
     with btn_col2:
-        pdf_data = generate_pdf_buffer(data_to_download)
-        st.download_button(
-            label="📄 Download as PDF",
-            data=pdf_data,
-            file_name="filtered_details.pdf",
-            mime="application/pdf"
-        )
+        # زر يعتمد على ميزة الطباعة لحفظ الصفحة أو الجدول بصيغة PDF مباشرة من المتصفح دون الحاجة لمكتبات خارجية معقدة
+        st.markdown("""
+            <script>
+            function printTable() {
+                window.print();
+            }
+            </script>
+        """, unsafe_allow_html=True)
+        if st.button("📄 طباعة / حفظ كـ PDF"):
+            st.markdown('<script>window.print();</script>', unsafe_allow_html=True)
 
 def style_container_column(df_to_style):
     target_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in df_to_style.columns), None)
