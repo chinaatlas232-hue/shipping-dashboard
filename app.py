@@ -177,13 +177,6 @@ def load_data():
 df = load_data()
 all_columns = df.columns.tolist()
 
-# تهيئة حالة الـ Session للأعمدة مرة واحدة فقط إذا لم تكن موجودة لضمان عدم إعادة تعيينها أبداً
-if "initialized_columns" not in st.session_state:
-    for col in all_columns:
-        st.session_state[f"chk_col_{col}"] = True  # القيمة الافتراضية الأولى فقط
-    st.session_state["initialized_columns"] = True
-
-
 # ----------------- القائمة الجانبية (Sidebar) -----------------
 st.sidebar.title("🚢 شركة أطلس المحيط")
 st.sidebar.markdown("---")
@@ -194,20 +187,20 @@ if st.sidebar.button("🔄 تحديث البيانات من جوجل شيت", us
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 👁️ التحكم بأعمدة العرض الثابتة")
-st.sidebar.markdown("<p style='font-size:12px; color:#94a3b8;'>حدد الأعمدة التي تريد إظهارها:</p>", unsafe_allow_html=True)
 
-# استخلاص الأعمدة المفعلة بدقة من الـ session_state الثابت
-selected_columns = []
-with st.sidebar.container():
-    for col in all_columns:
-        state_key = f"chk_col_{col}"
-        # ضمان عدم ضياع الحالة نهائياً عند أي إعادة تحميل
-        if state_key not in st.session_state:
-            st.session_state[state_key] = True
-            
-        is_checked = st.sidebar.checkbox(col, key=state_key)
-        if is_checked:
-            selected_columns.append(col)
+# الحل الجذري النهائي: استخدام st.multiselect الاحترافي الذي يحفظ حالته تماماً دون أن يعود ويفتح بالكامل
+if "selected_columns_state" not in st.session_state:
+    st.session_state["selected_columns_state"] = all_columns  # افتراضياً تظهر كلها أول مرة فقط
+
+selected_columns = st.sidebar.multiselect(
+    "اختر الأعمدة المراد إظهارها:",
+    options=all_columns,
+    default=st.session_state["selected_columns_state"],
+    key="selected_columns_multiselect_key"
+)
+
+# تحديث الحالة مباشرة
+st.session_state["selected_columns_state"] = selected_columns
 
 st.sidebar.markdown("---")
 
@@ -431,7 +424,7 @@ if page == "dashboard":
     st.markdown("---")
     render_download_buttons(filtered_df)
     
-    # الاعتماد على الأعمدة المختارة
+    # الاعتماد على القائمة المختارة عبر الـ multiselect الثابت
     df_to_display = filtered_df[selected_columns] if selected_columns else filtered_df
     display_custom_html_table(df_to_display)
 
