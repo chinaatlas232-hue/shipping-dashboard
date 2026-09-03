@@ -120,6 +120,33 @@ st.markdown(
         background: #f87171 !important;
         border-radius: 4px !important;
     }
+
+    /* تنسيقات الطباعة لتصحيح شكل PDF وإخفاء العناصر الزائدة */
+    @media print {
+        [data-testid="stSidebar"] {
+            display: none !important;
+        }
+        .no-print {
+            display: none !important;
+        }
+        header {
+            display: none !important;
+        }
+        .main {
+            background-color: #ffffff !important;
+        }
+        .block-container {
+            padding: 0 !important;
+            max-width: 100% !important;
+        }
+        .custom-html-table {
+            page-break-inside: auto;
+        }
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -325,7 +352,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             col_str = str(col)
             cell_style = ""
             
-            # فحص دقيق للقيم الرقمية بغض النظر عن نوع البيانات الحالي
             numeric_val = None
             try:
                 clean_val_str = str(val).replace("¥", "").replace("$", "").replace(",", "").strip()
@@ -333,7 +359,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             except (ValueError, TypeError):
                 pass
 
-            # التلوين بالوردي للأرقام الأكبر من صفر (باستثناء صف الإجمالي العام)
             if numeric_val is not None and numeric_val > 0.0 and not is_grand_total_row and col_str != "التسلسل":
                 cell_style = ' style="background-color: #fbcfe8 !important; color: #831843 !important; font-weight: bold;"'
             else:
@@ -712,4 +737,3 @@ elif page == "charts":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
-
