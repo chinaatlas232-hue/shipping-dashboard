@@ -441,9 +441,9 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             
             cell_style = ""
             
-            # التعديل المطلوب حصراً في نافذة "الديون على الكفلاء" (الجدول المفصلي / Pivot Table) وفي تقرير أعمار الديون
-            # إذا كانت القيم الرقمية أكبر من 0.0 يتم تلوين الخلية باللون الوردي (#fbcfe8) حصراً
-            if (is_sponsors_pivot or is_aging_report) and col_str != "code" and col_str != "Grand Total" and str(row.get("code", "")) != "Grand Total" and str(row.get("رقم الحاوية", "")) != "Grand Total":
+            # تلوين القيم الرقمية الأكبر من 0.0 باللون الوردي في تقرير أعمار الديون
+            is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (col_str == "Grand Total")
+            if is_aging_report and not is_grand_total_row and col_str != "رقم الحاوية" and col_str != "code":
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
                     if num_val > 0.0:
@@ -686,7 +686,6 @@ elif page == "sponsors":
             pivot_table_df.loc["Grand Total"] = grand_total_row
             pivot_table_df = pivot_table_df.reset_index()
 
-            # تم تفعيل تلوين القيم الأكبر من 0.0 باللون الوردي حصراً في هذا الجدول عبر الوسيط is_sponsors_pivot=True
             display_custom_html_table(pivot_table_df, is_sponsors_pivot=True)
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
@@ -709,11 +708,11 @@ elif page == "aging":
         if aging_df.empty:
             st.info("لا توجد بيانات متاحة لأيام التأخير بعد التصفية الحالية.")
         else:
-            # تم تعديل ترتيب الـ index ليكون رقم الحاوية أولاً ثم الـ code ثانياً ليتطابق مع الصورة المطلوبة
-            index_cols = ["رقم الحاوية", code_field] if code_field else ["رقم الحاوية"]
+            # التعديل الجذري هنا: تجميع البيانات حسب رقم الحاوية والكود معاً كأعمدة منفصلة (Groupby ثم Pivot)
+            agg_aging_df = aging_df.groupby(["رقم الحاوية", code_field, "عدد الايام"])["متبقي حقيقي"].sum().reset_index()
             
-            aging_pivot = aging_df.pivot_table(
-                index=index_cols,
+            aging_pivot = agg_aging_df.pivot_table(
+                index=["رقم الحاوية", code_field],
                 columns="عدد الايام",
                 values="متبقي حقيقي",
                 aggfunc="sum",
@@ -728,14 +727,21 @@ elif page == "aging":
                 aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
                 aging_grand_total = aging_pivot.sum(axis=0)
                 
-                aging_pivot.loc["Grand Total"] = aging_grand_total
+                # إضافة صف المجموع الكلي (Grand Total) مع ترك حقل الكود فارغاً لتجنب التداخل
+                aging_pivot.loc[("Grand Total", ""), "Grand Total"] = aging_grand_total["Grand Total"]
+                for col in aging_grand_total.index:
+                    if col != "Grand Total":
+                        aging_pivot.loc[("Grand Total", ""), col] = aging_grand_total[col]
 
+                # إعادة تعيين الFindex لفصل "رقم الحاوية" و "code" في عمودين مستقلين
                 aging_pivot = aging_pivot.reset_index()
+                
+                # تنظيف قيم Grand Total الفارغة في عمود الكود
+                aging_pivot.loc[aging_pivot["رقم الحاوية"] == "Grand Total", code_field] = ""
                 
                 aging_pivot.columns = [str(c) for c in aging_pivot.columns]
                 
                 render_download_buttons(aging_pivot)
-                # تم تمرير الوسيط is_aging_report=True لتصحيح مشكلة ظهور nan وتلوين القيم أكبر من 0.0 بالوردي
                 display_custom_html_table(aging_pivot, is_aging_report=True)
     else:
         st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
@@ -829,4 +835,3 @@ elif page == "charts":
             st.bar_chart(sponsor_chart_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
-
