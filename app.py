@@ -418,7 +418,7 @@ def render_download_buttons(data_to_download):
         components.html(print_html, height=45)
     st.markdown('</div>', unsafe_allow_html=True)
 
-def display_custom_html_table(df_to_render):
+def display_custom_html_table(df_to_render, is_sponsors_pivot=False):
     if df_to_render.empty:
         st.info("لا توجد بيانات للعرض.")
         return
@@ -441,8 +441,18 @@ def display_custom_html_table(df_to_render):
             
             cell_style = ""
             
-            # تلوين عمود "متبقي حقيقي" حصراً (أو الذي يحتوي على عبارة متبقي حقيقي) باللون الوردي إذا كان > 0 والأخضر إذا كان = 0
-            if "متبقي حقيقي" in col_str:
+            # التعديل المطلوب حصراً في نافذة "الديون على الكفلاء" (الجدول المفصلي / Pivot Table)
+            # إذا كانت القيم الرقمية أكبر من 0.0 يتم تلوين الخلية باللون الوردي (#fbcfe8) حصراً
+            if is_sponsors_pivot and col_str != "code" and col_str != "Grand Total" and str(row.get("code", "")) != "Grand Total":
+                try:
+                    num_val = float(str(val).replace("¥", "").replace(",", "").strip())
+                    if num_val > 0.0:
+                        cell_style = ' style="background-color: #fbcfe8; color: #000000; font-weight: bold;"'
+                except:
+                    pass
+
+            # تلوين عمود "متبقي حقيقي" في الجداول الأخرى إذا وجد
+            if not is_sponsors_pivot and "متبقي حقيقي" in col_str:
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
                     if num_val == 0.0:
@@ -453,7 +463,7 @@ def display_custom_html_table(df_to_render):
                     pass
 
             # تلوين عمود رقم الحاوية بناءً على حالة الكفيل إذا وجد
-            if target_container_col and col_str == str(target_container_col):
+            if not is_sponsors_pivot and target_container_col and col_str == str(target_container_col):
                 is_arrived = False
                 is_not_arrived = False
                 if sponsor_col_check and sponsor_col_check in row:
@@ -676,7 +686,8 @@ elif page == "sponsors":
             pivot_table_df.loc["Grand Total"] = grand_total_row
             pivot_table_df = pivot_table_df.reset_index()
 
-            display_custom_html_table(pivot_table_df)
+            # تم تفعيل تلوين القيم الأكبر من 0.0 باللون الوردي حصراً في هذا الجدول عبر الوسيط is_sponsors_pivot=True
+            display_custom_html_table(pivot_table_df, is_sponsors_pivot=True)
         else:
             st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
 
