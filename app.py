@@ -14,7 +14,7 @@ st.markdown(
     <style>
     .main { background-color: #0e1117; }
     
-    /* تنسيق جدول HTML المخصص ليتوافق مع اتجاه اليمين لليسار (بدون شريط تمرير) */
+    /* تنسيق جدول HTML المخصص ليتوافق مع اتجاه اليمين لليسار */
     .custom-html-table {
         width: 100% !important;
         border-collapse: collapse !important;
@@ -136,9 +136,7 @@ st.markdown(
         background: #ef4444 !important;
     }
 
-    /* ========================================================
-       تنسيقات الطباعة المحسنة وحل المشكلة جذرياً (Print & PDF)
-       ======================================================== */
+    /* تنسيقات الطباعة المحسنة (Print & PDF) */
     @media print {
         @page {
             size: A4 landscape;
@@ -441,9 +439,10 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             
             cell_style = ""
             
-            # تلوين القيم الرقمية الأكبر من 0.0 باللون الوردي في جدول الديون على الكفلاء أو تقرير أعمار الديون
+            # التحقق إذا كان السطر هو إجمالي الإجماليات (Grand Total)
             is_grand_total_row = (str(row.get("رقم الحاوية", "")) == "Grand Total") or (str(row.get("code", "")) == "Grand Total") or (col_str == "Grand Total")
             
+            # تلوين القيم الرقمية الأكبر من 0.0 باللون الوردي في جدول الديون على الكفلاء أو تقرير أعمار الديون (ما عدا صف المجموع النهائي)
             if (is_sponsors_pivot or is_aging_report) and not is_grand_total_row and col_str != "رقم الحاوية" and col_str != "code":
                 try:
                     num_val = float(str(val).replace("¥", "").replace(",", "").strip())
@@ -463,7 +462,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 except:
                     pass
 
-            # تلوين عمود رقم الحاوية باللون الأخضر في الجداول العامة (وعدم تلوينه في تقرير أعمار الديون لكي يبقى أبيض)
+            # تلوين عمود رقم الحاوية باللون الأخضر في الجداول العامة
             if not is_sponsors_pivot and not is_aging_report and target_container_col and col_str == str(target_container_col):
                 is_arrived = False
                 is_not_arrived = False
@@ -480,11 +479,21 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                     cell_style = ' style="background-color: #bbf7d0; color: #000000; font-weight: bold;"'
 
             formatted_val = val
-            if pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float)):
+            # معالجة القيم الفارغة أو NaN في جدول أعمار الديون لتظهر كـ 0.00 بدلاً من فراغ
+            if pd.isna(val) or str(val).strip() == "" or str(val).lower() == "nan":
+                formatted_val = "0.00"
+            elif pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float)):
                 if any(kw in col_str for kw in currency_keywords):
                     formatted_val = f"¥{val:,.2f}"
                 else:
                     formatted_val = f"{val:,.2f}" if isinstance(val, float) else f"{val:,}"
+            else:
+                # محاولة تحويل القيم العددية النصية
+                try:
+                    num_try = float(str(val).replace(",", "").strip())
+                    formatted_val = f"{num_try:,.2f}"
+                except:
+                    pass
 
             html += f'<td{cell_style}>{formatted_val}</td>'
         html += '</tr>'
@@ -701,7 +710,7 @@ elif page == "aging":
     aging_df = filtered_df.copy()
     code_field = next((c for c in ["code", "الكود", "كود"] if c in aging_df.columns), None)
     
-    if not aging_df.empty and "رقم الحاوية" in aging_df.columns and "عدد الايام" in aging_df.columns and "متبقي حقيقي" in aging_df.columns:
+    if not aging_df.empty and "رقم الحاوية" in aging_df.columns and "عدد الايام" in aging_df.columns and "متبقي حقيقي" in aging_df.columns and code_field:
         
         aging_df["عدد الايام"] = pd.to_numeric(aging_df["عدد الايام"], errors="coerce").fillna(0).astype(int)
         aging_df = aging_df[aging_df["عدد الايام"] > 0]
@@ -709,8 +718,10 @@ elif page == "aging":
         if aging_df.empty:
             st.info("لا توجد بيانات متاحة لأيام التأخير بعد التصفية الحالية.")
         else:
+            # تجميع البيانات حسب رقم الحاوية، الكود، وعدد الأيام
             agg_aging_df = aging_df.groupby(["رقم الحاوية", code_field, "عدد الايام"])["متبقي حقيقي"].sum().reset_index()
             
+            # بناء Pivot Table دقيق حيث تكون صفوفه عبارة عن (رقم الحاوية, code) وأعمدته هي (عدد الايام)
             aging_pivot = agg_aging_df.pivot_table(
                 index=["رقم الحاوية", code_field],
                 columns="عدد الايام",
@@ -719,27 +730,42 @@ elif page == "aging":
                 fill_value=0.0
             )
 
-            aging_pivot = aging_pivot[(aging_pivot > 0).any(axis=1)]
+            # تصفية الصفوف والأعمدة التي تحتوي على قيم أكبر من الصفر فقط
+            aging_pivot = aging_pivot.loc[(aging_pivot > 0).any(axis=1), (aging_pivot > 0).any(axis=0)]
 
             if aging_pivot.empty:
                 st.info("لا توجد مبالغ متبقية أكبر من الصفر للعرض بناءً على الفلاتر المحددة.")
             else:
+                # ترتيب أعمدة أيام التأخير تصاعدياً (من الأقل للأكبر أو العكس حسب الرغبة، الأكبر للأقل يبدو مطابقاً للصورة 91, 45, 25, 21, 14 أو تصاعدي حسب الموجود)
+                # ترتيب الأعمدة تنازلياً كما في الصورة المرفقة إذا وجد
+                sorted_cols = sorted(aging_pivot.columns, reverse=True)
+                aging_pivot = aging_pivot[sorted_cols]
+
+                # إضافة المجموع الأفقي (Grand Total) كعمود أخير على اليسار
                 aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
+                
+                # إضافة المجموع الرأسي كصف أخيرة (Grand Total)
                 aging_grand_total = aging_pivot.sum(axis=0)
                 
-                aging_pivot.loc[("Grand Total", ""), "Grand Total"] = aging_grand_total["Grand Total"]
-                for col in aging_grand_total.index:
-                    if col != "Grand Total":
-                        aging_pivot.loc[("Grand Total", ""), col] = aging_grand_total[col]
-
+                # إعادة ضبط الـ Index لتصبح الأعمدة عادية
                 aging_pivot = aging_pivot.reset_index()
-                aging_pivot.loc[aging_pivot["رقم الحاوية"] == "Grand Total", code_field] = ""
+                
+                # إضافة صف الإجمالي النهائي بوضعية متطابقة للصورة
+                grand_total_row_dict = {
+                    "رقم الحاوية": "Grand Total",
+                    code_field: ""
+                }
+                for c in aging_pivot.columns:
+                    if c not in ["رقم الحاوية", code_field]:
+                        grand_total_row_dict[c] = aging_grand_total[c]
+                
+                aging_pivot = pd.concat([aging_pivot, pd.DataFrame([grand_total_row_dict])], ignore_index=True)
                 aging_pivot.columns = [str(c) for c in aging_pivot.columns]
                 
                 render_download_buttons(aging_pivot)
                 display_custom_html_table(aging_pivot, is_aging_report=True)
     else:
-        st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
+        st.warning("عذراً، الأعمدة الأساسية المطلوبة (رقم الحاوية، الكود، عدد الأيام، متبقي حقيقي) غير متوفرة بالكامل في البيانات الحالية.")
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
