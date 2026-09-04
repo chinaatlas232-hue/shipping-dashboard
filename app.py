@@ -574,7 +574,7 @@ if page == "dashboard":
         display_custom_html_table(air_display)
 
     # ـــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
-    # الجدول التجميعي (ملخص الحاويات و Shipping mark)
+    # الجدول التجميعي (ملخص الحاويات و Shipping mark) مطابق لتنسيق ملف Excel بالضبط (بدون تكرار اسم الحاوية ودون عمود سعر البيع)
     # ـــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
     st.markdown("---")
     st.markdown("### 📊 الجدول التجميعي (ملخص الحاويات و Shipping mark)")
@@ -591,7 +591,6 @@ if page == "dashboard":
             "المكتب دفع": ["المكتب دفع", "Office Paid"],
             "المجموع": ["المجموع"],
             "عدد الكارتون": ["عدد الكارتون"],
-            "سعر البيع": ["سعر البيع"],
             "مبلغ الجمرك": ["مبلغ الجمرك"],
             "قيمة الاستحصالات": ["قيمة الاستحصالات"],
             "متبقي حقيقي": ["متبقي حقيقي"]
@@ -618,7 +617,7 @@ if page == "dashboard":
                 pivot_mark_col: "Shipping mark",
             }
             for col in agg_mapping.keys():
-                if col in ["عدد الكارتون", "سعر البيع", "مبلغ الجمرك", "قيمة الاستحصالات"]:
+                if col in ["عدد الكارتون", "مبلغ الجمرك", "قيمة الاستحصالات"]:
                     rename_map[col] = f"Sum of {col}"
                 else:
                     rename_map[col] = col
@@ -626,10 +625,24 @@ if page == "dashboard":
             aggregated_df = aggregated_df.rename(columns=rename_map)
             
             desired_cols = ["رقم الحاوية", "Shipping mark", "الزبون دفع", "المكتب دفع", "المجموع", 
-                            "Sum of عدد الكارتون", "Sum of سعر البيع", "Sum of مبلغ الجمرك", 
-                            "Sum of قيمة الاستحصالات", "متبقي حقيقي"]
+                            "Sum of عدد الكارتون", "Sum of مبلغ الجمرك", 
+                            "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]
+            if "متبقي حقيقي" in aggregated_df.columns and "Sum of متبقي حقيقي" not in aggregated_df.columns:
+                aggregated_df = aggregated_df.rename(columns={"متبقي حقيقي": "Sum of متبقي حقيقي"})
+            
             existing_cols = [c for c in desired_cols if c in aggregated_df.columns]
             aggregated_df = aggregated_df[existing_cols]
+
+            # تنسيق إخفاء تكرار رقم الحاوية (وضع فراغ للحاويات المتكررة ضمن نفس المجموعة كما في شيت Excel)
+            last_cont = None
+            for idx, row in aggregated_df.iterrows():
+                cont_val = str(row["رقم الحاوية"])
+                if cont_val == "Grand Total":
+                    continue
+                if cont_val == last_cont:
+                    aggregated_df.at[idx, "رقم الحاوية"] = ""
+                else:
+                    last_cont = cont_val
 
             display_custom_html_table(aggregated_df, is_sponsors_pivot=True)
         else:
@@ -773,7 +786,7 @@ elif page == "sponsors":
                 pivot_container_col, pivot_mark_col, 
                 "الزبون دفع" if "الزبون دفع" in base_pivot_df.columns else "Client Paid",
                 "المكتب دفع" if "المكتب دفع" in base_pivot_df.columns else "Office Paid",
-                "المجموع", "عدد الكارتون", "سعر البيع", "مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"
+                "المجموع", "عدد الكارتون", "مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"
             ]
             
             available_pivot_cols = [c for c in required_pivot_cols if c in base_pivot_df.columns]
@@ -799,10 +812,9 @@ elif page == "sponsors":
                     "Office Paid": "المكتب دفع",
                     "المجموع": "المجموع",
                     "عدد الكارتون": "Sum of عدد الكارتون",
-                    "سعر البيع": "Sum of سعر البيع",
                     "مبلغ الجمرك": "Sum of مبلغ الجمرك",
                     "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
-                    "متبقي حقيقي": "متبقي حقيقي"
+                    "متبقي حقيقي": "Sum of متبقي حقيقي"
                 }
                 pivot_table_df = pivot_table_df.rename(columns=column_rename_map)
 
@@ -946,8 +958,6 @@ elif page == "charts":
                 st.bar_chart(weight_data)
 
         with col_chart2:
-            if container_col and "حجم" in filtered_df.codes if "حجم" in filtered_df.columns else False:
-                pass
             if container_col and "حجم" in filtered_df.columns:
                 st.subheader("📐 إجمالي الحجم حسب الحاوية (m³)")
                 volume_data = filtered_df.groupby(container_col)["حجم"].sum()
@@ -967,7 +977,7 @@ elif page == "data_entry":
     st.markdown("---")
     st.markdown("يمكنك تعديل البيانات مباشرة في الجدول أدناه، أو إضافة سجل جديد:")
 
-    edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="data_editor_grid")
+    edited_df = st.data_editor(df, num_rows="dynamic", use_container_width+True, key="data_editor_grid")
 
     if st.button("💾 حفظ التغييرات وتحديث العرض"):
         st.session_state["df_updated"] = edited_df
