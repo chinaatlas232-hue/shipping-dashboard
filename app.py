@@ -440,13 +440,18 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
 
-        is_row_total = any(str(val).strip().lower() in ["grand total", "grandtotal", "الإجمالي الكلي"] for val in row.values)
+        # التحقق الدقيق والآمن من صف الإجمالي دون أخطاء في الـ types
+        is_row_total = False
+        for val in row.values:
+            if val is not None and str(val).strip().lower() in ["grand total", "grandtotal", "الإجمالي الكلي"]:
+                is_row_total = True
+                break
 
         html += '<tr>'
         for col in df_with_seq.columns:
             val = row[col]
             col_str = str(col)
-            val_str = str(val).strip()
+            val_str = "" if pd.isna(val) else str(val).strip()
             cell_style = ""
             
             if col_str == container_col_name:
@@ -1050,7 +1055,7 @@ elif page == "charts":
                 volume_data = chart_clean_df.groupby(container_col)["حجم"].sum()
                 st.bar_chart(volume_data)
 
-    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 50px;'>`</div>", unsafe_allow_html=True)
 
 elif page == "data_entry":
     st.title("📝 إدخال وتعديل البيانات محلياً")
