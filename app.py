@@ -394,7 +394,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         
     df_with_seq = df_to_render.copy()
     
-    # فحص عام لصف الإجمالي لضمان عدم وجود تكرار عشوائي
     has_grand_total = False
     if not df_with_seq.empty:
         first_col_name = df_with_seq.columns[0]
@@ -417,14 +416,14 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         i = 0
         while i < len(col_values):
             val = col_values[i]
-            # تحقق آمن لصف الإجمالي لتجنب دمج صفوف الإجمالي بالخطأ
-            if "grand total" in val.lower() or "الإجمالي" in val.lower() or val == "":
+            val_lower = val.strip().lower()
+            if "grand total" in val_lower or "grandtotal" in val_lower or "الإجمالي" in val_lower or val == "":
                 spans[i] = 1
                 i += 1
                 continue
             count = 1
             for j in range(i + 1, len(col_values)):
-                if col_values[j].lower() == val.lower():
+                if col_values[j].strip().lower() == val_lower:
                     count += 1
                 else:
                     break
@@ -444,9 +443,11 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
 
         is_row_total = False
         for val in row.values:
-            if val is not None and str(val).strip().lower() in ["grand total", "grandtotal", "الإجمالي الكلي"]:
-                is_row_total = True
-                break
+            if val is not None:
+                val_s = str(val).strip().lower()
+                if "grand total" in val_s or "grandtotal" in val_s or "الإجمالي الكلي" in val_s:
+                    is_row_total = True
+                    break
 
         html += '<tr>'
         for col in df_with_seq.columns:
@@ -457,7 +458,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             
             if col_str == container_col_name:
                 if is_row_total:
-                    val = "Grand Total" if val_str.lower() in ["grand total", "grandtotal", "الإجمالي الكلي"] else ""
+                    val = "Grand Total" if "grand total" in val_str.lower() or "grandtotal" in val_str.lower() or "الإجمالي الكلي" in val_str else val_str
                     val_str = val
                 else:
                     try:
