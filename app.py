@@ -311,7 +311,7 @@ if code_col in df.columns and not df.empty:
     if selected_code != "الكل":
         filtered_df = filtered_df[filtered_df[code_col].astype(str) == selected_code]
 
-sponsor_filter_col = next((c for c in ["الكفيل", "كفيل"] if c in df.columns), None)
+sponsor_filter_col = next((c for c in df.columns if "كفيل" in str(c)), None)
 selected_sponsor = "الكل"
 if sponsor_filter_col and not df.empty:
     sponsors = ["الكل"] + sorted(df[sponsor_filter_col].dropna().astype(str).unique().tolist())
@@ -392,16 +392,13 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         st.info("لا توجد بيانات للعرض.")
         return
         
-    # تنظيف الفهارس السابقة وإزالة أي أعمدة فهرس قديمة تماماً
     df_with_seq = df_to_render.reset_index(drop=True).copy()
     
-    # التحقق من وجود صف الإجمالي الكلي مسبقاً
     has_grand_total = False
     if not df_with_seq.empty:
         first_col_name = df_with_seq.columns[0]
         has_grand_total = df_with_seq[first_col_name].astype(str).str.contains("Grand Total|GrandTotal|الإجمالي الكلي", case=False, na=False).any()
 
-    # إضافة عمود التسلسل بدقة وأمان
     if not is_sponsors_pivot and not has_grand_total:
         seq_list = []
         for _, row in df_with_seq.iterrows():
@@ -442,8 +439,10 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         html += f'<th>{col}</th>'
     html += '</tr></thead><tbody>'
 
+    sponsor_col_key = next((c for c in df_with_seq.columns if "كفيل" in str(c)), None)
+
     for idx, row in df_with_seq.iterrows():
-        sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
+        sponsor_val = str(row.get(sponsor_col_key, "")) if sponsor_col_key else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
 
         is_row_total = False
@@ -501,10 +500,10 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                     else:
                         if is_not_arrived:
                             cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important;"'
-                            if col_str in ["رقم الحاوية", "الكفيل"]:
+                            if col_str in ["رقم الحاوية", sponsor_col_key]:
                                 cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
                         else:
-                            if col_str in ["رقم الحاوية", "الكفيل"]:
+                            if col_str in ["رقم الحاوية", sponsor_col_key]:
                                 cell_style = ' style="background-color: #bbf7d0 !important; color: #065f46 !important; font-weight: bold;"'
 
             formatted_val = val
@@ -562,7 +561,7 @@ if page == "dashboard":
 
     dash_filtered_df = filtered_df.copy()
     if search_query and not dash_filtered_df.empty:
-        search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات", "Shipping mark"] if c in dash_filtered_df.columns]
+        search_cols = [c for c in dash_filtered_df.columns if any(k in str(c) for k in ["code", "كفيل", "الحاوية", "Shipping mark"])]
         if search_cols:
             mask = dash_filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
             dash_filtered_df = dash_filtered_df[mask.any(axis=1)]
@@ -586,7 +585,7 @@ if page == "dashboard":
     total_ctns = active_view_df["عدد الكارتون"].sum() if "عدد الكارتون" in active_view_df.columns else 0
     total_volume = active_view_df["حجم"].sum() if "حجم" in active_view_df.columns else 0
     
-    client_field_candidates = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in active_view_df.columns]
+    client_field_candidates = [c for c in active_view_df.columns if any(k in str(c) for k in ["code", "الكود", "كود", "Shipping mark", "الزبون"])]
     total_clients = active_view_df[client_field_candidates[0]].nunique() if client_field_candidates and not active_view_df.empty else 0
     total_containers_count = active_view_df[container_col].nunique() if container_col and container_col in active_view_df.columns and not active_view_df.empty else 0
 
@@ -731,7 +730,7 @@ elif page == "customs":
     pivot_filtered_df = filtered_df.copy()
     
     if search_query and not pivot_filtered_df.empty:
-        search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات"] if c in pivot_filtered_df.columns]
+        search_cols = [c for c in pivot_filtered_df.columns if any(k in str(c) for k in ["code", "كفيل", "الحاوية"])]
         if search_cols:
             mask = pivot_filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
             pivot_filtered_df = pivot_filtered_df[mask.any(axis=1)]
@@ -741,8 +740,9 @@ elif page == "customs":
     total_remaining = pivot_filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in pivot_filtered_df and not pivot_filtered_df.empty else 0.0
 
     not_arrived_remaining = 0.0
-    if "الكفيل" in pivot_filtered_df.columns and not pivot_filtered_df.empty:
-        not_arrived_remaining = pivot_filtered_df[pivot_filtered_df["الكفيل"].astype(str).str.contains("لم تصل بعد", na=False)]["متبقي حقيقي"].sum()
+    sponsor_col_key = next((c for c in pivot_filtered_df.columns if "كفيل" in str(c)), None)
+    if sponsor_col_key and not pivot_filtered_df.empty:
+        not_arrived_remaining = pivot_filtered_df[pivot_filtered_df[sponsor_col_key].astype(str).str.contains("لم تصل بعد", na=False)]["متبقي حقيقي"].sum()
 
     m1, m2, m3, m4 = st.columns(4)
     with m1:
@@ -798,25 +798,27 @@ elif page == "sponsors":
     st.title("👥 الديون على الكفلاء")
     st.markdown("---")
     
-    if "الكفيل" in filtered_df.columns and not filtered_df.empty:
-        clean_sponsors_df = filtered_df[~filtered_df["الكفيل"].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
+    sponsor_col = next((c for c in filtered_df.columns if "كفيل" in str(c)), None)
+    
+    if sponsor_col and not filtered_df.empty:
+        clean_sponsors_df = filtered_df[~filtered_df[sponsor_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
         
         col_customs = "مبلغ الجمرك" if "مبلغ الجمرك" in clean_sponsors_df.columns else clean_sponsors_df.columns[0]
         col_collected = "قيمة الاستحصالات" if "قيمة الاستحصالات" in clean_sponsors_df.columns else clean_sponsors_df.columns[0]
         col_remaining = "متبقي حقيقي" if "متبقي حقيقي" in clean_sponsors_df.columns else clean_sponsors_df.columns[0]
         col_count = "No" if "No" in clean_sponsors_df.columns else clean_sponsors_df.columns[0]
 
-        sponsor_summary = clean_sponsors_df.groupby("الكفيل").agg(
+        sponsor_summary = clean_sponsors_df.groupby(sponsor_col).agg(
             total_customs=(col_customs, "sum"),
             total_collected=(col_collected, "sum"),
             total_remaining=(col_remaining, "sum"),
             total_orders=(col_count, "count")
-        ).reset_index(drop=True)
+        ).reset_index()
 
         st.markdown("### 📋 ملخص المبالغ لكل كفيل")
         
         for index, row in sponsor_summary.iterrows():
-            sponsor_name = row["الكفيل"]
+            sponsor_name = row[sponsor_col]
             s_customs = row["total_customs"]
             s_collected = row["total_collected"]
             s_remaining = row["total_remaining"]
@@ -849,8 +851,8 @@ elif page == "sponsors":
             
             if selected_container != "الكل":
                 base_pivot_df = base_pivot_df[base_pivot_df[pivot_container_col].astype(str) == selected_container]
-            if selected_sponsor != "الكل" and "الكفيل" in base_pivot_df.columns:
-                base_pivot_df = base_pivot_df[base_pivot_df["الكفيل"].astype(str) == selected_sponsor]
+            if selected_sponsor != "الكل" and sponsor_col in base_pivot_df.columns:
+                base_pivot_df = base_pivot_df[base_pivot_df[sponsor_col].astype(str) == selected_sponsor]
 
             required_pivot_cols = [
                 pivot_container_col, pivot_mark_col, 
@@ -914,6 +916,8 @@ elif page == "sponsors":
                 st.warning("لا توجد بيانات كافية لإنشاء الجدول.")
         else:
             st.warning("الأعمدة المطلوبة لإنشاء الجدول المحوري غير متوفرة بالكامل.")
+    else:
+        st.warning("عذراً، عمود اسم الكفيل غير متوفر في ملف البيانات.")
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
