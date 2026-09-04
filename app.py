@@ -574,7 +574,7 @@ if page == "dashboard":
         display_custom_html_table(air_display)
 
     # ـــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
-    # الجدول التجميعي الجديد أسفل الصفحة (يأخذ بياناته من active_view_df ليتطابق مع ما يعرض في الأعلى 100%)
+    # الجدول التجميعي (ملخص الحاويات و Shipping mark)
     # ـــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
     st.markdown("---")
     st.markdown("### 📊 الجدول التجميعي (ملخص الحاويات و Shipping mark)")
@@ -605,6 +605,7 @@ if page == "dashboard":
         if agg_mapping:
             aggregated_df = active_view_df.groupby(group_cols, dropna=False).agg(agg_mapping).reset_index()
 
+            # حساب المجاميع بشكل صحيح ومنظم
             totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
             for col in agg_mapping.keys():
                 aggregated_df[col] = pd.to_numeric(aggregated_df[col], errors="coerce").fillna(0)
@@ -624,6 +625,14 @@ if page == "dashboard":
                     rename_map[col] = col
 
             aggregated_df = aggregated_df.rename(columns=rename_map)
+            
+            # ترتيب الأعمدة وتحديدها بدقة لمنع أي تداخل أو خطأ في صف الإجمالي
+            desired_cols = ["رقم الحاوية", "Shipping mark", "الزبون دفع", "المكتب دفع", "المجموع", 
+                            "Sum of عدد الكارتون", "Sum of سعر البيع", "Sum of مبلغ الجمرك", 
+                            "Sum of قيمة الاستحصالات", "متبقي حقيقي"]
+            existing_cols = [c for c in desired_cols if c in aggregated_df.columns]
+            aggregated_df = aggregated_df[existing_cols]
+
             display_custom_html_table(aggregated_df, is_sponsors_pivot=True)
         else:
             st.info("لا توجد أعمدة رقمية كافية لتكوين الجدول التجميعي.")
