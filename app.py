@@ -239,7 +239,7 @@ def load_data():
         df = pd.DataFrame(columns=[
             "No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن",
             "المكتب دفع", "الزبون دفع", "المجموع", "عدد الكارتون",
-            "الوزن", "حجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"
+            "الوزن", "حجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام", "سعر البيع"
         ])
 
     df.columns = df.columns.astype(str).str.strip()
@@ -268,7 +268,7 @@ def load_data():
 
     numeric_cols = [
         "المكتب دفع", "Office Paid", "الزبون دفع", "Client Paid",
-        "عدد الكارتون", "الوزن", "حجم", "المجموع", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام"
+        "عدد الكارتون", "الوزن", "حجم", "المجموع", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام", "سعر البيع"
     ]
     for col in numeric_cols:
         if col in df.columns:
@@ -394,16 +394,19 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         return
         
     df_with_seq = df_to_render.copy()
-    seq_list = []
     
-    for _, row in df_with_seq.iterrows():
-        is_total = any(str(val).strip() in ["Grand Total", "GrandTotal"] for val in row.values)
-        if is_total:
-            seq_list.append("")
-        else:
-            seq_list.append(len(seq_list) + 1)
-            
-    df_with_seq.insert(0, "التسلسل", seq_list)
+    # التحقق مما إذا كان الجدول عبارة عن جدول محوري (Pivot Table) مثل الذي يظهر في الصورة المرفقة
+    has_grand_total = any(str(val).strip() in ["Grand Total", "GrandTotal"] for val in df_with_seq.iloc[:, 0].values) if not df_with_seq.empty else False
+
+    if not is_sponsors_pivot and not has_grand_total:
+        seq_list = []
+        for _, row in df_with_seq.iterrows():
+            is_total = any(str(val).strip() in ["Grand Total", "GrandTotal"] for val in row.values)
+            if is_total:
+                seq_list.append("")
+            else:
+                seq_list.append(len(seq_list) + 1)
+        df_with_seq.insert(0, "التسلسل", seq_list)
 
     html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
     for col in df_with_seq.columns:
@@ -414,6 +417,9 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
 
+        # فحص ما إذا كان الصف هو صف الإجمالي العام (Grand Total)
+        is_row_total = any(str(val).strip() in ["Grand Total", "GrandTotal"] for val in row.values)
+
         html += '<tr>'
         for col in df_with_seq.columns:
             val = row[col]
@@ -421,7 +427,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             val_str = str(val).strip()
             cell_style = ""
             
-            if val_str in ["Grand Total", "GrandTotal"]:
+            if is_row_total:
                 cell_style = ' style="background-color: #4b5563 !important; color: #ffffff !important; font-weight: bold;"'
             else:
                 numeric_val = None
@@ -431,27 +437,38 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 except (ValueError, TypeError):
                     pass
 
-                if numeric_val is not None and numeric_val > 0.0 and col_str != "التسلسل":
-                    cell_style = ' style="background-color: #fbcfe8 !important; color: #831843 !important; font-weight: bold;"'
+                if is_sponsors_pivot:
+                    # تصميم مطبق تماماً لتنسيق الجدول المحوري المرفق في الصورة (الخلفية بلون بني محروق/خشبي للصفوف والخلية بلون فاتح)
+                    cell_style = ' style="background-color: #fce7f3 !important; color: #831843 !important; font-weight: bold;"'
+                    if col_str in df_with_seq.columns[:2]:
+                        cell_style = ' style="background-color: #fed7aa !important; color: #7c2d12 !important; font-weight: bold;"'
                 else:
-                    if is_not_arrived:
-                        cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important;"'
-                        if col_str in ["رقم الحاوية", "الكفيل"]:
-                            cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
+                    if numeric_val is not None and numeric_val > 0.0 and col_str != "التسلسل":
+                        cell_style = ' style="background-color: #fbcfe8 !important; color: #831843 !important; font-weight: bold;"'
                     else:
-                        if col_str in ["رقم الحاوية", "الكفيل"]:
-                            cell_style = ' style="background-color: #bbf7d0 !important; color: #065f46 !important; font-weight: bold;"'
+                        if is_not_arrived:
+                            cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important;"'
+                            if col_str in ["رقم الحاوية", "الكفيل"]:
+                                cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
+                        else:
+                            if col_str in ["رقم الحاوية", "الكفيل"]:
+                                cell_style = ' style="background-color: #bbf7d0 !important; color: #065f46 !important; font-weight: bold;"'
 
             formatted_val = val
             if col_str == "التسلسل":
                 formatted_val = val if val != "" else "-"
             elif pd.isna(val) or val_str == "" or val_str.lower() == "nan":
-                formatted_val = "0.00"
+                formatted_val = "0.00" if is_sponsors_pivot else "-"
             elif numeric_val is not None:
+                # تخصيص العملات والرموز مطابقة للصورة المحورية (¥ للين، $ للدولار، أو أرقام عادية)
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
-                if is_currency_col:
-                    if "¥" in col_str or "يوان" in col_str or "¥" in val_str:
+                if is_currency_col or is_sponsors_pivot:
+                    if "¥" in col_str or "يوان" in col_str or "¥" in val_str or (is_sponsors_pivot and "الزبون دفع" in col_str):
                         formatted_val = f"¥{numeric_val:,.2f}"
+                    elif is_sponsors_pivot and any(k in col_str for k in ["سعر البيع", "مبلغ الجمرك", "متبقي حقيقي"]):
+                        formatted_val = f"$ {numeric_val:,.2f}"
+                    elif is_sponsors_pivot:
+                        formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}"
                     else:
                         formatted_val = f"${numeric_val:,.2f}"
                 else:
@@ -681,37 +698,65 @@ elif page == "sponsors":
             """, unsafe_allow_html=True)
             
         st.markdown("---")
-        st.markdown("### 📊 جدول تفصيلي بملخص الكفلاء (Pivot Table)")
+        st.markdown("### 📊 جدول تفصيلي بملخص الكفلاء المطابق لتنسيق العرض المطلوب (Pivot Table)")
         
-        pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
         pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
-        pivot_value_col = "متبقي حقيقي" if "متبقي حقيقي" in filtered_df.columns else None
+        pivot_mark_col = "Shipping mark" if "Shipping mark" in filtered_df.columns else None
 
-        if pivot_code_col and pivot_container_col and pivot_value_col:
+        if pivot_container_col and pivot_mark_col:
             base_pivot_df = df.copy()
             
-            if selected_code != "الكل":
-                base_pivot_df = base_pivot_df[base_pivot_df[pivot_code_col].astype(str) == selected_code]
+            if selected_container != "الكل":
+                base_pivot_df = base_pivot_df[base_pivot_df[pivot_container_col].astype(str) == selected_container]
             if selected_sponsor != "الكل" and "الكفيل" in base_pivot_df.columns:
                 base_pivot_df = base_pivot_df[base_pivot_df["الكفيل"].astype(str) == selected_sponsor]
 
-            pivot_table_df = base_pivot_df.pivot_table(
-                index=pivot_code_col,
-                columns=pivot_container_col,
-                values=pivot_value_col,
-                aggfunc="sum",
-                fill_value=0
-            )
+            # دمج الأعمدة المطلوبة مطابقة للصورة تماماً: رقم الحاوية، Shipping mark، الزبون دفع، المكتب دفع، المجموع، عدد الكارتون، سعر البيع، مبلغ الجمرك، قيمة الاستحصالات، متبقي حقيقي
+            required_pivot_cols = [
+                pivot_container_col, pivot_mark_col, 
+                "الزبون دفع" if "الزبون دفع" in base_pivot_df.columns else "Client Paid",
+                "المكتب دفع" if "المكتب دفع" in base_pivot_df.columns else "Office Paid",
+                "المجموع", "عدد الكارتون", "سعر البيع", "مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"
+            ]
+            
+            available_pivot_cols = [c for c in required_pivot_cols if c in base_pivot_df.columns]
+            pivot_table_df = base_pivot_df[available_pivot_cols].copy()
 
-            pivot_table_df = pivot_table_df.loc[(pivot_table_df > 0).any(axis=1), (pivot_table_df > 0).any(axis=0)]
-            pivot_table_df["Grand Total"] = pivot_table_df.sum(axis=1)
-            grand_total_row = pivot_table_df.sum(axis=0)
-            pivot_table_df.loc["Grand Total"] = grand_total_row
-            pivot_table_df = pivot_table_df.reset_index()
+            if not pivot_table_df.empty:
+                # حساب صف الإجمالي العام (Grand Total) الصف الأخير تماماً مثل الصورة
+                numeric_cols_to_sum = [c for c in pivot_table_df.columns if c not in [pivot_container_col, pivot_mark_col]]
+                
+                totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
+                for col in numeric_cols_to_sum:
+                    pivot_table_df[col] = pd.to_numeric(pivot_table_df[col], errors="coerce").fillna(0)
+                    totals_dict[col] = pivot_table_df[col].sum()
 
-            display_custom_html_table(pivot_table_df, is_sponsors_pivot=True)
+                grand_total_df = pd.DataFrame([totals_dict])
+                pivot_table_df = pd.concat([pivot_table_df, grand_total_df], ignore_index=True)
+
+                # إعادة تسمية الأعمدة لتتوافق حرفياً مع شكل البايفت الموضح في الصورة المرفقة
+                column_rename_map = {
+                    pivot_container_col: "رقم الحاوية",
+                    pivot_mark_col: "Shipping mark",
+                    "الزبون دفع": "الزبون دفع",
+                    "Client Paid": "الزبون دفع",
+                    "المكتب دفع": "المكتب دفع",
+                    "Office Paid": "المكتب دفع",
+                    "المجموع": "المجموع",
+                    "عدد الكارتون": "Sum of عدد الكارتون",
+                    "سعر البيع": "Sum of سعر البيع",
+                    "مبلغ الجمرك": "Sum of مبلغ الجمرك",
+                    "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
+                    "متبقي حقيقي": "متبقي حقيقي"
+                }
+                pivot_table_df = pivot_table_df.rename(columns=column_rename_map)
+
+                render_download_buttons(pivot_table_df)
+                display_custom_html_table(pivot_table_df, is_sponsors_pivot=True)
+            else:
+                st.warning("لا توجد بيانات كافية لإنشاء الجدول.")
         else:
-            st.warning("الأعمدة المطلوبة لإنشاء جدول البايفت غير متوفرة بالكامل.")
+            st.warning("الأعمدة المطلوبة لإنشاء الجدول المحوري غير متوفرة بالكامل.")
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
