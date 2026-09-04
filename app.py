@@ -866,7 +866,7 @@ elif page == "sponsors":
 
             if not pivot_table_df.empty:
                 if "عدد الكارتون" in base_pivot_df.columns:
-                    container_cartons = base_pivot_df.groupby(pivot_container_col)["عدد الكارتون"].sum().reset_index(drop=True)
+                    container_cartons = base_pivot_df.groupby(pivot_container_col)["عدد الكارتون"].sum().reset_index()
                     container_cartons = container_cartons.rename(columns={"عدد الكارتون": "مجموع الكارتون بالحاوية"})
                     pivot_table_df = pd.merge(pivot_table_df, container_cartons, on=pivot_container_col, how="left")
 
@@ -1008,7 +1008,7 @@ elif page == "collections":
     container_field = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
     
     if container_field and not filtered_df.empty:
-        clean_agg_df = filtered_df[~filtered_df[container_field].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
+        clean_agg_df = clean_coll_df.copy()
         
         agg_df = clean_agg_df.groupby(container_field, dropna=False).agg(
             {
@@ -1016,7 +1016,7 @@ elif page == "collections":
                 "قيمة الاستحصالات": "sum",
                 "متبقي حقيقي": "sum"
             }
-        ).reset_index(drop=True)
+        ).reset_index()
 
         grand_totals = pd.DataFrame({
             container_field: ["Grand Total"],
