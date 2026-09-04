@@ -397,12 +397,12 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     has_grand_total = False
     if not df_with_seq.empty:
         first_col_name = df_with_seq.columns[0]
-        has_grand_total = df_with_seq[first_col_name].astype(str).str.contains("Grand Total|GrandTotal", case=False, na=False).any()
+        has_grand_total = df_with_seq[first_col_name].astype(str).str.contains("Grand Total|GrandTotal|الإجمالي الكلي", case=False, na=False).any()
 
     if not is_sponsors_pivot and not has_grand_total:
         seq_list = []
         for _, row in df_with_seq.iterrows():
-            is_total = any(str(val).strip().lower() in ["grand total", "grandtotal"] for val in row.values)
+            is_total = any(str(val).strip().lower() in ["grand total", "grandtotal", "الإجمالي الكلي"] for val in row.values)
             if is_total:
                 seq_list.append("")
             else:
@@ -416,7 +416,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         i = 0
         while i < len(col_values):
             val = col_values[i]
-            if "grand total" in val.lower() or val == "":
+            if "grand total" in val.lower() or "الإجمالي" in val.lower() or val == "":
                 spans[i] = 1
                 i += 1
                 continue
@@ -440,7 +440,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
 
-        is_row_total = any(str(val).strip().lower() in ["grand total", "grandtotal"] for val in row.values)
+        is_row_total = any(str(val).strip().lower() in ["grand total", "grandtotal", "الإجمالي الكلي"] for val in row.values)
 
         html += '<tr>'
         for col in df_with_seq.columns:
@@ -451,7 +451,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             
             if col_str == container_col_name:
                 if is_row_total:
-                    val = "Grand Total" if val_str.lower() in ["grand total", "grandtotal"] else ""
+                    val = "Grand Total" if val_str.lower() in ["grand total", "grandtotal", "الإجمالي الكلي"] else ""
                     val_str = val
                 else:
                     try:
@@ -756,7 +756,7 @@ elif page == "customs":
     if pivot_code_col and not pivot_filtered_df.empty:
         base_pivot_df = pivot_filtered_df[~pivot_filtered_df[pivot_code_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
 
-        # تأكد من صحة الأسماء والمجاميع المستقلة لكل عمود تفادياً لتداخل القيم
+        # معالجة سليمة عبر تجميع البيانات حسب الكود بدقة لتلافي الأخطاء الحسابية وتكرار صف الإجمالي
         customs_summary = base_pivot_df.groupby(pivot_code_col, dropna=False).agg({
             "عدد الكارتون": "sum",
             "مبلغ الجمرك": "sum",
@@ -1023,7 +1023,7 @@ elif page == "collections":
             "متبقي حقيقي": "Sum of متبقي حقيقي"
         })
 
-        display_custom_html_type = display_custom_html_table(agg_df)
+        display_custom_html_table(agg_df)
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
 
