@@ -385,8 +385,9 @@ def render_download_buttons(data_to_download):
         )
     
     with btn_col2:
+        # استخدام مكون آمن ومباشر لتنفيذ الطباعة بدون أخطاء نطاق الـ iframe
         components.html("""
-            <div style="display: flex; justify-content: center; align-items: center; height: 100%; margin: 0;">
+            <div style="display: flex; justify-content: center; align-items: center; height: 100%; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
                 <button onclick="window.parent.print();" style="
                     width: 100%;
                     background-color: #ffffff;
@@ -394,17 +395,16 @@ def render_download_buttons(data_to_download):
                     border: 1px solid rgba(49, 51, 63, 0.2);
                     padding: 0.5rem 0.75rem;
                     border-radius: 0.5rem;
-                    font-weight: 400;
+                    font-weight: 500;
                     font-size: 14px;
                     cursor: pointer;
                     text-align: center;
                     display: inline-flex;
                     justify-content: center;
                     align-items: center;
-                    gap: 5px;
+                    gap: 6px;
                     height: 42px;
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    box-shadow: rgba(0, 0, 0, 0.02) 0px 1px 3px 0px;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
                 ">
                     🖨️ طباعة الصفحة الحالية
                 </button>
@@ -574,7 +574,6 @@ if page == "dashboard":
 
     st.markdown('<div class="no-print" style="margin-bottom: 15px;">', unsafe_allow_html=True)
     
-    # استخدام st.radio بشكل أفقي (Pills/Radio) لضمان ثبات وثعالية الاختيار بدون مشاكل الأزرار العادية
     view_option = st.radio(
         "طريقة العرض:",
         options=["📄 طباعة شامل (عرض الكل)", "🚢 الشحن البحري (RQ)", "✈️ الشحن الجوي (RA)"],
