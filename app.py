@@ -651,7 +651,7 @@ if page == "dashboard":
                 container_cartons = container_cartons.rename(columns={"عدد الكارتون": "مجموع الكارتون بالحاوية"})
                 aggregated_df = pd.merge(aggregated_df, container_cartons, on=pivot_container_col, how="left")
 
-            # حل مشكلة الإجمالي: استخدام مجموع القيم الرقمية الفعلية للأعمدة
+            # حساب مجاميع صحيحة تماماً بعيداً عن التكرار الخاطئ
             totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
             for col in agg_mapping.keys():
                 numeric_series = pd.to_numeric(
@@ -935,7 +935,6 @@ elif page == "aging":
 
                 aging_pivot["Grand Total"] = aging_pivot.sum(axis=1)
                 
-                aging_grand_total = aging_pivot.sum(axis=0)
                 aging_pivot = aging_pivot.reset_index()
                 
                 grand_total_row_dict = {
