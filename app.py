@@ -388,7 +388,7 @@ def render_download_buttons(data_to_download):
         """, height=50)
     st.markdown('</div>', unsafe_allow_html=True)
 
-def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_report=False):
+def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_report=False, is_distribution=False):
     if df_to_render.empty:
         st.info("لا توجد بيانات للعرض.")
         return
@@ -405,7 +405,14 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 seq_list.append("")
             else:
                 seq_list.append(len(seq_list) + 1)
-        df_with_seq.insert(0, "التسلسل", seq_list)
+        
+        # ترتيب الأعمدة لصفحة توزيع البضاعة بحيث يكون عمود التسلسل في أقصى اليمين تماماً
+        if is_distribution:
+            df_with_seq["التسلسل"] = seq_list
+            cols = [c for c in df_with_seq.columns if c != "التسلسل"] + ["التسلسل"]
+            df_with_seq = df_with_seq[cols]
+        else:
+            df_with_seq.insert(0, "التسلسل", seq_list)
 
     html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
     for col in df_with_seq.columns:
@@ -887,7 +894,7 @@ elif page == "distribution":
 
         dist_columns = [c for c in ["No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن", "عدد الكارتون", "الوزن", "حجم", "رقم الحاوية"] if c in dist_df.columns]
         display_df = dist_df[dist_columns] if dist_columns else dist_df
-        display_custom_html_table(display_df)
+        display_custom_html_table(display_df, is_distribution=True)
     else:
         st.warning("لا توجد بيانات متاحة لعرض توزيع البضاعة.")
 
@@ -938,4 +945,4 @@ elif page == "data_entry":
     if st.button("💾 حفظ التغييرات وتحديث العرض"):
         st.session_state["df_updated"] = edited_df
         st.success("تم تحديث البيانات بنجاح في الجلسة الحالية!")
-        st.rer()
+        st.rerun()
