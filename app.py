@@ -2,6 +2,7 @@ import io
 import os
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 # 1. إعداد الصفحة والتنسيقات
 st.set_page_config(
@@ -285,7 +286,6 @@ if st.sidebar.button("🔄 تحديث البيانات من جوجل شيت"):
     st.cache_data.clear()
     st.rerun()
 
-# التحقق من وجود تعديلات محلية مخزنة في الجلسة من صفحة إدخال البيانات
 if "df_updated" in st.session_state:
     df = st.session_state["df_updated"]
 else:
@@ -360,28 +360,31 @@ def render_download_buttons(data_to_download):
         )
     
     with btn_col2:
-        st.markdown("""
-            <button onclick="window.print();" style="
-                width: 100%;
-                background-color: #ffffff;
-                color: #262730;
-                border: 1px solid rgba(49, 51, 63, 0.2);
-                padding: 0.375rem 0.75rem;
-                border-radius: 0.5rem;
-                font-weight: 400;
-                font-size: 14px;
-                cursor: pointer;
-                text-align: center;
-                display: inline-flex;
-                justify-content: center;
-                align-items: center;
-                gap: 5px;
-                height: 38px;
-                box-shadow: rgba(0, 0, 0, 0.02) 0px 1px 3px 0px;
-            ">
-                🖨️ طباعة الصفحة الحالية
-            </button>
-        """, unsafe_allow_html=True)
+        components.html("""
+            <div style="display: flex; justify-content: center; align-items: center; height: 100%; margin: 0;">
+                <button onclick="window.parent.print();" style="
+                    width: 100%;
+                    background-color: #ffffff;
+                    color: #262730;
+                    border: 1px solid rgba(49, 51, 63, 0.2);
+                    padding: 0.5rem 0.75rem;
+                    border-radius: 0.5rem;
+                    font-weight: 400;
+                    font-size: 14px;
+                    cursor: pointer;
+                    text-align: center;
+                    display: inline-flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 5px;
+                    height: 42px;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    box-shadow: rgba(0, 0, 0, 0.02) 0px 1px 3px 0px;
+                ">
+                    🖨️ طباعة الصفحة الحالية
+                </button>
+            </div>
+        """, height=50)
     st.markdown('</div>', unsafe_allow_html=True)
 
 def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_report=False):
