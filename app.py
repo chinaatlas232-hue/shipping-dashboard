@@ -121,7 +121,6 @@ st.markdown(
         border-radius: 4px !important;
     }
 
-    /* تعديلات الطباعة العامة */
     @media print {
         @page {
             size: A4 landscape;
@@ -415,7 +414,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     for _, row in df_with_seq.iterrows():
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
-
         is_row_total = any(str(val).strip() in ["Grand Total", "GrandTotal"] for val in row.values)
 
         html += '<tr>'
@@ -445,8 +443,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                     else:
                         if is_not_arrived:
                             cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important;"'
-                            if col_str in ["رقم الحاوية", "الكفيل"]:
-                                cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
                         else:
                             if col_str in ["رقم الحاوية", "الكفيل"]:
                                 cell_style = ' style="background-color: #bbf7d0 !important; color: #065f46 !important; font-weight: bold;"'
@@ -459,7 +455,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             elif numeric_val is not None:
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
                 if is_currency_col or is_sponsors_pivot:
-                    if "¥" in col_str or "يوان" in col_str or "¥" in val_str or (is_sponsors_pivot and "الزبون دفع" in col_str):
+                    if "¥" in col_str or "يوان" in col_str or "¥" in val_str or (is_sponsors_pivot and any(k in col_str for k in ["الزبون دفع", "المكتب دفع", "المجموع"])):
                         formatted_val = f"¥{numeric_val:,.2f}"
                     elif is_sponsors_pivot and any(k in col_str for k in ["سعر البيع", "مبلغ الجمرك", "متبقي حقيقي"]):
                         formatted_val = f"$ {numeric_val:,.2f}"
@@ -818,7 +814,7 @@ elif page == "collections":
     if not filtered_df.empty:
         total_c = filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in filtered_df.columns else 0
         total_coll = filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in filtered_df.columns else 0
-        total_rem = filtered_df["متبقي حقيقي"] .sum() if "متبقي حقيقي" in filtered_df.columns else 0
+        total_rem = filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in filtered_df.columns else 0
 
         mc1, mc2, mc3 = st.columns(3)
         with mc1:
@@ -885,17 +881,14 @@ elif page == "distribution":
         st.markdown("---")
         render_download_buttons(dist_df)
 
-        # التعديل هنا لتحويل العرض إلى الشكل التجميعي والمحوري المطابق للصورة
         pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in dist_df.columns), None)
         pivot_mark_col = "Shipping mark" if "Shipping mark" in dist_df.columns else None
 
         if pivot_container_col and pivot_mark_col:
-            # تجميع البيانات حسب رقم الحاوية و Shipping mark باستخدام دالة agg لتوليد الجدول المحوري
             group_cols = [pivot_container_col, pivot_mark_col]
             
-            # تحديد الأعمدة الرقمية المراد جمعها أو حسابها
             agg_dict = {}
-            for col in ["عدد الكارتون", "الوزن", "حجم", "سعر البيع", "مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي", "المجموع", "الزبون دفع", "المكتب دفع"]:
+            for col in ["الزبون دفع", "Client Paid", "المكتب دفع", "Office Paid", "المجموع", "عدد الكارتون", "سعر البيع", "مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"]:
                 if col in dist_df.columns:
                     dist_df[col] = pd.to_numeric(dist_df[col], errors="coerce").fillna(0)
                     agg_dict[col] = "sum"
@@ -903,28 +896,31 @@ elif page == "distribution":
             if agg_dict:
                 dist_pivot_df = dist_df.groupby(group_cols, dropna=False).agg(agg_dict).reset_index()
 
-                # حساب وجبة صف الإجمالي العام (Grand Total)
+                desired_columns = [
+                    pivot_container_col, pivot_mark_col, 
+                    "الزبون دفع" if "الزبون دفع" in dist_pivot_df.columns else "Client Paid",
+                    "المكتب دفع" if "المكتب دفع" in dist_pivot_df.columns else "Office Paid",
+                    "المجموع", "عدد الكارتون", "سعر البيع", "مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"
+                ]
+                existing_cols = [c for c in desired_columns if c in dist_pivot_df.columns]
+                dist_pivot_df = dist_pivot_df[existing_cols]
+
                 totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
-                for col in agg_dict.keys():
-                    totals_dict[col] = dist_pivot_df[col].sum()
+                for col in existing_cols:
+                    if col not in [pivot_container_col, pivot_mark_col]:
+                        totals_dict[col] = dist_pivot_df[col].sum()
 
                 grand_total_df = pd.DataFrame([totals_dict])
                 dist_pivot_df = pd.concat([dist_pivot_df, grand_total_df], ignore_index=True)
 
-                # إعادة تسمية الأعمدة لتشبه تماماً التنسيق المطلوب والمرفق في الصور
                 column_rename_map = {
                     pivot_container_col: "رقم الحاوية",
                     pivot_mark_col: "Shipping mark",
                     "عدد الكارتون": "Sum of عدد الكارتون",
-                    "الوزن": "Sum of الوزن",
-                    "حجم": "Sum of الحجم",
                     "سعر البيع": "Sum of سعر البيع",
                     "مبلغ الجمرك": "Sum of مبلغ الجمرك",
                     "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
-                    "متبقي حقيقي": "متبقي حقيقي",
-                    "المجموع": "المجموع",
-                    "الزبون دفع": "الزبون دفع",
-                    "المكتب دفع": "المكتب دفع"
+                    "متبقي حقيقي": "Sum of متبقي حقيقي"
                 }
                 dist_pivot_df = dist_pivot_df.rename(columns=column_rename_map)
 
