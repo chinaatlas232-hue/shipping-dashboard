@@ -344,7 +344,6 @@ st.sidebar.markdown("---")
 st.sidebar.info("متصل بملف Google Sheets بنجاح ✔️")
 
 def render_download_buttons(data_to_download):
-    # وضعنا الفئة no-print هنا لكي تختفي أزرار التنزيل والطباعة نفسها عند إخراج الورقة النهائية
     st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
     btn_col1, btn_col2 = st.columns([1, 1])
     with btn_col1:
@@ -511,9 +510,24 @@ if page == "dashboard":
     render_download_buttons(filtered_df)
     
     active_cols = [c for c in default_columns_to_show if c in filtered_df.columns]
-    df_to_display = filtered_df[active_cols] if active_cols else filtered_df
     
-    display_custom_html_table(df_to_display)
+    # تقسيم البيانات إلى جدول الشحن البحري (يبدأ بـ RQ) وجدول الشحن الجوي (يبدأ بـ RA) بناءً على رقم الحاوية
+    if container_col and container_col in filtered_df.columns:
+        marine_df = filtered_df[filtered_df[container_col].astype(str).str.upper().str.startswith("RQ")]
+        air_df = filtered_df[filtered_df[container_col].astype(str).str.upper().str.startswith("RA")]
+    else:
+        marine_df = filtered_df
+        air_df = pd.DataFrame(columns=filtered_df.columns)
+
+    st.markdown("### 🚢 جدول الشحن البحري (RQ)")
+    marine_display = marine_df[active_cols] if active_cols else marine_df
+    display_custom_html_table(marine_display)
+
+    st.markdown("---")
+    st.markdown("### ✈️ جدول الشحن الجوي (RA)")
+    air_display = air_df[active_cols] if active_cols else air_df
+    display_custom_html_table(air_display)
+
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "customs":
