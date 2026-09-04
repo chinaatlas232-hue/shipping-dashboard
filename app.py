@@ -365,7 +365,6 @@ def render_download_buttons(data_to_download):
         )
     
     with btn_col2:
-        # ثلاثة أزرار طباعة منفصلة كما طُلب
         print_html = """
             <div style="display: flex; gap: 6px; width: 100%;">
                 <button onclick="
@@ -513,26 +512,27 @@ if page == "dashboard":
     search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    if search_query and not filtered_df.empty:
-        search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات", "Shipping mark"] if c in filtered_df.columns]
+    dash_filtered_df = filtered_df.copy()
+    if search_query and not dash_filtered_df.empty:
+        search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات", "Shipping mark"] if c in dash_filtered_df.columns]
         if search_cols:
-            mask = filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
-            filtered_df = filtered_df[mask.any(axis=1)]
+            mask = dash_filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
+            dash_filtered_df = dash_filtered_df[mask.any(axis=1)]
 
-    total_orders = len(filtered_df)
-    total_weight = filtered_df["الوزن"].sum() if "الوزن" in filtered_df.columns else 0
-    total_ctns = filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in filtered_df.columns else 0
-    total_volume = filtered_df["حجم"].sum() if "حجم" in filtered_df.columns else 0
+    total_orders = len(dash_filtered_df)
+    total_weight = dash_filtered_df["الوزن"].sum() if "الوزن" in dash_filtered_df.columns else 0
+    total_ctns = dash_filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in dash_filtered_df.columns else 0
+    total_volume = dash_filtered_df["حجم"].sum() if "حجم" in dash_filtered_df.columns else 0
     
-    client_field_candidates = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in filtered_df.columns]
-    total_clients = filtered_df[client_field_candidates[0]].nunique() if client_field_candidates and not filtered_df.empty else 0
-    total_containers_count = filtered_df[container_col].nunique() if container_col and container_col in filtered_df.columns and not filtered_df.empty else 0
+    client_field_candidates = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in dash_filtered_df.columns]
+    total_clients = dash_filtered_df[client_field_candidates[0]].nunique() if client_field_candidates and not dash_filtered_df.empty else 0
+    total_containers_count = dash_filtered_df[container_col].nunique() if container_col and container_col in dash_filtered_df.columns and not dash_filtered_df.empty else 0
 
-    office_paid_col = next((c for c in ["Office Paid", "المكتب دفع"] if c in filtered_df.columns), None)
-    client_paid_col = next((c for c in ["Client Paid", "الزبون دفع"] if c in filtered_df.columns), None)
+    office_paid_col = next((c for c in ["Office Paid", "المكتب دفع"] if c in dash_filtered_df.columns), None)
+    client_paid_col = next((c for c in ["Client Paid", "الزبون دفع"] if c in dash_filtered_df.columns), None)
     
-    total_office_paid = filtered_df[office_paid_col].sum() if office_paid_col else 0
-    total_client_paid = filtered_df[client_paid_col].sum() if client_paid_col else 0
+    total_office_paid = dash_filtered_df[office_paid_col].sum() if office_paid_col else 0
+    total_client_paid = dash_filtered_df[client_paid_col].sum() if client_paid_col else 0
 
     row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
     with row1_c1:
@@ -555,18 +555,18 @@ if page == "dashboard":
         st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">${total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
-    render_download_buttons(filtered_df)
+    render_download_buttons(dash_filtered_df)
     
-    active_cols = [c for c in default_columns_to_show if c in filtered_df.columns]
+    active_cols = [c for c in default_columns_to_show if c in dash_filtered_df.columns]
     
-    if container_col and container_col in filtered_df.columns:
-        marine_df = filtered_df[filtered_df[container_col].astype(str).str.upper().str.startswith("RQ")]
-        air_df = filtered_df[filtered_df[container_col].astype(str).str.upper().str.startswith("RA")]
+    if container_col and container_col in dash_filtered_df.columns:
+        marine_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RQ")]
+        air_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RA")]
     else:
-        marine_df = filtered_df
-        air_df = pd.DataFrame(columns=filtered_df.columns)
+        marine_df = dash_filtered_df
+        air_df = pd.DataFrame(columns=dash_filtered_df.columns)
 
-    # قسم جدول الشحن البحري مع فئة لتمييزه عند الطباعة حسب المفتاح
+    # قسم جدول الشحن البحري مع فئة لتمييزه عند الطباعة
     st.markdown('<div class="print-hide-marine">', unsafe_allow_html=True)
     st.markdown("### 🚢 جدول الشحن البحري (RQ)")
     marine_display = marine_df[active_cols] if active_cols else marine_df
@@ -575,7 +575,7 @@ if page == "dashboard":
 
     st.markdown("---")
 
-    # قسم جدول الشحن الجوي مع فئة لتمييزه عند الطباعة حسب المفتاح
+    # قسم جدول الشحن الجوي مع فئة لتمييزه عند الطباعة
     st.markdown('<div class="print-hide-air">', unsafe_allow_html=True)
     st.markdown("### ✈️ جدول الشحن الجوي (RA)")
     air_display = air_df[active_cols] if active_cols else air_df
