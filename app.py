@@ -651,14 +651,14 @@ if page == "dashboard":
                 container_cartons = container_cartons.rename(columns={"عدد الكارتون": "مجموع الكارتون بالحاوية"})
                 aggregated_df = pd.merge(aggregated_df, container_cartons, on=pivot_container_col, how="left")
 
-            # تصحيح صف الإجمالي (Grand Total) بحساب المجموع الحقيقي لكل عمود رقمي
+            # تصحيح صف الإجمالي (Grand Total) بشكل سليم ودقيق لكل عمود
             totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
             for col in agg_mapping.keys():
                 aggregated_df[col] = pd.to_numeric(aggregated_df[col], errors="coerce").fillna(0)
-                totals_dict[col] = aggregated_df[col].sum()
+                totals_dict[col] = float(aggregated_df[col].sum())
             
             if "مجموع الكارتون بالحاوية" in aggregated_df.columns:
-                totals_dict["مجموع الكارتون بالحاوية"] = active_view_df["عدد الكارتون"].sum() if "عدد الكارتون" in active_view_df.columns else 0
+                totals_dict["مجموع الكارتون بالحاوية"] = float(active_view_df["عدد الكارتون"].sum()) if "عدد الكارتون" in active_view_df.columns else 0.0
 
             grand_total_df = pd.DataFrame([totals_dict])
             aggregated_df = pd.concat([aggregated_df, grand_total_df], ignore_index=True)
@@ -743,10 +743,10 @@ elif page == "customs":
 
         grand_total_row = pd.DataFrame({
             pivot_code_col: ["Grand Total"],
-            "عدد الكارتون": [customs_summary["عدد الكارتون"].sum()],
-            "مبلغ الجمرك": [customs_summary["مبلغ الجمرك"].sum()],
-            "قيمة الاستحصالات": [customs_summary["قيمة الاستحصالات"].sum()],
-            "متبقي حقيقي": [customs_summary["متبقي حقيقي"].sum()]
+            "عدد الكارتون": [float(customs_summary["عدد الكارتون"].sum())],
+            "مبلغ الجمرك": [float(customs_summary["مبلغ الجمرك"].sum())],
+            "قيمة الاستحصالات": [float(customs_summary["قيمة الاستحصالات"].sum())],
+            "متبقي حقيقي": [float(customs_summary["متبقي حقيقي"].sum())]
         })
 
         customs_summary = pd.concat([customs_summary, grand_total_row], ignore_index=True)
@@ -843,9 +843,9 @@ elif page == "sponsors":
                 totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
                 for col in numeric_cols_to_sum:
                     pivot_table_df[col] = pd.to_numeric(pivot_table_df[col], errors="coerce").fillna(0)
-                    totals_dict[col] = pivot_table_df[col].sum()
+                    totals_dict[col] = float(pivot_table_df[col].sum())
                 if "مجموع الكارتون بالحاوية" in pivot_table_df.columns:
-                    totals_dict["مجموع الكارتون بالحاوية"] = base_pivot_df["عدد الكارتون"].sum()
+                    totals_dict["مجموع الكارتون بالحاوية"] = float(base_pivot_df["عدد الكارتون"].sum())
 
                 grand_total_df = pd.DataFrame([totals_dict])
                 pivot_table_df = pd.concat([pivot_table_df, grand_total_df], ignore_index=True)
@@ -919,7 +919,7 @@ elif page == "aging":
                 }
                 for c in aging_pivot.columns:
                     if c not in ["رقم الحاوية", code_field]:
-                        grand_total_row_dict[c] = aging_grand_total[c]
+                        grand_total_row_dict[c] = float(aging_grand_total[c])
                 
                 aging_pivot = pd.concat([aging_pivot, pd.DataFrame([grand_total_row_dict])], ignore_index=True)
                 aging_pivot.columns = [str(c) for c in aging_pivot.columns]
@@ -965,9 +965,9 @@ elif page == "collections":
 
         grand_totals = pd.DataFrame({
             container_field: ["Grand Total"],
-            "مبلغ الجمرك": [agg_df["مبلغ الجمرك"].sum()],
-            "قيمة الاستحصالات": [agg_df["قيمة الاستحصالات"].sum()],
-            "متبقي حقيقي": [agg_df["متبقي حقيقي"].sum()]
+            "مبلغ الجمرك": [float(agg_df["مبلغ الجمرك"].sum())],
+            "قيمة الاستحصالات": [float(agg_df["قيمة الاستحصالات"].sum())],
+            "متبقي حقيقي": [float(agg_df["متبقي حقيقي"].sum())]
         })
         
         agg_df = pd.concat([agg_df, grand_totals], ignore_index=True)
