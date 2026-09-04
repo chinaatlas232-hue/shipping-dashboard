@@ -605,7 +605,6 @@ if page == "dashboard":
         if agg_mapping:
             aggregated_df = active_view_df.groupby(group_cols, dropna=False).agg(agg_mapping).reset_index()
 
-            # حساب المجاميع بشكل صحيح ومنظم
             totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
             for col in agg_mapping.keys():
                 aggregated_df[col] = pd.to_numeric(aggregated_df[col], errors="coerce").fillna(0)
@@ -626,7 +625,6 @@ if page == "dashboard":
 
             aggregated_df = aggregated_df.rename(columns=rename_map)
             
-            # ترتيب الأعمدة وتحديدها بدقة لمنع أي تداخل أو خطأ في صف الإجمالي
             desired_cols = ["رقم الحاوية", "Shipping mark", "الزبون دفع", "المكتب دفع", "المجموع", 
                             "Sum of عدد الكارتون", "Sum of سعر البيع", "Sum of مبلغ الجمرك", 
                             "Sum of قيمة الاستحصالات", "متبقي حقيقي"]
@@ -948,6 +946,8 @@ elif page == "charts":
                 st.bar_chart(weight_data)
 
         with col_chart2:
+            if container_col and "حجم" in filtered_df.codes if "حجم" in filtered_df.columns else False:
+                pass
             if container_col and "حجم" in filtered_df.columns:
                 st.subheader("📐 إجمالي الحجم حسب الحاوية (m³)")
                 volume_data = filtered_df.groupby(container_col)["حجم"].sum()
