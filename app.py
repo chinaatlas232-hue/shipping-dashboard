@@ -121,7 +121,6 @@ st.markdown(
         border-radius: 4px !important;
     }
 
-    /* تعديلات الطباعة العامة */
     @media print {
         @page {
             size: A4 landscape;
@@ -575,16 +574,15 @@ if page == "dashboard":
         display_custom_html_table(air_display)
 
     # ـــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
-    # إضافة الجدول التجميعي الجديد أسفل الصفحة (Pivot Table حسب رقم الحاوية و Shipping mark)
+    # الجدول التجميعي الجديد أسفل الصفحة (يأخذ بياناته من active_view_df ليتطابق مع ما يعرض في الأعلى 100%)
     # ـــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
     st.markdown("---")
     st.markdown("### 📊 الجدول التجميعي (ملخص الحاويات و Shipping mark)")
 
-    pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in dash_filtered_df.columns), None)
-    pivot_mark_col = "Shipping mark" if "Shipping mark" in dash_filtered_df.columns else None
+    pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in active_view_df.columns), None)
+    pivot_mark_col = "Shipping mark" if "Shipping mark" in active_view_df.columns else None
 
-    if pivot_container_col and pivot_mark_col and not dash_filtered_df.empty:
-        # تجميع البيانات بحسب رقم الحاوية و Shipping mark وحساب مجاميع الحقول المطلوبة
+    if pivot_container_col and pivot_mark_col and not active_view_df.empty:
         group_cols = [pivot_container_col, pivot_mark_col]
         agg_mapping = {}
         
@@ -600,14 +598,13 @@ if page == "dashboard":
         }
 
         for target_name, candidates in possible_cols.items():
-            matched_c = next((c for c in candidates if c in dash_filtered_df.columns), None)
+            matched_c = next((c for c in candidates if c in active_view_df.columns), None)
             if matched_c:
                 agg_mapping[matched_c] = "sum"
 
         if agg_mapping:
-            aggregated_df = dash_filtered_df.groupby(group_cols, dropna=False).agg(agg_mapping).reset_index()
+            aggregated_df = active_view_df.groupby(group_cols, dropna=False).agg(agg_mapping).reset_index()
 
-            # حساب سطر Grand Total
             totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
             for col in agg_mapping.keys():
                 aggregated_df[col] = pd.to_numeric(aggregated_df[col], errors="coerce").fillna(0)
@@ -616,7 +613,6 @@ if page == "dashboard":
             grand_total_df = pd.DataFrame([totals_dict])
             aggregated_df = pd.concat([aggregated_df, grand_total_df], ignore_index=True)
 
-            # تسمية الأعمدة بنفس تنسيق الصورة المطلوبة
             rename_map = {
                 pivot_container_col: "رقم الحاوية",
                 pivot_mark_col: "Shipping mark",
