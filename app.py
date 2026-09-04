@@ -121,7 +121,7 @@ st.markdown(
         border-radius: 4px !important;
     }
 
-    /* تعديلات الطباعة: إظهار الإحصائيات والجدول والعنوان، وإخفاء القائمة الجانبية وأزرار التنزيل فقط */
+    /* تعديلات الطباعة العامة */
     @media print {
         @page {
             size: A4 landscape;
@@ -159,7 +159,6 @@ st.markdown(
             position: relative !important;
         }
 
-        /* ضمان طباعة ألوان الخلفية والنصوص للمربعات الإحصائية والجداول بنجاح */
         .metric-card {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
@@ -188,7 +187,6 @@ st.markdown(
             margin: 0 !important;
         }
 
-        /* تكرار رأس الجدول تلقائياً في أعلى كل صفحة مطبوعة */
         thead {
             display: table-header-group !important;
         }
@@ -212,6 +210,14 @@ st.markdown(
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
+    }
+
+    /* فلاتر إخفاء الأقسام أثناء الطباعة بناءً على نوع التقرير المختار */
+    body.print-mode-marine .print-hide-marine {
+        display: none !important;
+    }
+    body.print-mode-air .print-hide-air {
+        display: none !important;
     }
     </style>
 """,
@@ -359,23 +365,65 @@ def render_download_buttons(data_to_download):
         )
     
     with btn_col2:
+        # ثلاثة أزرار طباعة منفصلة كما طُلب
         print_html = """
-            <div style="width: 100%;">
-                <button onclick="window.parent.print();" style="
-                    background-color: #ff4b4b;
+            <div style="display: flex; gap: 6px; width: 100%;">
+                <button onclick="
+                    document.body.className = document.body.className.replace(/print-mode-\\w+/g, '');
+                    window.parent.print();
+                " style="
+                    background-color: #1e3a8a;
                     color: white;
-                    padding: 0.45rem 0.75rem;
+                    padding: 0.45rem 0.5rem;
                     border: none;
                     border-radius: 0.3rem;
                     font-weight: 500;
                     cursor: pointer;
-                    width: 100%;
+                    flex: 1;
                     height: 38px;
-                    font-size: 14px;
+                    font-size: 13px;
                     font-family: inherit;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
                 ">
-                    📄 طباعة / حفظ كـ PDF
+                    📄 طباعة شامل
+                </button>
+                <button onclick="
+                    document.body.className = document.body.className.replace(/print-mode-\\w+/g, '') + ' print-mode-air';
+                    window.parent.print();
+                " style="
+                    background-color: #0d9488;
+                    color: white;
+                    padding: 0.45rem 0.5rem;
+                    border: none;
+                    border-radius: 0.3rem;
+                    font-weight: 500;
+                    cursor: pointer;
+                    flex: 1;
+                    height: 38px;
+                    font-size: 13px;
+                    font-family: inherit;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                ">
+                    🚢 الشحن البحري
+                </button>
+                <button onclick="
+                    document.body.className = document.body.className.replace(/print-mode-\\w+/g, '') + ' print-mode-marine';
+                    window.parent.print();
+                " style="
+                    background-color: #b45309;
+                    color: white;
+                    padding: 0.45rem 0.5rem;
+                    border: none;
+                    border-radius: 0.3rem;
+                    font-weight: 500;
+                    cursor: pointer;
+                    flex: 1;
+                    height: 38px;
+                    font-size: 13px;
+                    font-family: inherit;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                ">
+                    ✈️ الشحن الجوي
                 </button>
             </div>
         """
@@ -511,7 +559,6 @@ if page == "dashboard":
     
     active_cols = [c for c in default_columns_to_show if c in filtered_df.columns]
     
-    # تقسيم البيانات إلى جدول الشحن البحري (يبدأ بـ RQ) وجدول الشحن الجوي (يبدأ بـ RA) بناءً على رقم الحاوية
     if container_col and container_col in filtered_df.columns:
         marine_df = filtered_df[filtered_df[container_col].astype(str).str.upper().str.startswith("RQ")]
         air_df = filtered_df[filtered_df[container_col].astype(str).str.upper().str.startswith("RA")]
@@ -519,14 +566,21 @@ if page == "dashboard":
         marine_df = filtered_df
         air_df = pd.DataFrame(columns=filtered_df.columns)
 
+    # قسم جدول الشحن البحري مع فئة لتمييزه عند الطباعة حسب المفتاح
+    st.markdown('<div class="print-hide-marine">', unsafe_allow_html=True)
     st.markdown("### 🚢 جدول الشحن البحري (RQ)")
     marine_display = marine_df[active_cols] if active_cols else marine_df
     display_custom_html_table(marine_display)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("---")
+
+    # قسم جدول الشحن الجوي مع فئة لتمييزه عند الطباعة حسب المفتاح
+    st.markdown('<div class="print-hide-air">', unsafe_allow_html=True)
     st.markdown("### ✈️ جدول الشحن الجوي (RA)")
     air_display = air_df[active_cols] if active_cols else air_df
     display_custom_html_table(air_display)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
