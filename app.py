@@ -334,6 +334,7 @@ page_options = {
     "الديون على الكفلاء": "sponsors",
     "اعمار الديون (Aging Report)": "aging",
     "كمرك الشحنات والاستحصالات": "collections",
+    "توزيع البضاعة داخل الحاويات": "distribution",
     "الرسوم البيانية": "charts",
     "إدخال وتعديل البيانات": "data_entry"
 }
@@ -447,10 +448,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             elif pd.isna(val) or val_str == "" or val_str.lower() == "nan":
                 formatted_val = "0.00"
             elif numeric_val is not None:
-                # التحقق مما إذا كان العمود يمثل عملة (دلار أو يوان أو مبالغ) أو أرقام عادية
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
-                
-                # تخصيص رمز العملة حسب نوع العمود أو القيمة الأصلية
                 if is_currency_col:
                     if "¥" in col_str or "يوان" in col_str or "¥" in val_str:
                         formatted_val = f"¥{numeric_val:,.2f}"
@@ -826,6 +824,36 @@ elif page == "collections":
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
 
     st.markdown("<div style='margin-block: 50px;'></div>", unsafe_allow_html=True)
+
+elif page == "distribution":
+    st.title("📦 توزيع البضاعة داخل الحاويات")
+    st.markdown("---")
+    st.markdown("### 📋 تفاصيل وتوزيع البضائع والكراتين داخل الحاويات")
+
+    dist_df = filtered_df.copy()
+    if not dist_df.empty:
+        total_boxes = dist_df["عدد الكارتون"].sum() if "عدد الكارتون" in dist_df.columns else 0
+        total_wt = dist_df["الوزن"].sum() if "الوزن" in dist_df.columns else 0
+        total_vol = dist_df["حجم"].sum() if "حجم" in dist_df.columns else 0
+
+        dc1, dc2, dc3 = st.columns(3)
+        with dc1:
+            st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">إجمالي عدد الكارتون</div><div class="metric-value">{total_boxes:,.2f}</div></div>', unsafe_allow_html=True)
+        with dc2:
+            st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">إجمالي الوزن (kg)</div><div class="metric-value">{total_wt:,.2f}</div></div>', unsafe_allow_html=True)
+        with dc3:
+            st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">إجمالي الحجم (m³)</div><div class="metric-value">{total_vol:,.2f}</div></div>', unsafe_allow_html=True)
+
+        st.markdown("---")
+        render_download_buttons(dist_df)
+
+        dist_columns = [c for c in ["No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن", "عدد الكارتون", "الوزن", "حجم", "رقم الحاوية"] if c in dist_df.columns]
+        display_df = dist_df[dist_columns] if dist_columns else dist_df
+        display_custom_html_table(display_df)
+    else:
+        st.warning("لا توجد بيانات متاحة لعرض توزيع البضاعة.")
+
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
