@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
-# 1. إعداد الصفحة والتنسيقات
+# 1. إعداد الصفحة والتنسیقات
 st.set_page_config(
     page_title="شركة أطلس المحيط", page_icon="📦", layout="wide"
 )
@@ -627,25 +627,32 @@ if page == "dashboard":
     total_office_paid = active_view_df[office_paid_col].sum() if office_paid_col else 0
     total_client_paid = active_view_df[client_paid_col].sum() if client_paid_col else 0
 
-    row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
+    total_sum_col = next((c for c in ["المجموع", "Total"] if c in active_view_df.columns), None)
+    total_amount_all = active_view_df[total_sum_col].sum() if total_sum_col else 0
+
+    row1_c1, row1_c2, row1_c3 = st.columns(3)
     with row1_c1:
-        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">🚢 عدد الحاويات</div><div class="metric-value">{total_containers_count:,}</div></div>', unsafe_allow_html=True)
     with row1_c2:
-        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">👥 إجمالي عدد العملاء</div><div class="metric-value">{total_clients:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">👥 عدد العملاء</div><div class="metric-value">{total_clients:,}</div></div>', unsafe_allow_html=True)
     with row1_c3:
-        st.markdown(f'<div class="metric-card" style="background-color: #1d4ed8;"><div class="metric-title">🚢 إجمالي عدد الحاويات</div><div class="metric-value">{total_containers_count:,}</div></div>', unsafe_allow_html=True)
-    with row1_c4:
-        st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">💰 المبلغ الكلي</div><div class="metric-value">${total_amount_all:,.2f}</div></div>', unsafe_allow_html=True)
 
     row2_c1, row2_c2, row2_c3, row2_c4 = st.columns(4)
     with row2_c1:
-        st.markdown(f'<div class="metric-card" style="background-color: #047857;"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #1d4ed8;"><div class="metric-title">📦 عدد الطلبات</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
     with row2_c2:
-        st.markdown(f'<div class="metric-card" style="background-color: #7c2d12;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c3:
         st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">💰 مبالغ دفعت من المكتب</div><div class="metric-value">${total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c4:
         st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">${total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
+
+    row3_c1, row3_c2 = st.columns(2)
+    with row3_c1:
+        st.markdown(f'<div class="metric-card" style="background-color: #047857;"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
+    with row3_c2:
+        st.markdown(f'<div class="metric-card" style="background-color: #7c2d12;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     render_download_buttons(active_view_df)
