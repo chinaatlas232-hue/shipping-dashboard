@@ -395,7 +395,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         
     df_with_seq = df_to_render.copy()
     
-    # التحقق مما إذا كان الجدول عبارة عن جدول محوري (Pivot Table) مثل الذي يظهر في الصورة المرفقة
     has_grand_total = any(str(val).strip() in ["Grand Total", "GrandTotal"] for val in df_with_seq.iloc[:, 0].values) if not df_with_seq.empty else False
 
     if not is_sponsors_pivot and not has_grand_total:
@@ -417,7 +416,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
 
-        # فحص ما إذا كان الصف هو صف الإجمالي العام (Grand Total)
         is_row_total = any(str(val).strip() in ["Grand Total", "GrandTotal"] for val in row.values)
 
         html += '<tr>'
@@ -438,7 +436,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                     pass
 
                 if is_sponsors_pivot:
-                    # تصميم مطبق تماماً لتنسيق الجدول المحوري المرفق في الصورة (الخلفية بلون بني محروق/خشبي للصفوف والخلية بلون فاتح)
                     cell_style = ' style="background-color: #fce7f3 !important; color: #831843 !important; font-weight: bold;"'
                     if col_str in df_with_seq.columns[:2]:
                         cell_style = ' style="background-color: #fed7aa !important; color: #7c2d12 !important; font-weight: bold;"'
@@ -460,7 +457,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             elif pd.isna(val) or val_str == "" or val_str.lower() == "nan":
                 formatted_val = "0.00" if is_sponsors_pivot else "-"
             elif numeric_val is not None:
-                # تخصيص العملات والرموز مطابقة للصورة المحورية (¥ للين، $ للدولار، أو أرقام عادية)
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
                 if is_currency_col or is_sponsors_pivot:
                     if "¥" in col_str or "يوان" in col_str or "¥" in val_str or (is_sponsors_pivot and "الزبون دفع" in col_str):
@@ -711,7 +707,6 @@ elif page == "sponsors":
             if selected_sponsor != "الكل" and "الكفيل" in base_pivot_df.columns:
                 base_pivot_df = base_pivot_df[base_pivot_df["الكفيل"].astype(str) == selected_sponsor]
 
-            # دمج الأعمدة المطلوبة مطابقة للصورة تماماً: رقم الحاوية، Shipping mark، الزبون دفع، المكتب دفع، المجموع، عدد الكارتون، سعر البيع، مبلغ الجمرك، قيمة الاستحصالات، متبقي حقيقي
             required_pivot_cols = [
                 pivot_container_col, pivot_mark_col, 
                 "الزبون دفع" if "الزبون دفع" in base_pivot_df.columns else "Client Paid",
@@ -723,7 +718,6 @@ elif page == "sponsors":
             pivot_table_df = base_pivot_df[available_pivot_cols].copy()
 
             if not pivot_table_df.empty:
-                # حساب صف الإجمالي العام (Grand Total) الصف الأخير تماماً مثل الصورة
                 numeric_cols_to_sum = [c for c in pivot_table_df.columns if c not in [pivot_container_col, pivot_mark_col]]
                 
                 totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
@@ -734,7 +728,6 @@ elif page == "sponsors":
                 grand_total_df = pd.DataFrame([totals_dict])
                 pivot_table_df = pd.concat([pivot_table_df, grand_total_df], ignore_index=True)
 
-                # إعادة تسمية الأعمدة لتتوافق حرفياً مع شكل البايفت الموضح في الصورة المرفقة
                 column_rename_map = {
                     pivot_container_col: "رقم الحاوية",
                     pivot_mark_col: "Shipping mark",
@@ -873,7 +866,7 @@ elif page == "collections":
 elif page == "distribution":
     st.title("📦 توزيع البضاعة داخل الحاويات")
     st.markdown("---")
-    st.markdown("### 📋 تفاصيل وتوزيع البضائع والكراتين داخل الحاويات")
+    st.markdown("### 📋 تفاصيل وتوزيع البضائع والكراتين داخل الحاويات (شكل تجميعي/محوري)")
 
     dist_df = filtered_df.copy()
     if not dist_df.empty:
@@ -892,9 +885,56 @@ elif page == "distribution":
         st.markdown("---")
         render_download_buttons(dist_df)
 
-        dist_columns = [c for c in ["No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن", "عدد الكارتون", "الوزن", "حجم", "رقم الحاوية"] if c in dist_df.columns]
-        display_df = dist_df[dist_columns] if dist_columns else dist_df
-        display_custom_html_table(display_df)
+        # التعديل هنا لتحويل العرض إلى الشكل التجميعي والمحوري المطابق للصورة
+        pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in dist_df.columns), None)
+        pivot_mark_col = "Shipping mark" if "Shipping mark" in dist_df.columns else None
+
+        if pivot_container_col and pivot_mark_col:
+            # تجميع البيانات حسب رقم الحاوية و Shipping mark باستخدام دالة agg لتوليد الجدول المحوري
+            group_cols = [pivot_container_col, pivot_mark_col]
+            
+            # تحديد الأعمدة الرقمية المراد جمعها أو حسابها
+            agg_dict = {}
+            for col in ["عدد الكارتون", "الوزن", "حجم", "سعر البيع", "مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي", "المجموع", "الزبون دفع", "المكتب دفع"]:
+                if col in dist_df.columns:
+                    dist_df[col] = pd.to_numeric(dist_df[col], errors="coerce").fillna(0)
+                    agg_dict[col] = "sum"
+
+            if agg_dict:
+                dist_pivot_df = dist_df.groupby(group_cols, dropna=False).agg(agg_dict).reset_index()
+
+                # حساب وجبة صف الإجمالي العام (Grand Total)
+                totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
+                for col in agg_dict.keys():
+                    totals_dict[col] = dist_pivot_df[col].sum()
+
+                grand_total_df = pd.DataFrame([totals_dict])
+                dist_pivot_df = pd.concat([dist_pivot_df, grand_total_df], ignore_index=True)
+
+                # إعادة تسمية الأعمدة لتشبه تماماً التنسيق المطلوب والمرفق في الصور
+                column_rename_map = {
+                    pivot_container_col: "رقم الحاوية",
+                    pivot_mark_col: "Shipping mark",
+                    "عدد الكارتون": "Sum of عدد الكارتون",
+                    "الوزن": "Sum of الوزن",
+                    "حجم": "Sum of الحجم",
+                    "سعر البيع": "Sum of سعر البيع",
+                    "مبلغ الجمرك": "Sum of مبلغ الجمرك",
+                    "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
+                    "متبقي حقيقي": "متبقي حقيقي",
+                    "المجموع": "المجموع",
+                    "الزبون دفع": "الزبون دفع",
+                    "المكتب دفع": "المكتب دفع"
+                }
+                dist_pivot_df = dist_pivot_df.rename(columns=column_rename_map)
+
+                display_custom_html_table(dist_pivot_df, is_sponsors_pivot=True)
+            else:
+                st.warning("لا توجد أعمدة رقمية كافية لتجميع البيانات.")
+        else:
+            dist_columns = [c for c in ["No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن", "عدد الكارتون", "الوزن", "حجم", "رقم الحاوية"] if c in dist_df.columns]
+            display_df = dist_df[dist_columns] if dist_columns else dist_df
+            display_custom_html_table(display_df)
     else:
         st.warning("لا توجد بيانات متاحة لعرض توزيع البضاعة.")
 
@@ -946,5 +986,3 @@ elif page == "data_entry":
         st.session_state["df_updated"] = edited_df
         st.success("تم تحديث البيانات بنجاح في الجلسة الحالية!")
         st.rerun()
-
-
