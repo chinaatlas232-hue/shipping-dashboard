@@ -355,9 +355,29 @@ def render_download_buttons(data_to_download):
         )
     
     with btn_col2:
-        # استخدام st.empty() أو حجز مكان لزر الطباعة المتصفح العام
-        if st.button("🖨️ طباعة الصفحة الحالية", use_container_width=True):
-            st.markdown("<script>window.print();</script>", unsafe_allow_html=True)
+        # زر طباعة تفاعلي مباشر باستخدام HTML وجافاسكريبت لضمان العمل الفوري
+        st.markdown("""
+            <button onclick="window.print();" style="
+                width: 100%;
+                background-color: #ffffff;
+                color: #262730;
+                border: 1px solid rgba(49, 51, 63, 0.2);
+                padding: 0.375rem 0.75rem;
+                border-radius: 0.5rem;
+                font-weight: 400;
+                font-size: 14px;
+                cursor: pointer;
+                text-align: center;
+                display: inline-flex;
+                justify-content: center;
+                align-items: center;
+                gap: 5px;
+                height: 38px;
+                box-shadow: rgba(0, 0, 0, 0.02) 0px 1px 3px 0px;
+            ">
+                🖨️ طباعة الصفحة الحالية
+            </button>
+        """, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_report=False):
@@ -443,7 +463,6 @@ if page == "dashboard":
     search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # تهيئة حالة أزرار العرض المتبادل (شامل، بحري، جوي)
     if "display_mode" not in st.session_state:
         st.session_state.display_mode = "all"
 
@@ -467,7 +486,6 @@ if page == "dashboard":
             mask = dash_filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
             dash_filtered_df = dash_filtered_df[mask.any(axis=1)]
 
-    # تجهيز بيانات البحري والجوي لربطها بالمتغيرات والشاشات العلوية حسب الزر المختار
     if container_col and container_col in dash_filtered_df.columns:
         marine_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RQ")]
         air_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RA")]
@@ -475,7 +493,6 @@ if page == "dashboard":
         marine_df = pd.DataFrame(columns=dash_filtered_df.columns)
         air_df = pd.DataFrame(columns=dash_filtered_df.columns)
 
-    # اختيار الداتا الفعالة حسب الزر المختار لتحديث الشاشات العلوية والجداول تلقائياً
     if st.session_state.display_mode == "marine":
         active_view_df = marine_df
     elif st.session_state.display_mode == "air":
@@ -483,7 +500,6 @@ if page == "dashboard":
     else:
         active_view_df = dash_filtered_df
 
-    # حساب المتغيرات للشاشات العلوية بناءً على الزر المختار
     total_orders = len(active_view_df)
     total_weight = active_view_df["الوزن"].sum() if "الوزن" in active_view_df.columns else 0
     total_ctns = active_view_df["عدد الكارتون"].sum() if "عدد الكارتون" in active_view_df.columns else 0
@@ -499,7 +515,6 @@ if page == "dashboard":
     total_office_paid = active_view_df[office_paid_col].sum() if office_paid_col else 0
     total_client_paid = active_view_df[client_paid_col].sum() if client_paid_col else 0
 
-    # عرض الشاشات العلوية (Metrics) المحدثة
     row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
     with row1_c1:
         st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
@@ -525,7 +540,6 @@ if page == "dashboard":
     
     active_cols = [c for c in default_columns_to_show if c in dash_filtered_df.columns]
 
-    # عرض الجداول بناءً على الزر المختار
     if st.session_state.display_mode in ["all", "marine"]:
         st.markdown("### 🚢 جدول الشحن البحري (RQ)")
         marine_display = marine_df[active_cols] if active_cols else marine_df
