@@ -651,7 +651,7 @@ if page == "dashboard":
                 container_cartons = container_cartons.rename(columns={"عدد الكارتون": "مجموع الكارتون بالحاوية"})
                 aggregated_df = pd.merge(aggregated_df, container_cartons, on=pivot_container_col, how="left")
 
-            # حساب المجاميع الحقيقية لكل عمود بدقة تامة منعاً للتكرار الخاطئ
+            # حساب المجاميع الحقيقية لكل عمود بشكل منفصل ودقيق منعاً لأي تكرار
             totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
             for col in agg_mapping.keys():
                 numeric_series = pd.to_numeric(
@@ -852,6 +852,7 @@ elif page == "sponsors":
 
                 numeric_cols_to_sum = [c for c in pivot_table_df.columns if c not in [pivot_container_col, pivot_mark_col]]
                 
+                # حساب المجاميع بشكل مستقل لكل عمود بدقة منعاً لتكرار قيمة الصفوف
                 totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
                 for col in numeric_cols_to_sum:
                     numeric_series = pd.to_numeric(
