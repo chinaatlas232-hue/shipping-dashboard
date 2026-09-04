@@ -249,6 +249,11 @@ def load_data():
         standardized_dfs = []
         for d in dfs:
             d.columns = d.columns.astype(str).str.strip()
+            # إزالة صفوف التجميع المتأصلة في ملفات المصدر (مثل Grand Total أو الإجمالي) لمنع تكرارها أو ظهورها الخاطئ
+            for col in d.columns:
+                mask_total = d[col].astype(str).str.contains("Grand Total|GrandTotal|الإجمالي الكلي", case=False, na=False)
+                if mask_total.any():
+                    d = d[~mask_total]
             standardized_dfs.append(d)
         
         df = pd.concat(standardized_dfs, ignore_index=True)
@@ -302,6 +307,17 @@ if "df_updated" in st.session_state:
 else:
     df = load_data()
 
+# تنظيف نهائي إضافي للتأكد من خلو الـ DataFrame الأساسي والمفلتر من أي صفوف تحتوي مسبقاً على جمل التجميع
+def remove_existing_totals(data_df):
+    if data_df.empty:
+        return data_df
+    for col in data_df.columns:
+        mask = data_df[col].astype(str).str.contains("Grand Total|GrandTotal|الإجمالي الكلي", case=False, na=False)
+        if mask.any():
+            data_df = data_df[~mask]
+    return data_df
+
+df = remove_existing_totals(df)
 filtered_df = df.copy()
 
 st.sidebar.markdown("### 🔍 الفلاتر الجانبية")
@@ -404,6 +420,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         return
         
     df_with_seq = df_to_render.reset_index(drop=True).copy()
+    df_with_seq = remove_existing_totals(df_with_seq)
     
     has_grand_total = False
     if not df_with_seq.empty:
@@ -570,7 +587,7 @@ if page == "dashboard":
             st.session_state.display_mode = "air"
     st.markdown('</div>', unsafe_allow_html=True)
 
-    dash_filtered_df = filtered_df.copy()
+    dash_filtered_df = remove_existing_totals(filtered_df.copy())
     if search_query and not dash_filtered_df.empty:
         search_cols = [c for c in dash_filtered_df.columns if any(k in str(c) for k in ["code", "كفيل", "الحاوية", "Shipping mark"])]
         if search_cols:
@@ -653,7 +670,7 @@ elif page == "customs":
     search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    pivot_filtered_df = filtered_df.copy()
+    pivot_filtered_df = remove_existing_totals(filtered_df.copy())
     
     if search_query and not pivot_filtered_df.empty:
         search_cols = [c for c in pivot_filtered_df.columns if any(k in str(c) for k in ["code", "كفيل", "الحاوية"])]
@@ -686,9 +703,8 @@ elif page == "customs":
     pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
     
     if pivot_code_col and not pivot_filtered_df.empty:
-        base_pivot_df = pivot_filtered_df[~pivot_filtered_df[pivot_code_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
+        base_pivot_df = remove_existing_totals(pivot_filtered_df.copy())
 
-        # تأكد من تحويل الأعمدة العددية بدقة لعمل التجميع الصحيح
         base_pivot_df["عدد الكارتون"] = pd.to_numeric(base_pivot_df["عدد الكارتون"], errors="coerce").fillna(0)
         base_pivot_df["مبلغ الجمرك"] = pd.to_numeric(base_pivot_df["مبلغ الجمرك"], errors="coerce").fillna(0)
         base_pivot_df["قيمة الاستحصالات"] = pd.to_numeric(base_pivot_df["قيمة الاستحصالات"], errors="coerce").fillna(0)
@@ -733,7 +749,7 @@ elif page == "sponsors":
     sponsor_col = next((c for c in filtered_df.columns if "كفيل" in str(c)), None)
     
     if sponsor_col and not filtered_df.empty:
-        clean_sponsors_df = filtered_df[~filtered_df[sponsor_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
+        clean_sponsors_df = remove_existing_totals(filtered_df.copy())
         
         col_customs = "مبلغ الجمرك" if "مبلغ الجمرك" in clean_sponsors_df.columns else clean_sponsors_df.columns[0]
         col_collected = "قيمة الاستحصالات" if "قيمة الاستحصالات" in clean_sponsors_df.columns else clean_sponsors_df.columns[0]
@@ -779,7 +795,7 @@ elif page == "sponsors":
         pivot_mark_col = "Shipping mark" if "Shipping mark" in filtered_df.columns else None
 
         if pivot_container_col and pivot_mark_col:
-            base_pivot_df = df[~df[pivot_container_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
+            base_pivot_df = remove_existing_totals(df.copy())
             
             if selected_container != "الكل":
                 base_pivot_df = base_pivot_df[base_pivot_df[pivot_container_col].astype(str) == selected_container]
@@ -858,7 +874,7 @@ elif page == "aging":
     st.markdown("---")
     st.markdown("### 📋 جدول تحليلي يوزع المتبقي الحقيقي حسب الكود ورقم الحاوية وأيام التأخير")
 
-    aging_df = filtered_df[~filtered_df["رقم الحاوية"].astype(str).str.contains("Grand Total", case=False, na=False)].copy() if "رقم الحاوية" in filtered_df.columns else filtered_df.copy()
+    aging_df = remove_existing_totals(filtered_df.copy())
     code_field = next((c for c in ["code", "الكود", "كود"] if c in aging_df.columns), None)
     
     if not aging_df.empty and "رقم الحاوية" in aging_df.columns and "عدد الايام" in aging_df.columns and "متبقي حقيقي" in aging_df.columns and code_field:
@@ -920,7 +936,7 @@ elif page == "collections":
     st.markdown("### 📋 ملخص الحاويات حسب مبالغ الجمرك والاستحصالات والمتبقي الحقيقي")
 
     if not filtered_df.empty:
-        clean_coll_df = filtered_df[~filtered_df["رقم الحاوية"].astype(str).str.contains("Grand Total", case=False, na=False)].copy() if "رقم الحاوية" in filtered_df.columns else filtered_df.copy()
+        clean_coll_df = remove_existing_totals(filtered_df.copy())
         
         total_c = clean_coll_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in clean_coll_df.columns else 0
         total_coll = clean_coll_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in clean_coll_df.columns else 0
@@ -969,7 +985,7 @@ elif page == "collections":
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
 
-    st.markdown("<div style='margin-block: 50px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-block: 50px;'></div>", unsafe_allow_html=`50px`)
 
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
@@ -978,7 +994,7 @@ elif page == "charts":
     if filtered_df.empty:
         st.warning("لا توجد بيانات متاحة لعرض الرسوم البيانية.")
     else:
-        chart_clean_df = filtered_df[~filtered_df[container_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy() if container_col and container_col in filtered_df.columns else filtered_df.copy()
+        chart_clean_df = remove_existing_totals(filtered_df.copy())
         
         if container_col and "مبلغ الجمرك" in chart_clean_df.columns:
             st.subheader("📦 مقارنة مبالغ الجمرك والاستحصالات حسب الحاويات")
@@ -988,7 +1004,7 @@ elif page == "charts":
 
         col_chart1, col_chart2 = st.columns(2)
         with col_chart1:
-            if container_col and "الوزن" in chart_clean_df.columns:
+            if container_col and "الوزن" in chart_clean_df.rows if hasattr(chart_clean_df, 'rows') else container_col and "الوزن" in chart_clean_df.columns:
                 st.subheader("⚖️ إجمالي الوزن حسب الحاوية (kg)")
                 weight_data = chart_clean_df.groupby(container_col)["الوزن"].sum()
                 st.bar_chart(weight_data)
