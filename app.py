@@ -249,7 +249,6 @@ def load_data():
         standardized_dfs = []
         for d in dfs:
             d.columns = d.columns.astype(str).str.strip()
-            # إزالة صفوف التجميع المتأصلة في ملفات المصدر (مثل Grand Total أو الإجمالي) لمنع تكرارها أو ظهورها الخاطئ
             for col in d.columns:
                 mask_total = d[col].astype(str).str.contains("Grand Total|GrandTotal|الإجمالي الكلي", case=False, na=False)
                 if mask_total.any():
@@ -307,7 +306,6 @@ if "df_updated" in st.session_state:
 else:
     df = load_data()
 
-# تنظيف نهائي إضافي للتأكد من خلو الـ DataFrame الأساسي والمفلتر من أي صفوف تحتوي مسبقاً على جمل التجميع
 def remove_existing_totals(data_df):
     if data_df.empty:
         return data_df
@@ -985,7 +983,7 @@ elif page == "collections":
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
 
-    st.markdown("<div style='margin-block: 50px;'></div>", unsafe_allow_html=`50px`)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
@@ -1004,7 +1002,7 @@ elif page == "charts":
 
         col_chart1, col_chart2 = st.columns(2)
         with col_chart1:
-            if container_col and "الوزن" in chart_clean_df.rows if hasattr(chart_clean_df, 'rows') else container_col and "الوزن" in chart_clean_df.columns:
+            if container_col and "الوزن" in chart_clean_df.columns:
                 st.subheader("⚖️ إجمالي الوزن حسب الحاوية (kg)")
                 weight_data = chart_clean_df.groupby(container_col)["الوزن"].sum()
                 st.bar_chart(weight_data)
