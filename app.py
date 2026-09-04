@@ -2,7 +2,6 @@ import io
 import os
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 
 # 1. إعداد الصفحة والتنسيقات
 st.set_page_config(
@@ -210,14 +209,6 @@ st.markdown(
             print-color-adjust: exact !important;
         }
     }
-
-    /* فلاتر إخفاء الأقسام بناءً على الزر المختار للطباعة */
-    body.print-mode-marine .print-hide-marine {
-        display: none !important;
-    }
-    body.print-mode-air .print-hide-air {
-        display: none !important;
-    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -364,44 +355,9 @@ def render_download_buttons(data_to_download):
         )
     
     with btn_col2:
-        print_html = """
-            <div style="display: flex; gap: 6px; width: 100%;">
-                <button onclick="
-                    window.parent.document.body.className = window.parent.document.body.className.replace(/print-mode-\\w+/g, '');
-                    window.parent.print();
-                " style="
-                    background-color: #1e3a8a; color: white; padding: 0.45rem 0.5rem;
-                    border: none; border-radius: 0.3rem; font-weight: 500; cursor: pointer;
-                    flex: 1; height: 38px; font-size: 13px; font-family: inherit;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-                ">
-                    📄 طباعة شامل
-                </button>
-                <button onclick="
-                    window.parent.document.body.className = (window.parent.document.body.className.replace(/print-mode-\\w+/g, '') + ' print-mode-air').trim();
-                    window.parent.print();
-                " style="
-                    background-color: #b45309; color: white; padding: 0.45rem 0.5rem;
-                    border: none; border-radius: 0.3rem; font-weight: 500; cursor: pointer;
-                    flex: 1; height: 38px; font-size: 13px; font-family: inherit;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-                ">
-                    🚢 الشحن البحري
-                </button>
-                <button onclick="
-                    window.parent.document.body.className = (window.parent.document.body.className.replace(/print-mode-\\w+/g, '') + ' print-mode-marine').trim();
-                    window.parent.print();
-                " style="
-                    background-color: #0d9488; color: white; padding: 0.45rem 0.5rem;
-                    border: none; border-radius: 0.3rem; font-weight: 500; cursor: pointer;
-                    flex: 1; height: 38px; font-size: 13px; font-family: inherit;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-                ">
-                    ✈️ الشحن الجوي
-                </button>
-            </div>
-        """
-        components.html(print_html, height=45)
+        # استخدام st.empty() أو حجز مكان لزر الطباعة المتصفح العام
+        if st.button("🖨️ طباعة الصفحة الحالية", use_container_width=True):
+            st.markdown("<script>window.print();</script>", unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_report=False):
@@ -487,6 +443,23 @@ if page == "dashboard":
     search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # تهيئة حالة أزرار العرض المتبادل (شامل، بحري، جوي)
+    if "display_mode" not in st.session_state:
+        st.session_state.display_mode = "all"
+
+    st.markdown('<div class="no-print" style="margin-bottom: 15px;">', unsafe_allow_html=True)
+    b_col1, b_col2, b_col3 = st.columns(3)
+    with b_col1:
+        if st.button("📄 طباعة شامل (عرض الكل)", use_container_width=True):
+            st.session_state.display_mode = "all"
+    with b_col2:
+        if st.button("🚢 الشحن البحري (RQ)", use_container_width=True):
+            st.session_state.display_mode = "marine"
+    with b_col3:
+        if st.button("✈️ الشحن الجوي (RA)", use_container_width=True):
+            st.session_state.display_mode = "air"
+    st.markdown('</div>', unsafe_allow_html=True)
+
     dash_filtered_df = filtered_df.copy()
     if search_query and not dash_filtered_df.empty:
         search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات", "Shipping mark"] if c in dash_filtered_df.columns]
@@ -494,21 +467,39 @@ if page == "dashboard":
             mask = dash_filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
             dash_filtered_df = dash_filtered_df[mask.any(axis=1)]
 
-    total_orders = len(dash_filtered_df)
-    total_weight = dash_filtered_df["الوزن"].sum() if "الوزن" in dash_filtered_df.columns else 0
-    total_ctns = dash_filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in dash_filtered_df.columns else 0
-    total_volume = dash_filtered_df["حجم"].sum() if "حجم" in dash_filtered_df.columns else 0
-    
-    client_field_candidates = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in dash_filtered_df.columns]
-    total_clients = dash_filtered_df[client_field_candidates[0]].nunique() if client_field_candidates and not dash_filtered_df.empty else 0
-    total_containers_count = dash_filtered_df[container_col].nunique() if container_col and container_col in dash_filtered_df.columns and not dash_filtered_df.empty else 0
+    # تجهيز بيانات البحري والجوي لربطها بالمتغيرات والشاشات العلوية حسب الزر المختار
+    if container_col and container_col in dash_filtered_df.columns:
+        marine_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RQ")]
+        air_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RA")]
+    else:
+        marine_df = pd.DataFrame(columns=dash_filtered_df.columns)
+        air_df = pd.DataFrame(columns=dash_filtered_df.columns)
 
-    office_paid_col = next((c for c in ["Office Paid", "المكتب دفع"] if c in dash_filtered_df.columns), None)
-    client_paid_col = next((c for c in ["Client Paid", "الزبون دفع"] if c in dash_filtered_df.columns), None)
-    
-    total_office_paid = dash_filtered_df[office_paid_col].sum() if office_paid_col else 0
-    total_client_paid = dash_filtered_df[client_paid_col].sum() if client_paid_col else 0
+    # اختيار الداتا الفعالة حسب الزر المختار لتحديث الشاشات العلوية والجداول تلقائياً
+    if st.session_state.display_mode == "marine":
+        active_view_df = marine_df
+    elif st.session_state.display_mode == "air":
+        active_view_df = air_df
+    else:
+        active_view_df = dash_filtered_df
 
+    # حساب المتغيرات للشاشات العلوية بناءً على الزر المختار
+    total_orders = len(active_view_df)
+    total_weight = active_view_df["الوزن"].sum() if "الوزن" in active_view_df.columns else 0
+    total_ctns = active_view_df["عدد الكارتون"].sum() if "عدد الكارتون" in active_view_df.columns else 0
+    total_volume = active_view_df["حجم"].sum() if "حجم" in active_view_df.columns else 0
+    
+    client_field_candidates = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in active_view_df.columns]
+    total_clients = active_view_df[client_field_candidates[0]].nunique() if client_field_candidates and not active_view_df.empty else 0
+    total_containers_count = active_view_df[container_col].nunique() if container_col and container_col in active_view_df.columns and not active_view_df.empty else 0
+
+    office_paid_col = next((c for c in ["Office Paid", "المكتب دفع"] if c in active_view_df.columns), None)
+    client_paid_col = next((c for c in ["Client Paid", "الزبون دفع"] if c in active_view_df.columns), None)
+    
+    total_office_paid = active_view_df[office_paid_col].sum() if office_paid_col else 0
+    total_client_paid = active_view_df[client_paid_col].sum() if client_paid_col else 0
+
+    # عرض الشاشات العلوية (Metrics) المحدثة
     row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
     with row1_c1:
         st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
@@ -530,32 +521,22 @@ if page == "dashboard":
         st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">${total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
-    render_download_buttons(dash_filtered_df)
+    render_download_buttons(active_view_df)
     
     active_cols = [c for c in default_columns_to_show if c in dash_filtered_df.columns]
-    
-    if container_col and container_col in dash_filtered_df.columns:
-        marine_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RQ")]
-        air_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RA")]
-    else:
-        marine_df = pd.DataFrame(columns=dash_filtered_df.columns)
-        air_df = pd.DataFrame(columns=dash_filtered_df.columns)
 
-    # قسم جدول الشحن البحري (RQ) مع كلاس الفلترة للطباعة
-    st.markdown('<div class="print-hide-air">', unsafe_allow_html=True)
-    st.markdown("### 🚢 جدول الشحن البحري (RQ)")
-    marine_display = marine_df[active_cols] if active_cols else marine_df
-    display_custom_html_table(marine_display)
-    st.markdown('</div>', unsafe_allow_html=True)
+    # عرض الجداول بناءً على الزر المختار
+    if st.session_state.display_mode in ["all", "marine"]:
+        st.markdown("### 🚢 جدول الشحن البحري (RQ)")
+        marine_display = marine_df[active_cols] if active_cols else marine_df
+        display_custom_html_table(marine_display)
+        if st.session_state.display_mode == "all":
+            st.markdown("---")
 
-    st.markdown("---")
-
-    # قسم جدول الشحن الجوي (RA) مع كلاس الفلترة للطباعة
-    st.markdown('<div class="print-hide-marine">', unsafe_allow_html=True)
-    st.markdown("### ✈️ جدول الشحن الجوي (RA)")
-    air_display = air_df[active_cols] if active_cols else air_df
-    display_custom_html_table(air_display)
-    st.markdown('</div>', unsafe_allow_html=True)
+    if st.session_state.display_mode in ["all", "air"]:
+        st.markdown("### ✈️ جدول الشحن الجوي (RA)")
+        air_display = air_df[active_cols] if active_cols else air_df
+        display_custom_html_table(air_display)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
