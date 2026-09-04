@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
-# 1. إعداد الصفحة والتنسیقات
+# 1. إعداد الصفحة والتنسيقات
 st.set_page_config(
     page_title="شركة أطلس المحيط", page_icon="📦", layout="wide"
 )
@@ -394,12 +394,16 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         
     df_with_seq = df_to_render.copy()
     
-    has_grand_total = any(str(val).strip() in ["Grand Total", "GrandTotal"] for val in df_with_seq.iloc[:, 0].values) if not df_with_seq.empty else False
+    # التحقق من وجود سطر الإجمالي الكلي في الجدول
+    has_grand_total = False
+    if not df_with_seq.empty:
+        first_col_name = df_with_seq.columns[0]
+        has_grand_total = df_with_seq[first_col_name].astype(str).str.contains("Grand Total|GrandTotal", case=False, na=False).any()
 
     if not is_sponsors_pivot and not has_grand_total:
         seq_list = []
         for _, row in df_with_seq.iterrows():
-            is_total = any(str(val).strip() in ["Grand Total", "GrandTotal"] for val in row.values)
+            is_total = any(str(val).strip().lower() in ["grand total", "grandtotal"] for val in row.values)
             if is_total:
                 seq_list.append("")
             else:
@@ -413,13 +417,13 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         i = 0
         while i < len(col_values):
             val = col_values[i]
-            if val == "Grand Total" or val == "":
+            if "grand total" in val.lower() or val == "":
                 spans[i] = 1
                 i += 1
                 continue
             count = 1
             for j in range(i + 1, len(col_values)):
-                if col_values[j] == val:
+                if col_values[j].lower() == val.lower():
                     count += 1
                 else:
                     break
@@ -437,7 +441,8 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
 
-        is_row_total = any(str(val).strip() in ["Grand Total", "GrandTotal"] for val in row.values)
+        # فحص دقيق لسطر المجموع لتجنب تكرار الخلايا أو تداخلها
+        is_row_total = any(str(val).strip().lower() in ["grand total", "grandtotal"] for val in row.values)
 
         html += '<tr>'
         for col in df_with_seq.columns:
@@ -448,8 +453,8 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             
             if col_str == container_col_name:
                 if is_row_total:
-                    val = ""
-                    val_str = ""
+                    val = "Grand Total" if val_str.lower() in ["grand total", "grandtotal"] else ""
+                    val_str = val
                 else:
                     try:
                         num_chk = float(val_str)
@@ -497,7 +502,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 formatted_val = val if val != "" else "-"
             elif pd.isna(val) or val_str == "" or val_str.lower() == "nan":
                 formatted_val = "-"
-            elif numeric_val is not None:
+            elif numeric_val is not None and not is_row_total:
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
                 if is_currency_col or is_sponsors_pivot:
                     if "¥" in col_str or "يوان" in col_str or "¥" in val_str or (is_sponsors_pivot and "الزبون دفع" in col_str):
@@ -512,6 +517,13 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                         formatted_val = f"${numeric_val:,.2f}"
                 else:
                     formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}" if numeric_val.is_integer() else f"{numeric_val:,.2f}"
+            elif numeric_val is not None and is_row_total:
+                # تنسيق مخصص لسطر الإجمالي الكلي لضمان نظافة العرض
+                is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
+                if is_currency_col or is_sponsors_pivot:
+                    formatted_val = f"${numeric_val:,.2f}"
+                else:
+                    formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}"
             else:
                 formatted_val = str(val)
 
@@ -644,7 +656,6 @@ if page == "dashboard":
                 agg_mapping[matched_c] = "sum"
 
         if agg_mapping:
-            # فلترة أي صف يحتوي مسبقاً على Grand Total لمنع تكراره
             clean_view_df = active_view_df[~active_view_df[pivot_container_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
             
             aggregated_df = clean_view_df.groupby(group_cols, dropna=False).agg(agg_mapping).reset_index()
