@@ -186,7 +186,6 @@ st.markdown(
             margin: 0 !important;
         }
 
-        /* إلغاء تكرار الرأس نهائياً لحل مشكلة الظهور أسفل الجدول */
         thead {
             display: table-row-group !important;
         }
@@ -468,7 +467,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 rowspan_attr = ''
 
             if is_row_total:
-                cell_style = ' style="background-color: #4b5563 !important; color: #ffffff !important; font-weight: bold;"'
+                cell_style = ' style="background-color: #374151 !important; color: #ffffff !important; font-weight: bold;"'
             else:
                 numeric_val = None
                 try:
