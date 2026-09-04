@@ -762,7 +762,6 @@ elif page == "customs":
     if pivot_code_col and not pivot_filtered_df.empty:
         base_pivot_df = pivot_filtered_df[~pivot_filtered_df[pivot_code_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
 
-        # التصحيح الجذري هنا لمنع تكرار المفاتيح (groupby duplicate keys) وحل مشكلة الفراغات أسفل الجدول
         customs_summary = base_pivot_df.groupby(pivot_code_col, dropna=False).agg({
             "عدد الكارتون": "sum",
             "مبلغ الجمرك": "sum",
@@ -1063,7 +1062,7 @@ elif page == "charts":
                 st.bar_chart(weight_data)
 
         with col_chart2:
-            if container_col and "حجم" in chart_clean_df.codes if hasattr(chart_clean_df, 'codes') else container_col in chart_clean_df.columns:
+            if container_col and "حجم" in chart_clean_df.columns:
                 st.subheader("📐 إجمالي الحجم حسب الحاوية (m³)")
                 volume_data = chart_clean_df.groupby(container_col)["حجم"].sum()
                 st.bar_chart(volume_data)
