@@ -603,7 +603,6 @@ if page == "dashboard":
         if agg_mapping:
             aggregated_df = active_view_df.groupby(group_cols, dropna=False).agg(agg_mapping).reset_index()
 
-            # إضافة مجموع الكارتون لكل حاوية بشكل منفصل
             if "عدد الكارتون" in active_view_df.columns:
                 container_cartons = active_view_df.groupby(pivot_container_col)["عدد الكارتون"].sum().reset_index()
                 container_cartons = container_cartons.rename(columns={"عدد الكارتون": "مجموع الكارتون بالحاوية"})
