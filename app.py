@@ -573,9 +573,6 @@ if page == "dashboard":
         air_display = air_df[active_cols] if active_cols else air_df
         display_custom_html_table(air_display)
 
-    # ـــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
-    # الجدول التجميعي (ملخص الحاويات و Shipping mark) مطابق لتنسيق ملف Excel بالضبط (بدون تكرار اسم الحاوية ودون عمود سعر البيع)
-    # ـــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
     st.markdown("---")
     st.markdown("### 📊 الجدول التجميعي (ملخص الحاويات و Shipping mark)")
 
@@ -633,7 +630,6 @@ if page == "dashboard":
             existing_cols = [c for c in desired_cols if c in aggregated_df.columns]
             aggregated_df = aggregated_df[existing_cols]
 
-            # تنسيق إخفاء تكرار رقم الحاوية (وضع فراغ للحاويات المتكررة ضمن نفس المجموعة كما في شيت Excel)
             last_cont = None
             for idx, row in aggregated_df.iterrows():
                 cont_val = str(row["رقم الحاوية"])
@@ -977,7 +973,8 @@ elif page == "data_entry":
     st.markdown("---")
     st.markdown("يمكنك تعديل البيانات مباشرة في الجدول أدناه، أو إضافة سجل جديد:")
 
-    edited_df = st.data_editor(df, num_rows="dynamic", use_container_width+True, key="data_editor_grid")
+    # تم تصحيح الخطأ هنا (إزالة علامة الزائد واستخدام الفاصلة العادية بترتيب صحيح للوسطاء)
+    edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="data_editor_grid")
 
     if st.button("💾 حفظ التغييرات وتحديث العرض"):
         st.session_state["df_updated"] = edited_df
