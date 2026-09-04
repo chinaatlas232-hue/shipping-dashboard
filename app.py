@@ -392,13 +392,16 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         st.info("لا توجد بيانات للعرض.")
         return
         
-    df_with_seq = df_to_render.copy()
+    # تنظيف الفهارس السابقة وإزالة أي أعمدة فهرس قديمة تماماً
+    df_with_seq = df_to_render.reset_index(drop=True).copy()
     
+    # التحقق من وجود صف الإجمالي الكلي مسبقاً
     has_grand_total = False
     if not df_with_seq.empty:
         first_col_name = df_with_seq.columns[0]
         has_grand_total = df_with_seq[first_col_name].astype(str).str.contains("Grand Total|GrandTotal|الإجمالي الكلي", case=False, na=False).any()
 
+    # إضافة عمود التسلسل بدقة وأمان
     if not is_sponsors_pivot and not has_grand_total:
         seq_list = []
         for _, row in df_with_seq.iterrows():
@@ -407,6 +410,8 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 seq_list.append("")
             else:
                 seq_list.append(len(seq_list) + 1)
+        if "التسلسل" in df_with_seq.columns:
+            df_with_seq = df_with_seq.drop(columns=["التسلسل"])
         df_with_seq.insert(0, "التسلسل", seq_list)
 
     container_col_name = "رقم الحاوية"
@@ -618,14 +623,14 @@ if page == "dashboard":
 
     if st.session_state.display_mode in ["all", "marine"]:
         st.markdown("### 🚢 جدول الشحن البحري (RQ)")
-        marine_display = marine_df[active_cols] if active_cols else marine_df
+        marine_display = marine_df[active_cols].reset_index(drop=True) if active_cols else marine_df.reset_index(drop=True)
         display_custom_html_table(marine_display)
         if st.session_state.display_mode == "all":
             st.markdown("---")
 
     if st.session_state.display_mode in ["all", "air"]:
         st.markdown("### ✈️ جدول الشحن الجوي (RA)")
-        air_display = air_df[active_cols] if active_cols else air_df
+        air_display = air_df[active_cols].reset_index(drop=True) if active_cols else air_df.reset_index(drop=True)
         display_custom_html_table(air_display)
 
     st.markdown("---")
@@ -705,7 +710,7 @@ if page == "dashboard":
                 aggregated_df = aggregated_df.rename(columns={"متبقي حقيقي": "Sum of متبقي حقيقي"})
             
             existing_cols = [c for c in desired_cols if c in aggregated_df.columns]
-            aggregated_df = aggregated_df[existing_cols]
+            aggregated_df = aggregated_df[existing_cols].reset_index(drop=True)
 
             display_custom_html_table(aggregated_df, is_sponsors_pivot=True)
         else:
@@ -762,7 +767,7 @@ elif page == "customs":
             "مبلغ الجمرك": "sum",
             "قيمة الاستحصالات": "sum",
             "متبقي حقيقي": "sum"
-        }).reset_index()
+        }).reset_index(drop=True)
 
         grand_total_row = pd.DataFrame({
             pivot_code_col: ["Grand Total"],
@@ -780,7 +785,7 @@ elif page == "customs":
             "مبلغ الجمرك": "Sum of مبلغ الجمرك",
             "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
             "متبقي حقيقي": "Sum of متبقي حقيقي"
-        })
+        }).reset_index(drop=True)
 
         render_download_buttons(customs_summary)
         display_custom_html_table(customs_summary)
@@ -806,7 +811,7 @@ elif page == "sponsors":
             total_collected=(col_collected, "sum"),
             total_remaining=(col_remaining, "sum"),
             total_orders=(col_count, "count")
-        ).reset_index()
+        ).reset_index(drop=True)
 
         st.markdown("### 📋 ملخص المبالغ لكل كفيل")
         
@@ -859,7 +864,7 @@ elif page == "sponsors":
 
             if not pivot_table_df.empty:
                 if "عدد الكارتون" in base_pivot_df.columns:
-                    container_cartons = base_pivot_df.groupby(pivot_container_col)["عدد الكارتون"].sum().reset_index()
+                    container_cartons = base_pivot_df.groupby(pivot_container_col)["عدد الكارتون"].sum().reset_index(drop=True)
                     container_cartons = container_cartons.rename(columns={"عدد الكارتون": "مجموع الكارتون بالحاوية"})
                     pivot_table_df = pd.merge(pivot_table_df, container_cartons, on=pivot_container_col, how="left")
 
@@ -901,7 +906,7 @@ elif page == "sponsors":
                     "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
                     "متبقي حقيقي": "Sum of متبقي حقيقي"
                 }
-                pivot_table_df = pivot_table_df.rename(columns=column_rename_map)
+                pivot_table_df = pivot_table_df.rename(columns=column_rename_map).reset_index(drop=True)
 
                 render_download_buttons(pivot_table_df)
                 display_custom_html_table(pivot_table_df, is_sponsors_pivot=True)
@@ -928,7 +933,7 @@ elif page == "aging":
         if aging_df.empty:
             st.info("لا توجد بيانات متاحة لأيام التأخير بعد التصفية الحالية.")
         else:
-            agg_aging_df = aging_df.groupby(["رقم الحاوية", code_field, "عدد الايام"])["متبقي حقيقي"].sum().reset_index()
+            agg_aging_df = aging_df.groupby(["رقم الحاوية", code_field, "عدد الايام"])["متبقي حقيقي"].sum().reset_index(drop=True)
             
             aging_pivot = agg_aging_df.pivot_table(
                 index=["رقم الحاوية", code_field],
@@ -964,6 +969,7 @@ elif page == "aging":
                 
                 aging_pivot = pd.concat([aging_pivot, pd.DataFrame([grand_total_row_dict])], ignore_index=True)
                 aging_pivot.columns = [str(c) for c in aging_pivot.columns]
+                aging_pivot = aging_pivot.reset_index(drop=True)
                 
                 render_download_buttons(aging_pivot)
                 display_custom_html_table(aging_pivot, is_aging_report=True)
@@ -1006,7 +1012,7 @@ elif page == "collections":
                 "قيمة الاستحصالات": "sum",
                 "متبقي حقيقي": "sum"
             }
-        ).reset_index()
+        ).reset_index(drop=True)
 
         grand_totals = pd.DataFrame({
             container_field: ["Grand Total"],
@@ -1021,7 +1027,7 @@ elif page == "collections":
             "مبلغ الجمرك": "Sum of مبلغ الجمرك",
             "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
             "متبقي حقيقي": "Sum of متبقي حقيقي"
-        })
+        }).reset_index(drop=True)
 
         display_custom_html_table(agg_df)
     else:
