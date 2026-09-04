@@ -227,20 +227,34 @@ def clean_numeric(series):
 
 @st.cache_data(ttl=60)
 def load_data():
-    df = None
-    try:
-        sheet_id = "1amOmnZgzn2bhWTgje_9W2sUK6V-OygWk"
-        sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
-        df = pd.read_csv(sheet_url)
-    except Exception as e:
-        st.sidebar.error(f"خطأ في الاتصال بملف Google Sheets: {e}")
+    def fetch_sheet(sheet_id):
+        try:
+            sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
+            return pd.read_csv(sheet_url)
+        except Exception as e:
+            return None
 
-    if df is None or df.empty:
+    # تحميل الشحن البحري والشحن الجوي
+    df_marine = fetch_sheet("1amOmnZgzn2bhWTgje_9W2sUK6V-OygWk")
+    df_air = fetch_sheet("1L97mB_YenJN-vCGfrcL-uLRV9i3haN-zd0gr1cbn-ZI")
+
+    dfs = [d for d in [df_marine, df_air] if d is not None and not d.empty]
+    
+    if not dfs:
         df = pd.DataFrame(columns=[
             "No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن",
             "المكتب دفع", "الزبون دفع", "المجموع", "عدد الكارتون",
             "الوزن", "حجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام", "سعر البيع"
         ])
+    else:
+        # توحيد أسماء الأعمدة وتنظيفها قبل الدمج لتجنب اختلاف المسميات البسيطة
+        standardized_dfs = []
+        for d in dfs:
+            d.columns = d.columns.astype(str).str.strip()
+            standardized_dfs.append(d)
+        
+        # دمج البيانات مع بعضها
+        df = pd.concat(standardized_dfs, ignore_index=True)
 
     df.columns = df.columns.astype(str).str.strip()
 
@@ -342,7 +356,7 @@ selected_page_label = st.sidebar.radio("📌 القائمة الرئيسية", l
 page = page_options[selected_page_label]
 
 st.sidebar.markdown("---")
-st.sidebar.info("متصل بملف Google Sheets بنجاح ✔️")
+st.sidebar.info("متصل بملفات Google Sheets بنجاح ✔️")
 
 def render_download_buttons(data_to_download):
     st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
