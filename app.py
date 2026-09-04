@@ -234,7 +234,6 @@ def load_data():
         except Exception:
             return None
 
-    # تحميل الشحن البحري والشحن الجوي
     df_marine = fetch_sheet("1amOmnZgzn2bhWTgje_9W2sUK6V-OygWk")
     df_air = fetch_sheet("1L97mB_YenJN-vCGfrcL-uLRV9i3haN-zd0gr1cbn-ZI")
 
@@ -688,6 +687,12 @@ elif page == "customs":
     
     if pivot_code_col and not pivot_filtered_df.empty:
         base_pivot_df = pivot_filtered_df[~pivot_filtered_df[pivot_code_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
+
+        # تأكد من تحويل الأعمدة العددية بدقة لعمل التجميع الصحيح
+        base_pivot_df["عدد الكارتون"] = pd.to_numeric(base_pivot_df["عدد الكارتون"], errors="coerce").fillna(0)
+        base_pivot_df["مبلغ الجمرك"] = pd.to_numeric(base_pivot_df["مبلغ الجمرك"], errors="coerce").fillna(0)
+        base_pivot_df["قيمة الاستحصالات"] = pd.to_numeric(base_pivot_df["قيمة الاستحصالات"], errors="coerce").fillna(0)
+        base_pivot_df["متبقي حقيقي"] = pd.to_numeric(base_pivot_df["متبقي حقيقي"], errors="coerce").fillna(0)
 
         customs_summary = base_pivot_df.groupby(pivot_code_col, dropna=False).agg({
             "عدد الكارتون": "sum",
