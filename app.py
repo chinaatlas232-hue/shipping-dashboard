@@ -39,6 +39,7 @@ st.markdown(
         border: 1px solid #cbd5e1 !important;
         font-size: 11px !important;
         color: #1e293b !important;
+        vertical-align: middle !important;
     }
 
     .metric-card {
@@ -405,12 +406,35 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 seq_list.append(len(seq_list) + 1)
         df_with_seq.insert(0, "التسلسل", seq_list)
 
+    # حساب دمج الخلايا لعمود "رقم الحاوية" لتجنب تكرار القيم المتشابهة وتفريغ الخلايا المكررة
+    container_col_name = "رقم الحاوية"
+    spans = {}
+    if container_col_name in df_with_seq.columns:
+        col_values = df_with_seq[container_col_name].astype(str).tolist()
+        i = 0
+        while i < len(col_values):
+            val = col_values[i]
+            if val == "Grand Total" or val == "":
+                spans[i] = 1
+                i += 1
+                continue
+            count = 1
+            for j in range(i + 1, len(col_values)):
+                if col_values[j] == val:
+                    count += 1
+                else:
+                    break
+            spans[i] = count
+            for k in range(i + 1, i + count):
+                spans[k] = 0
+            i += count
+
     html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
     for col in df_with_seq.columns:
         html += f'<th>{col}</th>'
     html += '</tr></thead><tbody>'
 
-    for _, row in df_with_seq.iterrows():
+    for idx, row in df_with_seq.iterrows():
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
 
@@ -423,6 +447,23 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             val_str = str(val).strip()
             cell_style = ""
             
+            # معالجة خاصة لعمود رقم الحاوية للدمج وحذف القيم الصفرية (0.00 أو 0)
+            if col_str == container_col_name:
+                try:
+                    num_chk = float(val_str)
+                    if num_chk == 0.0:
+                        val = ""
+                        val_str = ""
+                except ValueError:
+                    pass
+
+                span_val = spans.get(idx, 1)
+                if span_val == 0:
+                    continue  # تخطي الخلية المدمجة مسبقاً
+                rowspan_attr = f' rowspan="{span_val}"' if span_val > 1 else ''
+            else:
+                rowspan_attr = ''
+
             if is_row_total:
                 cell_style = ' style="background-color: #4b5563 !important; color: #ffffff !important; font-weight: bold;"'
             else:
@@ -453,7 +494,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             if col_str == "التسلسل":
                 formatted_val = val if val != "" else "-"
             elif pd.isna(val) or val_str == "" or val_str.lower() == "nan":
-                formatted_val = "0.00" if is_sponsors_pivot else "-"
+                formatted_val = "-"
             elif numeric_val is not None:
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
                 if is_currency_col or is_sponsors_pivot:
@@ -472,7 +513,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             else:
                 formatted_val = str(val)
 
-            html += f'<td{cell_style}>{formatted_val}</td>'
+            html += f'<td{rowspan_attr}{cell_style}>{formatted_val}</td>'
         html += '</tr>'
     html += '</tbody></table></div>'
     
@@ -638,16 +679,6 @@ if page == "dashboard":
             
             existing_cols = [c for c in desired_cols if c in aggregated_df.columns]
             aggregated_df = aggregated_df[existing_cols]
-
-            last_cont = None
-            for idx, row in aggregated_df.iterrows():
-                cont_val = str(row["رقم الحاوية"])
-                if cont_val == "Grand Total":
-                    continue
-                if cont_val == last_cont:
-                    aggregated_df.at[idx, "رقم الحاوية"] = ""
-                else:
-                    last_cont = cont_val
 
             display_custom_html_table(aggregated_df, is_sponsors_pivot=True)
         else:
@@ -982,7 +1013,7 @@ elif page == "charts":
             sponsor_chart_data = filtered_df.groupby("الكفيل")[["مبلغ الجمرك", "قيمة الاستحصالات"]].sum()
             st.bar_chart(sponsor_chart_data)
 
-    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 50px;'>`</div>", unsafe_allow_html=True)
 
 elif page == "data_entry":
     st.title("📝 إدخال وتعديل البيانات محلياً")
