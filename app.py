@@ -881,7 +881,6 @@ elif page == "distribution":
 
     dist_df = filtered_df.copy()
     if not dist_df.empty:
-        # 1. إظهار مربعات الإحصائيات (Metrics)
         total_boxes = dist_df["عدد الكارتون"].sum() if "عدد الكارتون" in dist_df.columns else 0
         total_wt = dist_df["الوزن"].sum() if "الوزن" in dist_df.columns else 0
         total_vol = dist_df["حجم"].sum() if "حجم" in dist_df.columns else 0
@@ -896,7 +895,6 @@ elif page == "distribution":
 
         st.markdown("---")
         
-        # 2. إتاحة أزرار التنزيل والطباعة (بدون تكرار عنوان الجدول القديم)
         render_download_buttons(pd.DataFrame(), pd.DataFrame(), dist_df)
 
         dist_columns = [c for c in ["No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن", "عدد الكارتون", "الوزن", "حجم", "رقم الحاوية"] if c in dist_df.columns]
