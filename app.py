@@ -285,9 +285,11 @@ if st.sidebar.button("🔄 تحديث البيانات من جوجل شيت"):
     st.cache_data.clear()
     st.rerun()
 
-df = load_data()
+# التحقق من وجود تعديلات محلية مخزنة في الجلسة من صفحة إدخال البيانات
 if "df_updated" in st.session_state:
     df = st.session_state["df_updated"]
+else:
+    df = load_data()
 
 filtered_df = df.copy()
 
@@ -358,9 +360,8 @@ def render_download_buttons(data_to_download):
         )
     
     with btn_col2:
-        print_html = """
-        <div style="width: 100%;">
-            <button onclick="parent.window.print();" style="
+        st.markdown("""
+            <button onclick="window.print();" style="
                 width: 100%;
                 background-color: #ffffff;
                 color: #262730;
@@ -371,7 +372,7 @@ def render_download_buttons(data_to_download):
                 font-size: 14px;
                 cursor: pointer;
                 text-align: center;
-                display: flex;
+                display: inline-flex;
                 justify-content: center;
                 align-items: center;
                 gap: 5px;
@@ -380,9 +381,7 @@ def render_download_buttons(data_to_download):
             ">
                 🖨️ طباعة الصفحة الحالية
             </button>
-        </div>
-        """
-        st.components.v1.html(print_html, height=45)
+        """, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_report=False):
@@ -865,3 +864,4 @@ elif page == "data_entry":
     if st.button("💾 حفظ التغييرات وتحديث العرض"):
         st.session_state["df_updated"] = edited_df
         st.success("تم تحديث البيانات بنجاح في الجلسة الحالية!")
+        st.rerun()
