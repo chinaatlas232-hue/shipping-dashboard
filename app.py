@@ -367,7 +367,7 @@ def render_download_buttons(data_to_download):
         print_html = """
             <div style="display: flex; gap: 6px; width: 100%;">
                 <button onclick="
-                    document.body.className = document.body.className.replace(/print-mode-\\w+/g, '');
+                    window.parent.document.body.className = window.parent.document.body.className.replace(/print-mode-\\w+/g, '');
                     window.parent.print();
                 " style="
                     background-color: #1e3a8a; color: white; padding: 0.45rem 0.5rem;
@@ -378,7 +378,7 @@ def render_download_buttons(data_to_download):
                     📄 طباعة شامل
                 </button>
                 <button onclick="
-                    document.body.className = document.body.className.replace(/print-mode-\\w+/g, '') + ' print-mode-air';
+                    window.parent.document.body.className = (window.parent.document.body.className.replace(/print-mode-\\w+/g, '') + ' print-mode-air').trim();
                     window.parent.print();
                 " style="
                     background-color: #b45309; color: white; padding: 0.45rem 0.5rem;
@@ -389,7 +389,7 @@ def render_download_buttons(data_to_download):
                     🚢 الشحن البحري
                 </button>
                 <button onclick="
-                    document.body.className = document.body.className.replace(/print-mode-\\w+/g, '') + ' print-mode-marine';
+                    window.parent.document.body.className = (window.parent.document.body.className.replace(/print-mode-\\w+/g, '') + ' print-mode-marine').trim();
                     window.parent.print();
                 " style="
                     background-color: #0d9488; color: white; padding: 0.45rem 0.5rem;
@@ -534,7 +534,6 @@ if page == "dashboard":
     
     active_cols = [c for c in default_columns_to_show if c in dash_filtered_df.columns]
     
-    # 🌟 التعديل الدقيق لفصل الشحن البحري (RQ) عن الشحن الجوي (RA) بشكل تام
     if container_col and container_col in dash_filtered_df.columns:
         marine_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RQ")]
         air_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RA")]
@@ -776,7 +775,7 @@ elif page == "collections":
     if not filtered_df.empty:
         total_c = filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in filtered_df.columns else 0
         total_coll = filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in filtered_df.columns else 0
-        total_rem = filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in filtered_df.columns else 0
+        total_rem = filtered_df["متبقي حقيقي"] .sum() if "متبقي حقيقي" in filtered_df.columns else 0
 
         mc1, mc2, mc3 = st.columns(3)
         with mc1:
@@ -854,7 +853,7 @@ elif page == "charts":
             sponsor_chart_data = filtered_df.groupby("الكفيل")[["مبلغ الجمرك", "قيمة الاستحصالات"]].sum()
             st.bar_chart(sponsor_chart_data)
 
-    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html.thread_id if hasattr(st, 'thread_id') else 0)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "data_entry":
     st.title("📝 إدخال وتعديل البيانات محلياً")
