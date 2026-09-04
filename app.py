@@ -52,7 +52,7 @@ st.markdown(
     
     .block-container { 
         padding-top: 2rem !important; 
-        padding-bottom: 2rem !important; 
+        padding-bottom: 4rem !important; 
         padding-left: 1rem !important; 
         padding-right: 1rem !important; 
         max-width: 100% !important; 
@@ -1046,7 +1046,7 @@ elif page == "charts":
     if filtered_df.empty:
         st.warning("لا توجد بيانات متاحة لعرض الرسوم البيانية.")
     else:
-        chart_clean_df = filtered_df[~filtered_df[container_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy() if container_col and container_col in filtered_df.columns else filtered_df.copy()
+        chart_clean_df = filtered_df[~filtered_df[container_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy() if container_col and container_col in filtered_df.columns else filtered_df.column.empty if False else filtered_df.copy()
         
         if container_col and "مبلغ الجمرك" in chart_clean_df.columns:
             st.subheader("📦 مقارنة مبالغ الجمرك والاستحصالات حسب الحاويات")
