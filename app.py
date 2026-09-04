@@ -500,7 +500,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 formatted_val = val if val != "" else "-"
             elif pd.isna(val) or val_str == "" or val_str.lower() == "nan":
                 formatted_val = "-"
-            elif numeric_val is not None and not is_row_total:
+            elif numeric_val is not None:
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
                 if is_currency_col or is_sponsors_pivot:
                     if "¥" in col_str or "يوان" in col_str or "¥" in val_str or (is_sponsors_pivot and "الزبون دفع" in col_str):
@@ -512,15 +512,9 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                     elif is_sponsors_pivot:
                         formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}"
                     else:
-                        formatted_val = f"${numeric_val:,.2f}"
+                        formatted_val = f"${numeric_val:,.2f}" if not is_row_total else f"${numeric_val:,.2f}"
                 else:
                     formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}" if numeric_val.is_integer() else f"{numeric_val:,.2f}"
-            elif numeric_val is not None and is_row_total:
-                is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
-                if is_currency_col or is_sponsors_pivot:
-                    formatted_val = f"${numeric_val:,.2f}"
-                else:
-                    formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}"
             else:
                 formatted_val = str(val)
 
