@@ -121,6 +121,7 @@ st.markdown(
         border-radius: 4px !important;
     }
 
+    /* تعديلات الطباعة العامة */
     @media print {
         @page {
             size: A4 landscape;
@@ -333,7 +334,6 @@ page_options = {
     "الديون على الكفلاء": "sponsors",
     "اعمار الديون (Aging Report)": "aging",
     "كمرك الشحنات والاستحصالات": "collections",
-    "توزيع البضاعة داخل الحاويات": "distribution",
     "الرسوم البيانية": "charts",
     "إدخال وتعديل البيانات": "data_entry"
 }
@@ -414,6 +414,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     for _, row in df_with_seq.iterrows():
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
+
         is_row_total = any(str(val).strip() in ["Grand Total", "GrandTotal"] for val in row.values)
 
         html += '<tr>'
@@ -443,6 +444,8 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                     else:
                         if is_not_arrived:
                             cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important;"'
+                            if col_str in ["رقم الحاوية", "الكفيل"]:
+                                cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
                         else:
                             if col_str in ["رقم الحاوية", "الكفيل"]:
                                 cell_style = ' style="background-color: #bbf7d0 !important; color: #065f46 !important; font-weight: bold;"'
@@ -455,7 +458,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             elif numeric_val is not None:
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
                 if is_currency_col or is_sponsors_pivot:
-                    if "¥" in col_str or "يوان" in col_str or "¥" in val_str or (is_sponsors_pivot and any(k in col_str for k in ["الزبون دفع", "المكتب دفع", "المجموع"])):
+                    if "¥" in col_str or "يوان" in col_str or "¥" in val_str or (is_sponsors_pivot and "الزبون دفع" in col_str):
                         formatted_val = f"¥{numeric_val:,.2f}"
                     elif is_sponsors_pivot and any(k in col_str for k in ["سعر البيع", "مبلغ الجمرك", "متبقي حقيقي"]):
                         formatted_val = f"$ {numeric_val:,.2f}"
@@ -814,7 +817,7 @@ elif page == "collections":
     if not filtered_df.empty:
         total_c = filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in filtered_df.columns else 0
         total_coll = filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in filtered_df.columns else 0
-        total_rem = filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in filtered_df.columns else 0
+        total_rem = filtered_df["متبقي حقيقي"] .sum() if "متبقي حقيقي" in filtered_df.columns else 0
 
         mc1, mc2, mc3 = st.columns(3)
         with mc1:
@@ -858,83 +861,6 @@ elif page == "collections":
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
 
     st.markdown("<div style='margin-block: 50px;'></div>", unsafe_allow_html=True)
-
-elif page == "distribution":
-    st.title("📦 توزيع البضاعة داخل الحاويات")
-    st.markdown("---")
-    st.markdown("### 📋 تفاصيل وتوزيع البضائع والكراتين داخل الحاويات (شكل تجميعي/محوري)")
-
-    dist_df = filtered_df.copy()
-    if not dist_df.empty:
-        total_boxes = dist_df["عدد الكارتون"].sum() if "عدد الكارتون" in dist_df.columns else 0
-        total_wt = dist_df["الوزن"].sum() if "الوزن" in dist_df.columns else 0
-        total_vol = dist_df["حجم"].sum() if "حجم" in dist_df.columns else 0
-
-        dc1, dc2, dc3 = st.columns(3)
-        with dc1:
-            st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">إجمالي عدد الكارتون</div><div class="metric-value">{total_boxes:,.2f}</div></div>', unsafe_allow_html=True)
-        with dc2:
-            st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">إجمالي الوزن (kg)</div><div class="metric-value">{total_wt:,.2f}</div></div>', unsafe_allow_html=True)
-        with dc3:
-            st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">إجمالي الحجم (m³)</div><div class="metric-value">{total_vol:,.2f}</div></div>', unsafe_allow_html=True)
-
-        st.markdown("---")
-        render_download_buttons(dist_df)
-
-        pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in dist_df.columns), None)
-        pivot_mark_col = "Shipping mark" if "Shipping mark" in dist_df.columns else None
-
-        if pivot_container_col and pivot_mark_col:
-            group_cols = [pivot_container_col, pivot_mark_col]
-            
-            agg_dict = {}
-            for col in ["الزبون دفع", "Client Paid", "المكتب دفع", "Office Paid", "المجموع", "عدد الكارتون", "سعر البيع", "مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"]:
-                if col in dist_df.columns:
-                    dist_df[col] = pd.to_numeric(dist_df[col], errors="coerce").fillna(0)
-                    agg_dict[col] = "sum"
-
-            if agg_dict:
-                dist_pivot_df = dist_df.groupby(group_cols, dropna=False).agg(agg_dict).reset_index()
-
-                desired_columns = [
-                    pivot_container_col, pivot_mark_col, 
-                    "الزبون دفع" if "الزبون دفع" in dist_pivot_df.columns else "Client Paid",
-                    "المكتب دفع" if "المكتب دفع" in dist_pivot_df.columns else "Office Paid",
-                    "المجموع", "عدد الكارتون", "سعر البيع", "مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"
-                ]
-                existing_cols = [c for c in desired_columns if c in dist_pivot_df.columns]
-                dist_pivot_df = dist_pivot_df[existing_cols]
-
-                totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
-                for col in existing_cols:
-                    if col not in [pivot_container_col, pivot_mark_col]:
-                        totals_dict[col] = dist_pivot_df[col].sum()
-
-                grand_total_df = pd.DataFrame([totals_dict])
-                dist_pivot_df = pd.concat([dist_pivot_df, grand_total_df], ignore_index=True)
-
-                column_rename_map = {
-                    pivot_container_col: "رقم الحاوية",
-                    pivot_mark_col: "Shipping mark",
-                    "عدد الكارتون": "Sum of عدد الكارتون",
-                    "سعر البيع": "Sum of سعر البيع",
-                    "مبلغ الجمرك": "Sum of مبلغ الجمرك",
-                    "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
-                    "متبقي حقيقي": "Sum of متبقي حقيقي"
-                }
-                dist_pivot_df = dist_pivot_df.rename(columns=column_rename_map)
-
-                display_custom_html_table(dist_pivot_df, is_sponsors_pivot=True)
-            else:
-                st.warning("لا توجد أعمدة رقمية كافية لتجميع البيانات.")
-        else:
-            dist_columns = [c for c in ["No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن", "عدد الكارتون", "الوزن", "حجم", "رقم الحاوية"] if c in dist_df.columns]
-            display_df = dist_df[dist_columns] if dist_columns else dist_df
-            display_custom_html_table(display_df)
-    else:
-        st.warning("لا توجد بيانات متاحة لعرض توزيع البضاعة.")
-
-    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
