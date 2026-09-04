@@ -1022,7 +1022,7 @@ elif page == "collections":
             "متبقي حقيقي": "Sum of متبقي حقيقي"
         })
 
-        display_custom_html_table(agg_df)
+        display_custom_html_type = display_custom_html_table(agg_df)
     else:
         st.warning("عذراً، عمود رقم الحاوية غير متوفر في البيانات أو البيانات فارغة.")
 
