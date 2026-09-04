@@ -644,10 +644,13 @@ if page == "dashboard":
                 agg_mapping[matched_c] = "sum"
 
         if agg_mapping:
-            aggregated_df = active_view_df.groupby(group_cols, dropna=False).agg(agg_mapping).reset_index()
+            # فلترة أي صف يحتوي مسبقاً على Grand Total لمنع تكراره
+            clean_view_df = active_view_df[~active_view_df[pivot_container_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
+            
+            aggregated_df = clean_view_df.groupby(group_cols, dropna=False).agg(agg_mapping).reset_index()
 
-            if "عدد الكارتون" in active_view_df.columns:
-                container_cartons = active_view_df.groupby(pivot_container_col)["عدد الكارتون"].sum().reset_index()
+            if "عدد الكارتون" in clean_view_df.columns:
+                container_cartons = clean_view_df.groupby(pivot_container_col)["عدد الكارتون"].sum().reset_index()
                 container_cartons = container_cartons.rename(columns={"عدد الكارتون": "مجموع الكارتون بالحاوية"})
                 aggregated_df = pd.merge(aggregated_df, container_cartons, on=pivot_container_col, how="left")
 
@@ -665,10 +668,10 @@ if page == "dashboard":
             
             if "مجموع الكارتون بالحاوية" in aggregated_df.columns:
                 totals_cartons = pd.to_numeric(
-                    active_view_df["عدد الكارتون"].astype(str)
+                    clean_view_df["عدد الكارتون"].astype(str)
                     .str.replace(",", "", regex=False).str.strip(),
                     errors="coerce"
-                ).fillna(0).sum() if "عدد الكارتون" in active_view_df.columns else 0.0
+                ).fillna(0).sum() if "عدد الكارتون" in clean_view_df.columns else 0.0
                 totals_dict["مجموع الكارتون بالحاوية"] = float(totals_cartons)
 
             grand_total_df = pd.DataFrame([totals_dict])
@@ -743,7 +746,7 @@ elif page == "customs":
     pivot_code_col = next((c for c in ["code", "الكود", "كود"] if c in filtered_df.columns), None)
     
     if pivot_code_col and not pivot_filtered_df.empty:
-        base_pivot_df = pivot_filtered_df.copy()
+        base_pivot_df = pivot_filtered_df[~pivot_filtered_df[pivot_code_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
 
         customs_summary = base_pivot_df.groupby(pivot_code_col, dropna=False).agg({
             "عدد الكارتون": "sum",
@@ -782,12 +785,14 @@ elif page == "sponsors":
     st.markdown("---")
     
     if "الكفيل" in filtered_df.columns and not filtered_df.empty:
-        col_customs = "مبلغ الجمرك" if "مبلغ الجمرك" in filtered_df.columns else filtered_df.columns[0]
-        col_collected = "قيمة الاستحصالات" if "قيمة الاستحصالات" in filtered_df.columns else filtered_df.columns[0]
-        col_remaining = "متبقي حقيقي" if "متبقي حقيقي" in filtered_df.columns else filtered_df.columns[0]
-        col_count = "No" if "No" in filtered_df.columns else filtered_df.columns[0]
+        clean_sponsors_df = filtered_df[~filtered_df["الكفيل"].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
+        
+        col_customs = "مبلغ الجمرك" if "مبلغ الجمرك" in clean_sponsors_df.columns else clean_sponsors_df.columns[0]
+        col_collected = "قيمة الاستحصالات" if "قيمة الاستحصالات" in clean_sponsors_df.columns else clean_sponsors_df.columns[0]
+        col_remaining = "متبقي حقيقي" if "متبقي حقيقي" in clean_sponsors_df.columns else clean_sponsors_df.columns[0]
+        col_count = "No" if "No" in clean_sponsors_df.columns else clean_sponsors_df.columns[0]
 
-        sponsor_summary = filtered_df.groupby("الكفيل").agg(
+        sponsor_summary = clean_sponsors_df.groupby("الكفيل").agg(
             total_customs=(col_customs, "sum"),
             total_collected=(col_collected, "sum"),
             total_remaining=(col_remaining, "sum"),
@@ -826,7 +831,7 @@ elif page == "sponsors":
         pivot_mark_col = "Shipping mark" if "Shipping mark" in filtered_df.columns else None
 
         if pivot_container_col and pivot_mark_col:
-            base_pivot_df = df.copy()
+            base_pivot_df = df[~df[pivot_container_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
             
             if selected_container != "الكل":
                 base_pivot_df = base_pivot_df[base_pivot_df[pivot_container_col].astype(str) == selected_container]
@@ -903,7 +908,7 @@ elif page == "aging":
     st.markdown("---")
     st.markdown("### 📋 جدول تحليلي يوزع المتبقي الحقيقي حسب الكود ورقم الحاوية وأيام التأخير")
 
-    aging_df = filtered_df.copy()
+    aging_df = filtered_df[~filtered_df["رقم الحاوية"].astype(str).str.contains("Grand Total", case=False, na=False)].copy() if "رقم الحاوية" in filtered_df.columns else filtered_df.copy()
     code_field = next((c for c in ["code", "الكود", "كود"] if c in aging_df.columns), None)
     
     if not aging_df.empty and "رقم الحاوية" in aging_df.columns and "عدد الايام" in aging_df.columns and "متبقي حقيقي" in aging_df.columns and code_field:
@@ -964,9 +969,11 @@ elif page == "collections":
     st.markdown("### 📋 ملخص الحاويات حسب مبالغ الجمرك والاستحصالات والمتبقي الحقيقي")
 
     if not filtered_df.empty:
-        total_c = filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in filtered_df.columns else 0
-        total_coll = filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in filtered_df.columns else 0
-        total_rem = filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in filtered_df.columns else 0
+        clean_coll_df = filtered_df[~filtered_df["رقم الحاوية"].astype(str).str.contains("Grand Total", case=False, na=False)].copy() if "رقم الحاوية" in filtered_df.columns else filtered_df.copy()
+        
+        total_c = clean_coll_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in clean_coll_df.columns else 0
+        total_coll = clean_coll_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in clean_coll_df.columns else 0
+        total_rem = clean_coll_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in clean_coll_df.columns else 0
 
         mc1, mc2, mc3 = st.columns(3)
         with mc1:
@@ -982,7 +989,9 @@ elif page == "collections":
     container_field = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
     
     if container_field and not filtered_df.empty:
-        agg_df = filtered_df.groupby(container_field, dropna=False).agg(
+        clean_agg_df = filtered_df[~filtered_df[container_field].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
+        
+        agg_df = clean_agg_df.groupby(container_field, dropna=False).agg(
             {
                 "مبلغ الجمرك": "sum",
                 "قيمة الاستحصالات": "sum",
@@ -1018,23 +1027,25 @@ elif page == "charts":
     if filtered_df.empty:
         st.warning("لا توجد بيانات متاحة لعرض الرسوم البيانية.")
     else:
-        if container_col and "مبلغ الجمرك" in filtered_df.columns:
+        chart_clean_df = filtered_df[~filtered_df[container_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy() if container_col and container_col in filtered_df.columns else filtered_df.copy()
+        
+        if container_col and "مبلغ الجمرك" in chart_clean_df.columns:
             st.subheader("📦 مقارنة مبالغ الجمرك والاستحصالات حسب الحاويات")
-            chart_data = filtered_df.groupby(container_col)[["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"]].sum()
+            chart_data = chart_clean_df.groupby(container_col)[["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"]].sum()
             st.bar_chart(chart_data)
             st.markdown("---")
 
         col_chart1, col_chart2 = st.columns(2)
         with col_chart1:
-            if container_col and "الوزن" in filtered_df.columns:
+            if container_col and "الوزن" in chart_clean_df.columns:
                 st.subheader("⚖️ إجمالي الوزن حسب الحاوية (kg)")
-                weight_data = filtered_df.groupby(container_col)["الوزن"].sum()
+                weight_data = chart_clean_df.groupby(container_col)["الوزن"].sum()
                 st.bar_chart(weight_data)
 
         with col_chart2:
-            if container_col and "حجم" in filtered_df.columns:
+            if container_col and "حجم" in chart_clean_df.columns:
                 st.subheader("📐 إجمالي الحجم حسب الحاوية (m³)")
-                volume_data = filtered_df.groupby(container_col)["حجم"].sum()
+                volume_data = chart_clean_df.groupby(container_col)["حجم"].sum()
                 st.bar_chart(volume_data)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
