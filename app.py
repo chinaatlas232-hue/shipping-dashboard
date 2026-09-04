@@ -762,12 +762,13 @@ elif page == "customs":
     if pivot_code_col and not pivot_filtered_df.empty:
         base_pivot_df = pivot_filtered_df[~pivot_filtered_df[pivot_code_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
 
+        # التصحيح الجذري هنا لمنع تكرار المفاتيح (groupby duplicate keys) وحل مشكلة الفراغات أسفل الجدول
         customs_summary = base_pivot_df.groupby(pivot_code_col, dropna=False).agg({
             "عدد الكارتون": "sum",
             "مبلغ الجمرك": "sum",
             "قيمة الاستحصالات": "sum",
             "متبقي حقيقي": "sum"
-        }).reset_index(drop=True)
+        }).reset_index()
 
         grand_total_row = pd.DataFrame({
             pivot_code_col: ["Grand Total"],
@@ -937,7 +938,7 @@ elif page == "aging":
         if aging_df.empty:
             st.info("لا توجد بيانات متاحة لأيام التأخير بعد التصفية الحالية.")
         else:
-            agg_aging_df = aging_df.groupby(["رقم الحاوية", code_field, "عدد الايام"])["متبقي حقيقي"].sum().reset_index(drop=True)
+            agg_aging_df = aging_df.groupby(["رقم الحاوية", code_field, "عدد الايام"])["متبقي حقيقي"].sum().reset_index()
             
             aging_pivot = agg_aging_df.pivot_table(
                 index=["رقم الحاوية", code_field],
@@ -1062,7 +1063,7 @@ elif page == "charts":
                 st.bar_chart(weight_data)
 
         with col_chart2:
-            if container_col and "حجم" in chart_clean_df.columns:
+            if container_col and "حجم" in chart_clean_df.codes if hasattr(chart_clean_df, 'codes') else container_col in chart_clean_df.columns:
                 st.subheader("📐 إجمالي الحجم حسب الحاوية (m³)")
                 volume_data = chart_clean_df.groupby(container_col)["حجم"].sum()
                 st.bar_chart(volume_data)
