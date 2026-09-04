@@ -756,6 +756,7 @@ elif page == "customs":
     if pivot_code_col and not pivot_filtered_df.empty:
         base_pivot_df = pivot_filtered_df[~pivot_filtered_df[pivot_code_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
 
+        # تأكد من صحة الأسماء والمجاميع المستقلة لكل عمود تفادياً لتداخل القيم
         customs_summary = base_pivot_df.groupby(pivot_code_col, dropna=False).agg({
             "عدد الكارتون": "sum",
             "مبلغ الجمرك": "sum",
