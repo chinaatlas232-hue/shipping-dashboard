@@ -447,10 +447,15 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             elif pd.isna(val) or val_str == "" or val_str.lower() == "nan":
                 formatted_val = "0.00"
             elif numeric_val is not None:
+                # التحقق مما إذا كان العمود يمثل عملة (دلار أو يوان أو مبالغ) أو أرقام عادية
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
                 
+                # تخصيص رمز العملة حسب نوع العمود أو القيمة الأصلية
                 if is_currency_col:
-                    formatted_val = f"${numeric_val:,.2f}"
+                    if "¥" in col_str or "يوان" in col_str or "¥" in val_str:
+                        formatted_val = f"¥{numeric_val:,.2f}"
+                    else:
+                        formatted_val = f"${numeric_val:,.2f}"
                 else:
                     formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}" if numeric_val.is_integer() else f"{numeric_val:,.2f}"
             else:
