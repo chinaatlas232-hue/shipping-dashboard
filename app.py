@@ -231,7 +231,7 @@ def load_data():
         try:
             sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
             return pd.read_csv(sheet_url)
-        except Exception as e:
+        except Exception:
             return None
 
     # تحميل الشحن البحري والشحن الجوي
@@ -973,7 +973,7 @@ elif page == "charts":
     if filtered_df.empty:
         st.warning("لا توجد بيانات متاحة لعرض الرسوم البيانية.")
     else:
-        chart_clean_df = filtered_df[~filtered_df[container_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy() if container_col and container_col in filtered_df.columns else filtered_df.column.empty if False else filtered_df.copy()
+        chart_clean_df = filtered_df[~filtered_df[container_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy() if container_col and container_col in filtered_df.columns else filtered_df.copy()
         
         if container_col and "مبلغ الجمرك" in chart_clean_df.columns:
             st.subheader("📦 مقارنة مبالغ الجمرك والاستحصالات حسب الحاويات")
@@ -994,7 +994,7 @@ elif page == "charts":
                 volume_data = chart_clean_df.groupby(container_col)["حجم"].sum()
                 st.bar_chart(volume_data)
 
-    st.markdown("<div style='margin-bottom: 50px;'>`</div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "data_entry":
     st.title("📝 إدخال وتعديل البيانات محلياً")
