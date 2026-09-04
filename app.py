@@ -461,6 +461,8 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                         formatted_val = f"¥{numeric_val:,.2f}"
                     elif is_sponsors_pivot and any(k in col_str for k in ["سعر البيع", "مبلغ الجمرك", "متبقي حقيقي"]):
                         formatted_val = f"$ {numeric_val:,.2f}"
+                    elif is_sponsors_pivot and "مجموع الكارتون" in col_str:
+                        formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}"
                     elif is_sponsors_pivot:
                         formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}"
                     else:
@@ -574,7 +576,7 @@ if page == "dashboard":
         display_custom_html_table(air_display)
 
     st.markdown("---")
-    st.markdown("### 📊 الجدول التجميعي (ملخص الحاويات و Shipping mark)")
+    st.markdown("### 📊 الجدول التجميعي (ملخص الحاويات و Shipping mark مع إجمالي الكارتون لكل حاوية)")
 
     pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in active_view_df.columns), None)
     pivot_mark_col = "Shipping mark" if "Shipping mark" in active_view_df.columns else None
@@ -601,10 +603,18 @@ if page == "dashboard":
         if agg_mapping:
             aggregated_df = active_view_df.groupby(group_cols, dropna=False).agg(agg_mapping).reset_index()
 
+            # إضافة مجموع الكارتون لكل حاوية بشكل منفصل
+            if "عدد الكارتون" in active_view_df.columns:
+                container_cartons = active_view_df.groupby(pivot_container_col)["عدد الكارتون"].sum().reset_index()
+                container_cartons = container_cartons.rename(columns={"عدد الكارتون": "مجموع الكارتون بالحاوية"})
+                aggregated_df = pd.merge(aggregated_df, container_cartons, on=pivot_container_col, how="left")
+
             totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
             for col in agg_mapping.keys():
                 aggregated_df[col] = pd.to_numeric(aggregated_df[col], errors="coerce").fillna(0)
                 totals_dict[col] = aggregated_df[col].sum()
+            if "مجموع الكارتون بالحاوية" in aggregated_df.columns:
+                totals_dict["مجموع الكارتون بالحاوية"] = active_view_df["عدد الكارتون"].sum()
 
             grand_total_df = pd.DataFrame([totals_dict])
             aggregated_df = pd.concat([aggregated_df, grand_total_df], ignore_index=True)
@@ -622,7 +632,7 @@ if page == "dashboard":
             aggregated_df = aggregated_df.rename(columns=rename_map)
             
             desired_cols = ["رقم الحاوية", "Shipping mark", "الزبون دفع", "المكتب دفع", "المجموع", 
-                            "Sum of عدد الكارتون", "Sum of مبلغ الجمرك", 
+                            "Sum of عدد الكارتون", "مجموع الكارتون بالحاوية", "Sum of مبلغ الجمرك", 
                             "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]
             if "متبقي حقيقي" in aggregated_df.columns and "Sum of متبقي حقيقي" not in aggregated_df.columns:
                 aggregated_df = aggregated_df.rename(columns={"متبقي حقيقي": "Sum of متبقي حقيقي"})
@@ -789,12 +799,19 @@ elif page == "sponsors":
             pivot_table_df = base_pivot_df[available_pivot_cols].copy()
 
             if not pivot_table_df.empty:
+                if "عدد الكارتون" in base_pivot_df.columns:
+                    container_cartons = base_pivot_df.groupby(pivot_container_col)["عدد الكارتون"].sum().reset_index()
+                    container_cartons = container_cartons.rename(columns={"عدد الكارتون": "مجموع الكارتون بالحاوية"})
+                    pivot_table_df = pd.merge(pivot_table_df, container_cartons, on=pivot_container_col, how="left")
+
                 numeric_cols_to_sum = [c for c in pivot_table_df.columns if c not in [pivot_container_col, pivot_mark_col]]
                 
                 totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
                 for col in numeric_cols_to_sum:
                     pivot_table_df[col] = pd.to_numeric(pivot_table_df[col], errors="coerce").fillna(0)
                     totals_dict[col] = pivot_table_df[col].sum()
+                if "مجموع الكارتون بالحاوية" in pivot_table_df.columns:
+                    totals_dict["مجموع الكارتون بالحاوية"] = base_pivot_df["عدد الكارتون"].sum()
 
                 grand_total_df = pd.DataFrame([totals_dict])
                 pivot_table_df = pd.concat([pivot_table_df, grand_total_df], ignore_index=True)
@@ -973,7 +990,6 @@ elif page == "data_entry":
     st.markdown("---")
     st.markdown("يمكنك تعديل البيانات مباشرة في الجدول أدناه، أو إضافة سجل جديد:")
 
-    # تم تصحيح الخطأ هنا (إزالة علامة الزائد واستخدام الفاصلة العادية بترتيب صحيح للوسطاء)
     edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="data_editor_grid")
 
     if st.button("💾 حفظ التغييرات وتحديث العرض"):
