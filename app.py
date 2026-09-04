@@ -447,10 +447,9 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             val_str = str(val).strip()
             cell_style = ""
             
-            # إصلاح مشكلة تكرار الرقم في عمود رقم الحاوية لصف الـ Grand Total
+            # إصلاح مشكلة تكرار القيم في صف الـ Grand Total
             if col_str == container_col_name:
                 if is_row_total:
-                    # في صف الإجمالي، نجعل رقم الحاوية فارغاً لتجنب تكرار أرقام غير منطقية
                     val = ""
                     val_str = ""
                 else:
@@ -500,7 +499,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 formatted_val = val if val != "" else "-"
             elif pd.isna(val) or val_str == "" or val_str.lower() == "nan":
                 formatted_val = "-"
-            elif numeric_val is not None and not is_row_total:
+            elif numeric_val is not None:
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
                 if is_currency_col or is_sponsors_pivot:
                     if "¥" in col_str or "يوان" in col_str or "¥" in val_str or (is_sponsors_pivot and "الزبون دفع" in col_str):
@@ -515,13 +514,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                         formatted_val = f"${numeric_val:,.2f}"
                 else:
                     formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}" if numeric_val.is_integer() else f"{numeric_val:,.2f}"
-            elif numeric_val is not None and is_row_total:
-                # تنسيق القيم في صف Grand Total بشكل صحيح ودون تكرار خاطئ
-                is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
-                if is_currency_col:
-                    formatted_val = f"${numeric_val:,.2f}"
-                else:
-                    formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}"
             else:
                 formatted_val = str(val)
 
@@ -629,7 +621,7 @@ if page == "dashboard":
         display_custom_html_table(air_display)
 
     st.markdown("---")
-    st.markdown("### 📊 الجدول التجميعي (ملخص الحاويات و Shipping mark مع إجمالي الكارتون لكل حاوية)")
+    st.markdown("### 📊 الجدول التجميعي (ملخص الحاويات و Shipping mark مع إجمالي الصحيح لكل عمود)")
 
     pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in active_view_df.columns), None)
     pivot_mark_col = "Shipping mark" if "Shipping mark" in active_view_df.columns else None
@@ -661,12 +653,15 @@ if page == "dashboard":
                 container_cartons = container_cartons.rename(columns={"عدد الكارتون": "مجموع الكارتون بالحاوية"})
                 aggregated_df = pd.merge(aggregated_df, container_cartons, on=pivot_container_col, how="left")
 
+            # حساب المجاميع الحقيقية لكل عمود رقمي على حدة لصف الـ Grand Total
             totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
             for col in agg_mapping.keys():
                 aggregated_df[col] = pd.to_numeric(aggregated_df[col], errors="coerce").fillna(0)
                 totals_dict[col] = aggregated_df[col].sum()
+            
             if "مجموع الكارتون بالحاوية" in aggregated_df.columns:
-                totals_dict["مجموع الكارتون بالحاوية"] = active_view_df["عدد الكارتون"].sum()
+                # مجموع الكارتون بالحاوية الإجمالي الفعلي يساوي مجموع عمود عدد الكارتون بالكامل
+                totals_dict["مجموع الكارتون بالحاوية"] = active_view_df["عدد الكارتون"].sum() if "عدد الكارتون" in active_view_df.columns else 0
 
             grand_total_df = pd.DataFrame([totals_dict])
             aggregated_df = pd.concat([aggregated_df, grand_total_df], ignore_index=True)
@@ -817,7 +812,7 @@ elif page == "sponsors":
             """, unsafe_allow_html=True)
             
         st.markdown("---")
-        st.markdown("### 📊 جدول تفصيلي بملخص الكفلاء المطابق لتنسيق العرض المطلوب (Pivot Table)")
+        st.markdown("### 📊 جدول تفصيلي بملخص الكفلاء (Pivot Table)")
         
         pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
         pivot_mark_col = "Shipping mark" if "Shipping mark" in filtered_df.columns else None
@@ -885,7 +880,7 @@ elif page == "sponsors":
 elif page == "aging":
     st.title("⏳ تقرير أعمار الديون (Aging Report)")
     st.markdown("---")
-    st.markdown("### 📋 جدول تحليلي يوزع المتبقي الحقيقي حسب الكود ورقم الحاوية وأيام التأخير (بدون 0 يوم)")
+    st.markdown("### 📋 جدول تحليلي يوزع المتبقي الحقيقي حسب الكود ورقم الحاوية وأيام التأخير")
 
     aging_df = filtered_df.copy()
     code_field = next((c for c in ["code", "الكود", "كود"] if c in aging_df.columns), None)
@@ -935,7 +930,7 @@ elif page == "aging":
                 render_download_buttons(aging_pivot)
                 display_custom_html_table(aging_pivot, is_aging_report=True)
     else:
-        st.warning("عذراً، الأعمدة الأساسية المطلوبة (رقم الحاوية، الكود، عدد الأيام، متبقي حقيقي) غير متوفرة بالكامل في البيانات الحالية.")
+        st.warning("عذراً، الأعمدة الأساسية المطلوبة غير متوفرة بالكامل في البيانات الحالية.")
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
@@ -947,7 +942,7 @@ elif page == "collections":
     if not filtered_df.empty:
         total_c = filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in filtered_df.columns else 0
         total_coll = filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in filtered_df.columns else 0
-        total_rem = filtered_df["متبقي حقيقي"] .sum() if "متبقي حقيقي" in filtered_df.columns else 0
+        total_rem = filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in filtered_df.columns else 0
 
         mc1, mc2, mc3 = st.columns(3)
         with mc1:
@@ -1018,14 +1013,7 @@ elif page == "charts":
                 volume_data = filtered_df.groupby(container_col)["حجم"].sum()
                 st.bar_chart(volume_data)
 
-        st.markdown("---")
-
-        if "الكفيل" in filtered_df.columns and "مبلغ الجمرك" in filtered_df.columns:
-            st.subheader("👤 إجمالي مبالغ الجمرك والاستحصالات حسب الكفلاء")
-            sponsor_chart_data = filtered_df.groupby("الكفيل")[["مبلغ الجمرك", "قيمة الاستحصالات"]].sum()
-            st.bar_chart(sponsor_chart_data)
-
-    st.markdown("<div style='margin-bottom: 50px;'>`</div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "data_entry":
     st.title("📝 إدخال وتعديل البيانات محلياً")
