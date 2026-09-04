@@ -394,7 +394,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         
     df_with_seq = df_to_render.copy()
     
-    # التحقق من وجود سطر الإجمالي الكلي في الجدول
     has_grand_total = False
     if not df_with_seq.empty:
         first_col_name = df_with_seq.columns[0]
@@ -441,7 +440,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
 
-        # فحص دقيق لسطر المجموع لتجنب تكرار الخلايا أو تداخلها
         is_row_total = any(str(val).strip().lower() in ["grand total", "grandtotal"] for val in row.values)
 
         html += '<tr>'
@@ -518,7 +516,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 else:
                     formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}" if numeric_val.is_integer() else f"{numeric_val:,.2f}"
             elif numeric_val is not None and is_row_total:
-                # تنسيق مخصص لسطر الإجمالي الكلي لضمان نظافة العرض
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
                 if is_currency_col or is_sponsors_pivot:
                     formatted_val = f"${numeric_val:,.2f}"
