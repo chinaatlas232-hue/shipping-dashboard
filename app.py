@@ -345,13 +345,14 @@ page = page_options[selected_page_label]
 st.sidebar.markdown("---")
 st.sidebar.info("متصل بملف Google Sheets بنجاح ✔️")
 
-def render_download_buttons(data_to_download):
+def render_download_buttons(marine_data, air_data, full_data):
     st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
     btn_col1, btn_col2 = st.columns([1, 1])
+    
     with btn_col1:
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-            data_to_download.to_excel(writer, index=False, sheet_name='Filtered_Data')
+            full_data.to_excel(writer, index=False, sheet_name='Filtered_Data')
         st.download_button(
             label="📊 Download as Excel",
             data=buffer.getvalue(),
@@ -361,31 +362,47 @@ def render_download_buttons(data_to_download):
         )
     
     with btn_col2:
-        components.html("""
-            <div style="display: flex; justify-content: center; align-items: center; height: 100%; margin: 0;">
-                <button onclick="window.parent.print();" style="
-                    width: 100%;
-                    background-color: #ffffff;
-                    color: #262730;
-                    border: 1px solid rgba(49, 51, 63, 0.2);
-                    padding: 0.5rem 0.75rem;
-                    border-radius: 0.5rem;
-                    font-weight: 400;
-                    font-size: 14px;
-                    cursor: pointer;
-                    text-align: center;
-                    display: inline-flex;
-                    justify-content: center;
-                    align-items: center;
-                    gap: 5px;
-                    height: 42px;
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    box-shadow: rgba(0, 0, 0, 0.02) 0px 1px 3px 0px;
+        print_html = """
+            <div style="display: flex; gap: 6px; width: 100%;">
+                <button onclick="
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('print_type', 'all');
+                    window.location.href = url.toString();
+                    setTimeout(() => window.parent.print(), 1000);
+                " style="
+                    background-color: #1e3a8a; color: white; padding: 0.45rem 0.5rem;
+                    border: none; border-radius: 0.3rem; font-weight: 500; cursor: pointer;
+                    flex: 1; height: 38px; font-size: 13px; font-family: inherit;
                 ">
-                    🖨️ طباعة الصفحة الحالية
+                    📄 طباعة شامل
+                </button>
+                <button onclick="
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('print_type', 'marine');
+                    window.location.href = url.toString();
+                    setTimeout(() => window.parent.print(), 1000);
+                " style="
+                    background-color: #b45309; color: white; padding: 0.45rem 0.5rem;
+                    border: none; border-radius: 0.3rem; font-weight: 500; cursor: pointer;
+                    flex: 1; height: 38px; font-size: 13px; font-family: inherit;
+                ">
+                    🚢 الشحن البحري
+                </button>
+                <button onclick="
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('print_type', 'air');
+                    window.location.href = url.toString();
+                    setTimeout(() => window.parent.print(), 1000);
+                " style="
+                    background-color: #0d9488; color: white; padding: 0.45rem 0.5rem;
+                    border: none; border-radius: 0.3rem; font-weight: 500; cursor: pointer;
+                    flex: 1; height: 38px; font-size: 13px; font-family: inherit;
+                ">
+                    ✈️ الشحن الجوي
                 </button>
             </div>
-        """, height=50)
+        """
+        components.html(print_html, height=45)
     st.markdown('</div>', unsafe_allow_html=True)
 
 def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_report=False, is_distribution=False):
@@ -406,7 +423,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             else:
                 seq_list.append(len(seq_list) + 1)
         
-        # ترتيب الأعمدة لصفحة توزيع البضاعة بحيث يكون عمود التسلسل في أقصى اليمين تماماً
         if is_distribution:
             df_with_seq["التسلسل"] = seq_list
             cols = [c for c in df_with_seq.columns if c != "التسلسل"] + ["التسلسل"]
@@ -493,22 +509,6 @@ if page == "dashboard":
     search_query = st.text_input("🔍 بحث ذكي (ابحث برقم الكود، اسم الكفيل، أو رقم الحاوية):", "").strip()
     st.markdown('</div>', unsafe_allow_html=True)
 
-    if "display_mode" not in st.session_state:
-        st.session_state.display_mode = "all"
-
-    st.markdown('<div class="no-print" style="margin-bottom: 15px;">', unsafe_allow_html=True)
-    b_col1, b_col2, b_col3 = st.columns(3)
-    with b_col1:
-        if st.button("📄 طباعة شامل (عرض الكل)", use_container_width=True):
-            st.session_state.display_mode = "all"
-    with b_col2:
-        if st.button("🚢 الشحن البحري (RQ)", use_container_width=True):
-            st.session_state.display_mode = "marine"
-    with b_col3:
-        if st.button("✈️ الشحن الجوي (RA)", use_container_width=True):
-            st.session_state.display_mode = "air"
-    st.markdown('</div>', unsafe_allow_html=True)
-
     dash_filtered_df = filtered_df.copy()
     if search_query and not dash_filtered_df.empty:
         search_cols = [c for c in ["code", "الكفيل", "رقم الحاوية", "رقم الحاويات", "Shipping mark"] if c in dash_filtered_df.columns]
@@ -516,35 +516,22 @@ if page == "dashboard":
             mask = dash_filtered_df[search_cols].apply(lambda col: col.astype(str).str.contains(search_query, case=False, na=False))
             dash_filtered_df = dash_filtered_df[mask.any(axis=1)]
 
-    if container_col and container_col in dash_filtered_df.columns:
-        marine_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RQ")]
-        air_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RA")]
-    else:
-        marine_df = pd.DataFrame(columns=dash_filtered_df.columns)
-        air_df = pd.DataFrame(columns=dash_filtered_df.columns)
-
-    if st.session_state.display_mode == "marine":
-        active_view_df = marine_df
-    elif st.session_state.display_mode == "air":
-        active_view_df = air_df
-    else:
-        active_view_df = dash_filtered_df
-
-    total_orders = len(active_view_df)
-    total_weight = active_view_df["الوزن"].sum() if "الوزن" in active_view_df.columns else 0
-    total_ctns = active_view_df["عدد الكارتون"].sum() if "عدد الكارتون" in active_view_df.columns else 0
-    total_volume = active_view_df["حجم"].sum() if "حجم" in active_view_df.columns else 0
+    total_orders = len(dash_filtered_df)
+    total_weight = dash_filtered_df["الوزن"].sum() if "الوزن" in dash_filtered_df.columns else 0
+    total_ctns = dash_filtered_df["عدد الكارتون"].sum() if "عدد الكارتون" in dash_filtered_df.columns else 0
+    total_volume = dash_filtered_df["حجم"].sum() if "حجم" in dash_filtered_df.columns else 0
     
-    client_field_candidates = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in active_view_df.columns]
-    total_clients = active_view_df[client_field_candidates[0]].nunique() if client_field_candidates and not active_view_df.empty else 0
-    total_containers_count = active_view_df[container_col].nunique() if container_col and container_col in active_view_df.columns and not active_view_df.empty else 0
+    client_field_candidates = [c for c in ["code", "الكود", "كود", "Shipping mark", "الزبون"] if c in dash_filtered_df.columns]
+    total_clients = dash_filtered_df[client_field_candidates[0]].nunique() if client_field_candidates and not dash_filtered_df.empty else 0
+    total_containers_count = dash_filtered_df[container_col].nunique() if container_col and container_col in dash_filtered_df.columns and not dash_filtered_df.empty else 0
 
-    office_paid_col = next((c for c in ["Office Paid", "المكتب دفع"] if c in active_view_df.columns), None)
-    client_paid_col = next((c for c in ["Client Paid", "الزبون دفع"] if c in active_view_df.columns), None)
+    office_paid_col = next((c for c in ["Office Paid", "المكتب دفع"] if c in dash_filtered_df.columns), None)
+    client_paid_col = next((c for c in ["Client Paid", "الزبون دفع"] if c in dash_filtered_df.columns), None)
     
-    total_office_paid = active_view_df[office_paid_col].sum() if office_paid_col else 0
-    total_client_paid = active_view_df[client_paid_col].sum() if client_paid_col else 0
+    total_office_paid = dash_filtered_df[office_paid_col].sum() if office_paid_col else 0
+    total_client_paid = dash_filtered_df[client_paid_col].sum() if client_paid_col else 0
 
+    st.markdown('<div class="no-print">', unsafe_allow_html=True)
     row1_c1, row1_c2, row1_c3, row1_c4 = st.columns(4)
     with row1_c1:
         st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">📦 عدد الطلبات</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
@@ -564,22 +551,40 @@ if page == "dashboard":
         st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">💰 مبالغ دفعت من المكتب</div><div class="metric-value">${total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c4:
         st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">${total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("---")
-    render_download_buttons(active_view_df)
-    
+
     active_cols = [c for c in default_columns_to_show if c in dash_filtered_df.columns]
+    
+    if container_col and container_col in dash_filtered_df.columns:
+        marine_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RQ")]
+        air_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RA")]
+    else:
+        marine_df = pd.DataFrame(columns=dash_filtered_df.columns)
+        air_df = pd.DataFrame(columns=dash_filtered_df.columns)
 
-    if st.session_state.display_mode in ["all", "marine"]:
+    render_download_buttons(marine_df, air_df, dash_filtered_df)
+
+    query_params = st.query_params
+    print_type = query_params.get("print_type", "all")
+
+    marine_display = marine_df[active_cols] if active_cols else marine_df
+    air_display = air_df[active_cols] if active_cols else air_df
+
+    if print_type == "marine":
         st.markdown("### 🚢 جدول الشحن البحري (RQ)")
-        marine_display = marine_df[active_cols] if active_cols else marine_df
         display_custom_html_table(marine_display)
-        if st.session_state.display_mode == "all":
-            st.markdown("---")
-
-    if st.session_state.display_mode in ["all", "air"]:
+    elif print_type == "air":
         st.markdown("### ✈️ جدول الشحن الجوي (RA)")
-        air_display = air_df[active_cols] if active_cols else air_df
+        display_custom_html_table(air_display)
+    else:
+        st.markdown("### 🚢 جدول الشحن البحري (RQ)")
+        display_custom_html_table(marine_display)
+        
+        st.markdown("---")
+        
+        st.markdown("### ✈️ جدول الشحن الجوي (RA)")
         display_custom_html_table(air_display)
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
@@ -651,7 +656,7 @@ elif page == "customs":
             "متبقي حقيقي": "Sum of متبقي حقيقي"
         })
 
-        render_download_buttons(customs_summary)
+        render_download_buttons(pd.DataFrame(), pd.DataFrame(), customs_summary)
         display_custom_html_table(customs_summary)
     else:
         st.warning("الأعمدة المطلوبة لإنشاء الجدول غير متوفرة أو البيانات فارغة.")
@@ -751,7 +756,7 @@ elif page == "sponsors":
                 }
                 pivot_table_df = pivot_table_df.rename(columns=column_rename_map)
 
-                render_download_buttons(pivot_table_df)
+                render_download_buttons(pd.DataFrame(), pd.DataFrame(), pivot_table_df)
                 display_custom_html_table(pivot_table_df, is_sponsors_pivot=True)
             else:
                 st.warning("لا توجد بيانات كافية لإنشاء الجدول.")
@@ -810,7 +815,7 @@ elif page == "aging":
                 aging_pivot = pd.concat([aging_pivot, pd.DataFrame([grand_total_row_dict])], ignore_index=True)
                 aging_pivot.columns = [str(c) for c in aging_pivot.columns]
                 
-                render_download_buttons(aging_pivot)
+                render_download_buttons(pd.DataFrame(), pd.DataFrame(), aging_pivot)
                 display_custom_html_table(aging_pivot, is_aging_report=True)
     else:
         st.warning("عذراً، الأعمدة الأساسية المطلوبة (رقم الحاوية، الكود، عدد الأيام، متبقي حقيقي) غير متوفرة بالكامل في البيانات الحالية.")
@@ -825,7 +830,7 @@ elif page == "collections":
     if not filtered_df.empty:
         total_c = filtered_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in filtered_df.columns else 0
         total_coll = filtered_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in filtered_df.columns else 0
-        total_rem = filtered_df["متبقي حقيقي"] .sum() if "متبقي حقيقي" in filtered_df.columns else 0
+        total_rem = filtered_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in filtered_df.columns else 0
 
         mc1, mc2, mc3 = st.columns(3)
         with mc1:
@@ -836,7 +841,7 @@ elif page == "collections":
             st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">${total_rem:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
-    render_download_buttons(filtered_df)
+    render_download_buttons(pd.DataFrame(), pd.DataFrame(), filtered_df)
 
     container_field = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in filtered_df.columns), None)
     
@@ -890,7 +895,7 @@ elif page == "distribution":
             st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">إجمالي الحجم (m³)</div><div class="metric-value">{total_vol:,.2f}</div></div>', unsafe_allow_html=True)
 
         st.markdown("---")
-        render_download_buttons(dist_df)
+        render_download_buttons(pd.DataFrame(), pd.DataFrame(), dist_df)
 
         dist_columns = [c for c in ["No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن", "عدد الكارتون", "الوزن", "حجم", "رقم الحاوية"] if c in dist_df.columns]
         display_df = dist_df[dist_columns] if dist_columns else dist_df
