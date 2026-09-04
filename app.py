@@ -573,16 +573,23 @@ if page == "dashboard":
         st.session_state.display_mode = "all"
 
     st.markdown('<div class="no-print" style="margin-bottom: 15px;">', unsafe_allow_html=True)
-    b_col1, b_col2, b_col3 = st.columns(3)
-    with b_col1:
-        if st.button("📄 طباعة شامل (عرض الكل)", use_container_width=True):
-            st.session_state.display_mode = "all"
-    with b_col2:
-        if st.button("🚢 الشحن البحري (RQ)", use_container_width=True):
-            st.session_state.display_mode = "marine"
-    with b_col3:
-        if st.button("✈️ الشحن الجوي (RA)", use_container_width=True):
-            st.session_state.display_mode = "air"
+    
+    # استخدام st.radio بشكل أفقي (Pills/Radio) لضمان ثبات وثعالية الاختيار بدون مشاكل الأزرار العادية
+    view_option = st.radio(
+        "طريقة العرض:",
+        options=["📄 طباعة شامل (عرض الكل)", "🚢 الشحن البحري (RQ)", "✈️ الشحن الجوي (RA)"],
+        index=0 if st.session_state.display_mode == "all" else (1 if st.session_state.display_mode == "marine" else 2),
+        horizontal=True,
+        key="view_option_radio"
+    )
+    
+    if "طباعة شامل" in view_option:
+        st.session_state.display_mode = "all"
+    elif "الشحن البحري" in view_option:
+        st.session_state.display_mode = "marine"
+    elif "الشحن الجوي" in view_option:
+        st.session_state.display_mode = "air"
+        
     st.markdown('</div>', unsafe_allow_html=True)
 
     dash_filtered_df = remove_existing_totals(filtered_df.copy())
