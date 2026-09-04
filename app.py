@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
-# 1. إعداد الصفحة والتنسيقات
+# 1. إعداد الصفحة والتنسیقات
 st.set_page_config(
     page_title="شركة أطلس المحيط", page_icon="📦", layout="wide"
 )
@@ -406,7 +406,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 seq_list.append(len(seq_list) + 1)
         df_with_seq.insert(0, "التسلسل", seq_list)
 
-    # حساب دمج الخلايا لعمود "رقم الحاوية"
     container_col_name = "رقم الحاوية"
     spans = {}
     if container_col_name in df_with_seq.columns:
@@ -447,7 +446,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             val_str = str(val).strip()
             cell_style = ""
             
-            # إصلاح مشكلة تكرار القيم في صف الـ Grand Total
             if col_str == container_col_name:
                 if is_row_total:
                     val = ""
@@ -621,7 +619,7 @@ if page == "dashboard":
         display_custom_html_table(air_display)
 
     st.markdown("---")
-    st.markdown("### 📊 الجدول التجميعي (ملخص الحاويات و Shipping mark مع إجمالي الصحيح لكل عمود)")
+    st.markdown("### 📊 الجدول التجميعي (ملخص الحاويات و Shipping mark مع إجمالي حقيقي صحيح لكل عمود)")
 
     pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in active_view_df.columns), None)
     pivot_mark_col = "Shipping mark" if "Shipping mark" in active_view_df.columns else None
@@ -653,14 +651,13 @@ if page == "dashboard":
                 container_cartons = container_cartons.rename(columns={"عدد الكارتون": "مجموع الكارتون بالحاوية"})
                 aggregated_df = pd.merge(aggregated_df, container_cartons, on=pivot_container_col, how="left")
 
-            # حساب المجاميع الحقيقية لكل عمود رقمي على حدة لصف الـ Grand Total
+            # تصحيح صف الإجمالي (Grand Total) بحساب المجموع الحقيقي لكل عمود رقمي
             totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
             for col in agg_mapping.keys():
                 aggregated_df[col] = pd.to_numeric(aggregated_df[col], errors="coerce").fillna(0)
                 totals_dict[col] = aggregated_df[col].sum()
             
             if "مجموع الكارتون بالحاوية" in aggregated_df.columns:
-                # مجموع الكارتون بالحاوية الإجمالي الفعلي يساوي مجموع عمود عدد الكارتون بالكامل
                 totals_dict["مجموع الكارتون بالحاوية"] = active_view_df["عدد الكارتون"].sum() if "عدد الكارتون" in active_view_df.columns else 0
 
             grand_total_df = pd.DataFrame([totals_dict])
