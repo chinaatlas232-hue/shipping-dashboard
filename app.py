@@ -406,7 +406,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 seq_list.append(len(seq_list) + 1)
         df_with_seq.insert(0, "التسلسل", seq_list)
 
-    # حساب دمج الخلايا لعمود "رقم الحاوية" لتجنب تكرار القيم المتشابهة وتفريغ الخلايا المكررة
+    # حساب دمج الخلايا لعمود "رقم الحاوية"
     container_col_name = "رقم الحاوية"
     spans = {}
     if container_col_name in df_with_seq.columns:
@@ -447,20 +447,25 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             val_str = str(val).strip()
             cell_style = ""
             
-            # معالجة خاصة لعمود رقم الحاوية للدمج وحذف القيم الصفرية (0.00 أو 0)
+            # إصلاح مشكلة تكرار الرقم في عمود رقم الحاوية لصف الـ Grand Total
             if col_str == container_col_name:
-                try:
-                    num_chk = float(val_str)
-                    if num_chk == 0.0:
-                        val = ""
-                        val_str = ""
-                except ValueError:
-                    pass
+                if is_row_total:
+                    # في صف الإجمالي، نجعل رقم الحاوية فارغاً لتجنب تكرار أرقام غير منطقية
+                    val = ""
+                    val_str = ""
+                else:
+                    try:
+                        num_chk = float(val_str)
+                        if num_chk == 0.0:
+                            val = ""
+                            val_str = ""
+                    except ValueError:
+                        pass
 
                 span_val = spans.get(idx, 1)
-                if span_val == 0:
-                    continue  # تخطي الخلية المدمجة مسبقاً
-                rowspan_attr = f' rowspan="{span_val}"' if span_val > 1 else ''
+                if not is_row_total and span_val == 0:
+                    continue  
+                rowspan_attr = f' rowspan="{span_val}"' if (not is_row_total and span_val > 1) else ''
             else:
                 rowspan_attr = ''
 
@@ -495,7 +500,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 formatted_val = val if val != "" else "-"
             elif pd.isna(val) or val_str == "" or val_str.lower() == "nan":
                 formatted_val = "-"
-            elif numeric_val is not None:
+            elif numeric_val is not None and not is_row_total:
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
                 if is_currency_col or is_sponsors_pivot:
                     if "¥" in col_str or "يوان" in col_str or "¥" in val_str or (is_sponsors_pivot and "الزبون دفع" in col_str):
@@ -510,6 +515,13 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                         formatted_val = f"${numeric_val:,.2f}"
                 else:
                     formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}" if numeric_val.is_integer() else f"{numeric_val:,.2f}"
+            elif numeric_val is not None and is_row_total:
+                # تنسيق القيم في صف Grand Total بشكل صحيح ودون تكرار خاطئ
+                is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
+                if is_currency_col:
+                    formatted_val = f"${numeric_val:,.2f}"
+                else:
+                    formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}"
             else:
                 formatted_val = str(val)
 
