@@ -136,7 +136,6 @@ st.markdown(
             -webkit-print-color-adjust: exact !important;
         }
 
-        /* إخفاء القائمة الجانبية والعناصر غير الضرورية أثناء الطباعة */
         [data-testid="stSidebar"],
         header,
         .no-print,
@@ -212,7 +211,7 @@ st.markdown(
         }
     }
 
-    /* فلاتر إخفاء الأقسام أثناء الطباعة بناءً على نوع التقرير المختار */
+    /* فلاتر إخفاء الأقسام بناءً على الزر المختار للطباعة */
     body.print-mode-marine .print-hide-marine {
         display: none !important;
     }
@@ -371,17 +370,9 @@ def render_download_buttons(data_to_download):
                     document.body.className = document.body.className.replace(/print-mode-\\w+/g, '');
                     window.parent.print();
                 " style="
-                    background-color: #1e3a8a;
-                    color: white;
-                    padding: 0.45rem 0.5rem;
-                    border: none;
-                    border-radius: 0.3rem;
-                    font-weight: 500;
-                    cursor: pointer;
-                    flex: 1;
-                    height: 38px;
-                    font-size: 13px;
-                    font-family: inherit;
+                    background-color: #1e3a8a; color: white; padding: 0.45rem 0.5rem;
+                    border: none; border-radius: 0.3rem; font-weight: 500; cursor: pointer;
+                    flex: 1; height: 38px; font-size: 13px; font-family: inherit;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
                 ">
                     📄 طباعة شامل
@@ -390,17 +381,9 @@ def render_download_buttons(data_to_download):
                     document.body.className = document.body.className.replace(/print-mode-\\w+/g, '') + ' print-mode-air';
                     window.parent.print();
                 " style="
-                    background-color: #0d9488;
-                    color: white;
-                    padding: 0.45rem 0.5rem;
-                    border: none;
-                    border-radius: 0.3rem;
-                    font-weight: 500;
-                    cursor: pointer;
-                    flex: 1;
-                    height: 38px;
-                    font-size: 13px;
-                    font-family: inherit;
+                    background-color: #b45309; color: white; padding: 0.45rem 0.5rem;
+                    border: none; border-radius: 0.3rem; font-weight: 500; cursor: pointer;
+                    flex: 1; height: 38px; font-size: 13px; font-family: inherit;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
                 ">
                     🚢 الشحن البحري
@@ -409,17 +392,9 @@ def render_download_buttons(data_to_download):
                     document.body.className = document.body.className.replace(/print-mode-\\w+/g, '') + ' print-mode-marine';
                     window.parent.print();
                 " style="
-                    background-color: #b45309;
-                    color: white;
-                    padding: 0.45rem 0.5rem;
-                    border: none;
-                    border-radius: 0.3rem;
-                    font-weight: 500;
-                    cursor: pointer;
-                    flex: 1;
-                    height: 38px;
-                    font-size: 13px;
-                    font-family: inherit;
+                    background-color: #0d9488; color: white; padding: 0.45rem 0.5rem;
+                    border: none; border-radius: 0.3rem; font-weight: 500; cursor: pointer;
+                    flex: 1; height: 38px; font-size: 13px; font-family: inherit;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
                 ">
                     ✈️ الشحن الجوي
@@ -559,15 +534,16 @@ if page == "dashboard":
     
     active_cols = [c for c in default_columns_to_show if c in dash_filtered_df.columns]
     
+    # 🌟 التعديل الدقيق لفصل الشحن البحري (RQ) عن الشحن الجوي (RA) بشكل تام
     if container_col and container_col in dash_filtered_df.columns:
         marine_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RQ")]
         air_df = dash_filtered_df[dash_filtered_df[container_col].astype(str).str.upper().str.startswith("RA")]
     else:
-        marine_df = dash_filtered_df
+        marine_df = pd.DataFrame(columns=dash_filtered_df.columns)
         air_df = pd.DataFrame(columns=dash_filtered_df.columns)
 
-    # قسم جدول الشحن البحري مع فئة لتمييزه عند الطباعة
-    st.markdown('<div class="print-hide-marine">', unsafe_allow_html=True)
+    # قسم جدول الشحن البحري (RQ) مع كلاس الفلترة للطباعة
+    st.markdown('<div class="print-hide-air">', unsafe_allow_html=True)
     st.markdown("### 🚢 جدول الشحن البحري (RQ)")
     marine_display = marine_df[active_cols] if active_cols else marine_df
     display_custom_html_table(marine_display)
@@ -575,8 +551,8 @@ if page == "dashboard":
 
     st.markdown("---")
 
-    # قسم جدول الشحن الجوي مع فئة لتمييزه عند الطباعة
-    st.markdown('<div class="print-hide-air">', unsafe_allow_html=True)
+    # قسم جدول الشحن الجوي (RA) مع كلاس الفلترة للطباعة
+    st.markdown('<div class="print-hide-marine">', unsafe_allow_html=True)
     st.markdown("### ✈️ جدول الشحن الجوي (RA)")
     air_display = air_df[active_cols] if active_cols else air_df
     display_custom_html_table(air_display)
@@ -878,7 +854,7 @@ elif page == "charts":
             sponsor_chart_data = filtered_df.groupby("الكفيل")[["مبلغ الجمرك", "قيمة الاستحصالات"]].sum()
             st.bar_chart(sponsor_chart_data)
 
-    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html.thread_id if hasattr(st, 'thread_id') else 0)
 
 elif page == "data_entry":
     st.title("📝 إدخال وتعديل البيانات محلياً")
