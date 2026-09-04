@@ -574,6 +574,66 @@ if page == "dashboard":
         air_display = air_df[active_cols] if active_cols else air_df
         display_custom_html_table(air_display)
 
+    # ـــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
+    # إضافة الجدول التجميعي الجديد أسفل الصفحة (Pivot Table حسب رقم الحاوية و Shipping mark)
+    # ـــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــــ
+    st.markdown("---")
+    st.markdown("### 📊 الجدول التجميعي (ملخص الحاويات و Shipping mark)")
+
+    pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in dash_filtered_df.columns), None)
+    pivot_mark_col = "Shipping mark" if "Shipping mark" in dash_filtered_df.columns else None
+
+    if pivot_container_col and pivot_mark_col and not dash_filtered_df.empty:
+        # تجميع البيانات بحسب رقم الحاوية و Shipping mark وحساب مجاميع الحقول المطلوبة
+        group_cols = [pivot_container_col, pivot_mark_col]
+        agg_mapping = {}
+        
+        possible_cols = {
+            "الزبون دفع": ["الزبون دفع", "Client Paid"],
+            "المكتب دفع": ["المكتب دفع", "Office Paid"],
+            "المجموع": ["المجموع"],
+            "عدد الكارتون": ["عدد الكارتون"],
+            "سعر البيع": ["سعر البيع"],
+            "مبلغ الجمرك": ["مبلغ الجمرك"],
+            "قيمة الاستحصالات": ["قيمة الاستحصالات"],
+            "متبقي حقيقي": ["متبقي حقيقي"]
+        }
+
+        for target_name, candidates in possible_cols.items():
+            matched_c = next((c for c in candidates if c in dash_filtered_df.columns), None)
+            if matched_c:
+                agg_mapping[matched_c] = "sum"
+
+        if agg_mapping:
+            aggregated_df = dash_filtered_df.groupby(group_cols, dropna=False).agg(agg_mapping).reset_index()
+
+            # حساب سطر Grand Total
+            totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
+            for col in agg_mapping.keys():
+                aggregated_df[col] = pd.to_numeric(aggregated_df[col], errors="coerce").fillna(0)
+                totals_dict[col] = aggregated_df[col].sum()
+
+            grand_total_df = pd.DataFrame([totals_dict])
+            aggregated_df = pd.concat([aggregated_df, grand_total_df], ignore_index=True)
+
+            # تسمية الأعمدة بنفس تنسيق الصورة المطلوبة
+            rename_map = {
+                pivot_container_col: "رقم الحاوية",
+                pivot_mark_col: "Shipping mark",
+            }
+            for col in agg_mapping.keys():
+                if col in ["عدد الكارتون", "سعر البيع", "مبلغ الجمرك", "قيمة الاستحصالات"]:
+                    rename_map[col] = f"Sum of {col}"
+                else:
+                    rename_map[col] = col
+
+            aggregated_df = aggregated_df.rename(columns=rename_map)
+            display_custom_html_table(aggregated_df, is_sponsors_pivot=True)
+        else:
+            st.info("لا توجد أعمدة رقمية كافية لتكوين الجدول التجميعي.")
+    else:
+        st.info("الأعمدة المطلوبة للجدول التجميعي غير متوفرة أو البيانات فارغة.")
+
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "customs":
