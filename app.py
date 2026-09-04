@@ -247,13 +247,11 @@ def load_data():
             "الوزن", "حجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام", "سعر البيع"
         ])
     else:
-        # توحيد أسماء الأعمدة وتنظيفها قبل الدمج لتجنب اختلاف المسميات البسيطة
         standardized_dfs = []
         for d in dfs:
             d.columns = d.columns.astype(str).str.strip()
             standardized_dfs.append(d)
         
-        # دمج البيانات مع بعضها
         df = pd.concat(standardized_dfs, ignore_index=True)
 
     df.columns = df.columns.astype(str).str.strip()
@@ -646,91 +644,6 @@ if page == "dashboard":
         air_display = air_df[active_cols].reset_index(drop=True) if active_cols else air_df.reset_index(drop=True)
         display_custom_html_table(air_display)
 
-    st.markdown("---")
-    st.markdown("### 📊 الجدول التجميعي (ملخص الحاويات و Shipping mark مع إجمالي حقيقي صحيح لكل عمود)")
-
-    pivot_container_col = next((c for c in ["رقم الحاوية", "رقم الحاويات"] if c in active_view_df.columns), None)
-    pivot_mark_col = "Shipping mark" if "Shipping mark" in active_view_df.columns else None
-
-    if pivot_container_col and pivot_mark_col and not active_view_df.empty:
-        group_cols = [pivot_container_col, pivot_mark_col]
-        agg_mapping = {}
-        
-        possible_cols = {
-            "الزبون دفع": ["الزبون دفع", "Client Paid"],
-            "المكتب دفع": ["المكتب دفع", "Office Paid"],
-            "المجموع": ["المجموع"],
-            "عدد الكارتون": ["عدد الكارتون"],
-            "مبلغ الجمرك": ["مبلغ الجمرك"],
-            "قيمة الاستحصالات": ["قيمة الاستحصالات"],
-            "متبقي حقيقي": ["متبقي حقيقي"]
-        }
-
-        for target_name, candidates in possible_cols.items():
-            matched_c = next((c for c in candidates if c in active_view_df.columns), None)
-            if matched_c:
-                agg_mapping[matched_c] = "sum"
-
-        if agg_mapping:
-            clean_view_df = active_view_df[~active_view_df[pivot_container_col].astype(str).str.contains("Grand Total", case=False, na=False)].copy()
-            
-            aggregated_df = clean_view_df.groupby(group_cols, dropna=False).agg(agg_mapping).reset_index()
-
-            if "عدد الكارتون" in clean_view_df.columns:
-                container_cartons = clean_view_df.groupby(pivot_container_col)["عدد الكارتون"].sum().reset_index()
-                container_cartons = container_cartons.rename(columns={"عدد الكارتون": "مجموع الكارتون بالحاوية"})
-                aggregated_df = pd.merge(aggregated_df, container_cartons, on=pivot_container_col, how="left")
-
-            totals_dict = {pivot_container_col: "Grand Total", pivot_mark_col: ""}
-            for col in agg_mapping.keys():
-                numeric_series = pd.to_numeric(
-                    aggregated_df[col].astype(str)
-                    .str.replace("¥", "", regex=False)
-                    .str.replace("$", "", regex=False)
-                    .str.replace(",", "", regex=False)
-                    .str.strip(),
-                    errors="coerce"
-                ).fillna(0)
-                totals_dict[col] = float(numeric_series.sum())
-            
-            if "مجموع الكارتون بالحاوية" in aggregated_df.columns:
-                totals_cartons = pd.to_numeric(
-                    clean_view_df["عدد الكارتون"].astype(str)
-                    .str.replace(",", "", regex=False).str.strip(),
-                    errors="coerce"
-                ).fillna(0).sum() if "عدد الكارتون" in clean_view_df.columns else 0.0
-                totals_dict["مجموع الكارتون بالحاوية"] = float(totals_cartons)
-
-            grand_total_df = pd.DataFrame([totals_dict])
-            aggregated_df = pd.concat([aggregated_df, grand_total_df], ignore_index=True)
-
-            rename_map = {
-                pivot_container_col: "رقم الحاوية",
-                pivot_mark_col: "Shipping mark",
-            }
-            for col in agg_mapping.keys():
-                if col in ["عدد الكارتون", "مبلغ الجمرك", "قيمة الاستحصالات"]:
-                    rename_map[col] = f"Sum of {col}"
-                else:
-                    rename_map[col] = col
-
-            aggregated_df = aggregated_df.rename(columns=rename_map)
-            
-            desired_cols = ["رقم الحاوية", "Shipping mark", "الزبون دفع", "المكتب دفع", "المجموع", 
-                            "Sum of عدد الكارتون", "مجموع الكارتون بالحاوية", "Sum of مبلغ الجمرك", 
-                            "Sum of قيمة الاستحصالات", "Sum of متبقي حقيقي"]
-            if "متبقي حقيقي" in aggregated_df.columns and "Sum of متبقي حقيقي" not in aggregated_df.columns:
-                aggregated_df = aggregated_df.rename(columns={"متبقي حقيقي": "Sum of متبقي حقيقي"})
-            
-            existing_cols = [c for c in desired_cols if c in aggregated_df.columns]
-            aggregated_df = aggregated_df[existing_cols].reset_index(drop=True)
-
-            display_custom_html_table(aggregated_df, is_sponsors_pivot=True)
-        else:
-            st.info("لا توجد أعمدة رقمية كافية لتكوين الجدول التجميعي.")
-    else:
-        st.info("الأعمدة المطلوبة للجدول التجميعي غير متوفرة أو البيانات فارغة.")
-
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "customs":
@@ -1081,7 +994,7 @@ elif page == "charts":
                 volume_data = chart_clean_df.groupby(container_col)["حجم"].sum()
                 st.bar_chart(volume_data)
 
-    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 50px;'>`</div>", unsafe_allow_html=True)
 
 elif page == "data_entry":
     st.title("📝 إدخال وتعديل البيانات محلياً")
