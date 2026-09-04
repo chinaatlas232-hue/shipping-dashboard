@@ -29,15 +29,15 @@ st.markdown(
         color: #ffffff !important;
         text-align: center !important;
         font-weight: bold !important;
-        padding: 8px 4px !important;
+        padding: 10px 6px !important;
         border: 1px solid #cbd5e1 !important;
-        font-size: 12px !important;
+        font-size: 16px !important;
     }
     .custom-html-table td {
         text-align: center !important;
-        padding: 6px 4px !important;
+        padding: 8px 6px !important;
         border: 1px solid #cbd5e1 !important;
-        font-size: 11px !important;
+        font-size: 16px !important;
         color: #1e293b !important;
         vertical-align: middle !important;
     }
@@ -181,7 +181,7 @@ st.markdown(
 
         .custom-html-table {
             width: 100% !important;
-            font-size: 9px !important;
+            font-size: 11px !important;
             border-collapse: collapse !important;
             margin: 0 !important;
         }
@@ -201,11 +201,12 @@ st.markdown(
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             padding: 4px !important;
+            font-size: 11px !important;
         }
 
         .custom-html-table td {
             padding: 3px 2px !important;
-            font-size: 9px !important;
+            font-size: 11px !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
@@ -385,7 +386,6 @@ def render_download_buttons(data_to_download):
         )
     
     with btn_col2:
-        # استخدام مكون آمن ومباشر لتنفيذ الطباعة بدون أخطاء نطاق الـ iframe
         components.html("""
             <div style="display: flex; justify-content: center; align-items: center; height: 100%; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
                 <button onclick="window.parent.print();" style="
