@@ -394,6 +394,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         
     df_with_seq = df_to_render.copy()
     
+    # فحص عام لصف الإجمالي لضمان عدم وجود تكرار عشوائي
     has_grand_total = False
     if not df_with_seq.empty:
         first_col_name = df_with_seq.columns[0]
@@ -416,6 +417,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         i = 0
         while i < len(col_values):
             val = col_values[i]
+            # تحقق آمن لصف الإجمالي لتجنب دمج صفوف الإجمالي بالخطأ
             if "grand total" in val.lower() or "الإجمالي" in val.lower() or val == "":
                 spans[i] = 1
                 i += 1
@@ -440,7 +442,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         sponsor_val = str(row.get("الكفيل", "")) if "الكفيل" in df_with_seq.columns else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
 
-        # التحقق الدقيق والآمن من صف الإجمالي دون أخطاء في الـ types
         is_row_total = False
         for val in row.values:
             if val is not None and str(val).strip().lower() in ["grand total", "grandtotal", "الإجمالي الكلي"]:
@@ -1055,7 +1056,7 @@ elif page == "charts":
                 volume_data = chart_clean_df.groupby(container_col)["حجم"].sum()
                 st.bar_chart(volume_data)
 
-    st.markdown("<div style='margin-bottom: 50px;'>`</div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "data_entry":
     st.title("📝 إدخال وتعديل البيانات محلياً")
