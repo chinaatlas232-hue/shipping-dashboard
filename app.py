@@ -428,7 +428,7 @@ def render_download_buttons(data_to_download):
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
             data_to_download.to_excel(writer, index=False, sheet_name='Filtered_Data')
         st.download_button(
-            label="📊 Download as Excel",
+            label="Download as Excel 📊",
             data=buffer.getvalue(),
             file_name="filtered_details.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -456,7 +456,7 @@ def render_download_buttons(data_to_download):
                     height: 42px;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
                 ">
-                    🖨️ طباعة الصفحة الحالية
+                    طباعة الصفحة الحالية 🖨️
                 </button>
             </div>
         """, height=50)
