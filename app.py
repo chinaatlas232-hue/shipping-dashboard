@@ -601,9 +601,10 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             with col_sel:
                 selected_expand_container = st.selectbox("اختر رقم الحاوية لعرض تفاصيلها المباشرة:", ["اختر حاوية..."] + unique_containers, key=f"exp_container_{id(df_with_seq)}")
             with col_btn_link:
+                # 🛠️ تم تعديل الرابط هنا ليوجه الم用戶 مباشرة إلى صفحة التتبع البحري على المنصة
                 st.markdown("""
                     <div style="margin-top: 28px;">
-                        <a href="https://i.saas.freightower.com/#/user/settings/info" target="_blank" style="
+                        <a href="https://i.saas.freightower.com/#/tracking/ocean" target="_blank" style="
                             background-color: #2563eb;
                             color: white;
                             padding: 8px 14px;
