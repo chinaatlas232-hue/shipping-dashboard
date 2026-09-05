@@ -1066,4 +1066,3 @@ elif page == "data_entry":
         st.session_state["df_updated"] = edited_df
         st.success("تم تحديث البيانات بنجاح في الجلسة الحالية!")
         st.rerun()
-
