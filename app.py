@@ -588,10 +588,10 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             else:
                 formatted_val = str(val)
 
-            # تحويل رقم الحاوية إلى رابط بحث تفاعلي صحيح ومباشر
+            # تحويل رقم الحاوية إلى رابط بحث تفاعلي عبر منصة VesselFinder المجانية كبديل لـ MarineTraffic
             if col_str == container_col_name and not is_row_total and val_str and val_str != "-":
-                tracking_url = f"https://www.marinetraffic.com/en/ais/index/containers/all/search:{val_str}"
-                formatted_val = f'<a href="{tracking_url}" target="_blank" style="color: #0284c7; text-decoration: underline; font-weight: bold;" title="انقر لتتبع الحاوية">{val_str} 🌍</a>'
+                tracking_url = f"https://www.vesselfinder.com/vessels?name={val_str}"
+                formatted_val = f'<a href="{tracking_url}" target="_blank" style="color: #0284c7; text-decoration: underline; font-weight: bold;" title="انقر لتتبع الحاوية على الخريطة">{val_str} 🌍</a>'
 
             html += f'<td{rowspan_attr}{cell_style}>{formatted_val}</td>'
         html += '</tr>'
