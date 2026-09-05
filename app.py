@@ -461,6 +461,18 @@ def render_download_buttons(data_to_download):
         """, height=50)
     st.markdown('</div>', unsafe_allow_html=True)
 
+# ---------------------------------------------------------
+# دالة تتبع الأكواد المتكررة في النافذة الحالية
+# ---------------------------------------------------------
+def get_duplicated_codes_set(df_to_check):
+    c_key = next((c for c in ["code", "الكود", "كود"] if c in df_to_check.columns), None)
+    if not c_key or df_to_check.empty:
+        return set()
+    cleaned_codes = df_to_check[c_key].astype(str).str.strip()
+    counts = cleaned_codes.value_counts()
+    duplicates = counts[counts > 1].index.tolist()
+    return set(duplicates)
+
 def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_report=False):
     if df_to_render.empty:
         st.info("لا توجد بيانات للعرض.")
@@ -469,7 +481,9 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     df_with_seq = df_to_render.reset_index(drop=True).copy()
     df_with_seq = remove_existing_totals(df_with_seq)
     
-    container_col_name = "رقم الحاوية"
+    # استخراج الأكواد المتكررة الحالية
+    code_field_name = next((c for c in ["code", "الكود", "كود"] if c in df_with_seq.columns), None)
+    duplicated_codes_set = get_duplicated_codes_set(df_with_seq) if code_field_name else set()
 
     has_grand_total = False
     if not df_with_seq.empty:
@@ -499,6 +513,13 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         sponsor_val = str(row.get(sponsor_col_key, "")) if sponsor_col_key else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
 
+        # التحقق مما إذا كان كود السطر الحالي مكرراً
+        is_code_duplicated = False
+        if code_field_name:
+            row_code_val = str(row.get(code_field_name, "")).strip()
+            if row_code_val in duplicated_codes_set:
+                is_code_duplicated = True
+
         is_row_total = False
         for val in row.values:
             if val is not None:
@@ -524,21 +545,25 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 except (ValueError, TypeError):
                     pass
 
-                if is_sponsors_pivot:
-                    cell_style = ' style="background-color: #fce7f3 !important; color: #831843 !important; font-weight: bold;"'
-                    if col_str in df_with_seq.columns[:2]:
-                        cell_style = ' style="background-color: #fed7aa !important; color: #7c2d12 !important; font-weight: bold;"'
+                # الأولوية العليا لتلوين الأكواد المتكررة باللون الأصفر الفاتح المطلق (#fef08a)
+                if is_code_duplicated:
+                    cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
                 else:
-                    if numeric_val is not None and numeric_val > 0.0 and col_str != "التسلسل":
-                        cell_style = ' style="background-color: #fbcfe8 !important; color: #831843 !important; font-weight: bold;"'
+                    if is_sponsors_pivot:
+                        cell_style = ' style="background-color: #fce7f3 !important; color: #831843 !important; font-weight: bold;"'
+                        if col_str in df_with_seq.columns[:2]:
+                            cell_style = ' style="background-color: #fed7aa !important; color: #7c2d12 !important; font-weight: bold;"'
                     else:
-                        if is_not_arrived:
-                            cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important;"'
-                            if col_str in ["رقم الحاوية", sponsor_col_key]:
-                                cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
+                        if numeric_val is not None and numeric_val > 0.0 and col_str != "التسلسل":
+                            cell_style = ' style="background-color: #fbcfe8 !important; color: #831843 !important; font-weight: bold;"'
                         else:
-                            if col_str in ["رقم الحاوية", sponsor_col_key]:
-                                cell_style = ' style="background-color: #bbf7d0 !important; color: #065f46 !important; font-weight: bold;"'
+                            if is_not_arrived:
+                                cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important;"'
+                                if col_str in ["رقم الحاوية", sponsor_col_key]:
+                                    cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
+                            else:
+                                if col_str in ["رقم الحاوية", sponsor_col_key]:
+                                    cell_style = ' style="background-color: #bbf7d0 !important; color: #065f46 !important; font-weight: bold;"'
 
             formatted_val = val
             if col_str == "التسلسل":
