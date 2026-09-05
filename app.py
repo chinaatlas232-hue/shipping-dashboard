@@ -640,7 +640,6 @@ if page == "dashboard":
     total_sum_col = next((c for c in ["المجموع", "Total"] if c in active_view_df.columns), None)
     total_amount_all = active_view_df[total_sum_col].sum() if total_sum_col else 0
 
-    # تم تعديل درجات الألوان هنا لتصبح متوسطة الشدّة ومتناسقة
     row1_c1, row1_c2, row1_c3 = st.columns(3)
     with row1_c1:
         st.markdown(f'<div class="metric-card" style="background-color: #3b82f6;"><div class="metric-title">🚢 عدد الحاويات</div><div class="metric-value">{total_containers_count:,}</div></div>', unsafe_allow_html=True)
@@ -961,7 +960,7 @@ elif page == "collections":
         
         total_c = clean_coll_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in clean_coll_df.columns else 0
         total_coll = clean_coll_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in clean_coll_df.columns else 0
-        total_rem = clean_coll_df["متبقي حقيقي" in clean_coll_df.columns else 0
+        total_rem = clean_coll_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in clean_coll_df.columns else 0
 
         mc1, mc2, mc3 = st.columns(3)
         with mc1:
