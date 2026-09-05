@@ -125,7 +125,6 @@ st.markdown(
         border-radius: 4px !important;
     }
 
-    /* تحسينات طباعة المستندات بشكل دقيق ومنع تداخل النصوص */
     @media print {
         @page {
             size: A4 landscape;
@@ -202,7 +201,6 @@ st.markdown(
             break-inside: avoid !important;
         }
 
-        /* تعديل هوامش وحجم خلايا رؤوس الجداول لمنع التداخل تماماً */
         .custom-html-table th {
             background-color: #0b2239 !important;
             color: #ffffff !important;
@@ -244,33 +242,29 @@ def clean_numeric(series):
 def load_data():
     def fetch_sheet(sheet_id):
         try:
+            # رابط التصدير المباشر لملف Google Sheets باستخدام المعرف الجديد
             sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
             return pd.read_csv(sheet_url)
-        except Exception:
+        except Exception as e:
+            st.error(f"خطأ في جلب البيانات من Google Sheets: {e}")
             return None
 
-    df_marine = fetch_sheet("1amOmnZgzn2bhWTgje_9W2sUK6V-OygWk")
-    df_air = fetch_sheet("1L97mB_YenJN-vCGfrcL-uLRV9i3haN-zd0gr1cbn-ZI")
+    # استخدام معرف الشيت الجديد الذي أرسلته
+    sheet_id = "1migl0qhyatX_Kf7LnpDhVVMlzdqAP4ID"
+    df = fetch_sheet(sheet_id)
 
-    dfs = [d for d in [df_marine, df_air] if d is not None and not d.empty]
-    
-    if not dfs:
+    if df is None or df.empty:
         df = pd.DataFrame(columns=[
             "No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن",
             "المكتب دفع", "الزبون دفع", "المجموع", "عدد الكارتون",
             "الوزن", "حجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام", "سعر البيع"
         ])
     else:
-        standardized_dfs = []
-        for d in dfs:
-            d.columns = d.columns.astype(str).str.strip()
-            for col in d.columns:
-                mask_total = d[col].astype(str).str.contains("Grand Total|GrandTotal|الإجمالي الكلي", case=False, na=False)
-                if mask_total.any():
-                    d = d[~mask_total]
-            standardized_dfs.append(d)
-        
-        df = pd.concat(standardized_dfs, ignore_index=True)
+        df.columns = df.columns.astype(str).str.strip()
+        for col in df.columns:
+            mask_total = df[col].astype(str).str.contains("Grand Total|GrandTotal|الإجمالي الكلي", case=False, na=False)
+            if mask_total.any():
+                df = df[~mask_total]
 
     df.columns = df.columns.astype(str).str.strip()
 
@@ -382,7 +376,7 @@ selected_page_label = st.sidebar.radio("📌 القائمة الرئيسية", l
 page = page_options[selected_page_label]
 
 st.sidebar.markdown("---")
-st.sidebar.info("متصل بملفات Google Sheets بنجاح ✔️")
+st.sidebar.info("متصل بملف Google Sheets بنجاح ✔️")
 
 def render_download_buttons(data_to_download):
     st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
