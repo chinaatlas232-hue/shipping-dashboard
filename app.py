@@ -1120,7 +1120,7 @@ elif page == "tracking":
     else:
         st.warning("⚠️ لم يتم العثور على بيانات أو أن معرف شيت التتبع (Sheet ID) غير مُدخل بشكل صحيح. يرجى التأكد من صلاحيات المشاركة لملف جوجل شيت.")
 
-    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=`50px;'></div>`, unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
