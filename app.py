@@ -4,6 +4,7 @@ import pandas as pd
 import requests
 import streamlit as st
 import streamlit.components.v1 as components
+import plotly.express as px
 
 # محاولة استيراد مكتبات الخريطة التفاعلية Folium
 try:
@@ -461,9 +462,6 @@ def render_download_buttons(data_to_download):
         """, height=50)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------------------------------------------------------
-# دالة تتبع الأكواد المتكررة في النافذة الحالية
-# ---------------------------------------------------------
 def get_duplicated_codes_set(df_to_check):
     c_key = next((c for c in ["code", "الكود", "كود"] if c in df_to_check.columns), None)
     if not c_key or df_to_check.empty:
@@ -481,7 +479,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     df_with_seq = df_to_render.reset_index(drop=True).copy()
     df_with_seq = remove_existing_totals(df_with_seq)
     
-    # استخراج الأكواد المتكررة الحالية
     code_field_name = next((c for c in ["code", "الكود", "كود"] if c in df_with_seq.columns), None)
     duplicated_codes_set = get_duplicated_codes_set(df_with_seq) if code_field_name else set()
 
@@ -513,7 +510,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         sponsor_val = str(row.get(sponsor_col_key, "")) if sponsor_col_key else ""
         is_not_arrived = "لم تصل بعد" in sponsor_val
 
-        # التحقق مما إذا كان كود السطر الحالي مكرراً
         is_code_duplicated = False
         if code_field_name:
             row_code_val = str(row.get(code_field_name, "")).strip()
@@ -545,7 +541,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 except (ValueError, TypeError):
                     pass
 
-                # الأولوية العليا لتلوين الأكواد المتكررة باللون الأصفر الفاتح المطلق (#fef08a)
                 if is_code_duplicated:
                     cell_style = ' style="background-color: #fef08a !important; color: #713f12 !important; font-weight: bold;"'
                 else:
@@ -1022,7 +1017,7 @@ elif page == "collections":
         agg_df = agg_df.rename(columns={
             container_field: "رقم الحاوية",
             "مبلغ الجمرك": "Sum of مبلغ الجمرك",
-            "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
+            "قيمة الاستحصالات": "Sum of الاستحصالات",
             "متبقي حقيقي": "Sum of متبقي حقيقي"
         }).reset_index(drop=True)
 
@@ -1053,7 +1048,76 @@ elif page == "tracking":
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
     st.markdown("---")
-    st.info("تم إفراغ قسم الرسوم البيانية بناءً على طلبك. يمكنك الآن إعادة تصميم أو إضافة المؤشرات والرسوم التي ترغب بها هنا لاحقاً.")
+    st.markdown("### رسم بياني: عدد الحاويات والطرود حسب المิناء (من شيت التتبع)")
+
+    if df_tracking is not None and not df_tracking.empty:
+        # البحث عن اسم عمود الميناء وعمود الطرود وعمود الحاويات في شيت التتبع
+        tracking_cols = df_tracking.columns.tolist()
+        port_col = next((c for c in tracking_cols if any(k in str(c).lower() for k in ["ميناء", "port"])), None)
+        packages_col = next((c for c in tracking_cols if any(k in str(c).lower() for k in ["الطرود", "طرد", "carton", "karto", "package"])), None)
+        container_track_col = next((c for c in tracking_cols if any(k in str(c).lower() for k in ["حاوية", "container"])), None)
+
+        if port_col:
+            # تجهيز البيانات للتجميع حسب الميناء
+            chart_df = df_tracking.copy()
+            chart_df[port_col] = chart_df[port_col].fillna("غير محدد").astype(str).str.strip()
+            
+            # تنظيف وتحويل عمود الطرود إلى أرقام إذا وجد
+            if packages_col:
+                chart_df[packages_col] = pd.to_numeric(
+                    chart_df[packages_col].astype(str).str.replace(",", "", regex=False).str.strip(), 
+                    errors="coerce"
+                ).fillna(0)
+            else:
+                chart_df["الطرود_مفترض"] = 0
+                packages_col = "الطرود_مفترض"
+
+            # التجميع حسب الميناء: حساب مجموع الطرود وعدد الحاويات الفريدة
+            agg_dict = {packages_col: "sum"}
+            if container_track_col:
+                agg_dict[container_track_col] = pd.Series.nunique
+            else:
+                chart_df["حاوية_مفترض"] = 1
+                container_track_col = "حاوية_مفترض"
+                agg_dict[container_track_col] = "count"
+
+            grouped_chart = chart_df.groupby(port_col).agg(agg_dict).reset_index()
+            grouped_chart.columns = ["الميناء", "Sum of الطرود", "Count of الحاويات"]
+
+            # عرض جدول ملخص البيانات بجانب الرسم البياني إن أمكن
+            st.markdown("#### جدول الملخص:")
+            display_custom_html_table(grouped_chart)
+
+            # رسم المخطط البياني باستخدام Plotly مطابقة للشكل المطلوب
+            fig = px.bar(
+                grouped_chart,
+                x="الميناء",
+                y="Sum of الطرود",
+                text="Count of الحاويات",
+                title="مقارنة الحاويات والطرود حسب الميناء",
+                color_discrete_sequence=["#a3e635"] # لون أخضر فستقي مشابه للصورة
+            )
+            
+            fig.update_traces(
+                texttemplate='<b>%{text}</b>', 
+                textposition='outside'
+            )
+            
+            fig.update_layout(
+                xaxis_title="الميناء",
+                yaxis_title="Sum of الطرود",
+                template="plotly_dark",
+                font=dict(family="Segoe UI", size=14),
+                uniformtext_minsize=8, 
+                uniformtext_mode='hide'
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("⚠️ لم يتم العثور على عمود يمثل (الميناء) في شيت التتبع. يرجى التأكد من أسماء الأعمدة في ملف Google Sheets.")
+    else:
+    st.warning("⚠️ لا توجد بيانات متاحة في شيت التتبع لعرض الرسوم البيانية.")
+
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "data_entry":
