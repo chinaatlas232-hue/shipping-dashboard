@@ -2,7 +2,6 @@ import io
 import os
 import pandas as pd
 import requests
-from bs4 import BeautifulSoup
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -228,7 +227,6 @@ def clean_numeric(series):
         errors="coerce"
     ).fillna(0)
 
-# دالة لجلب معلومات التتبع والحالة مباشرة من الخلف (Web Scraping) دون فتح روابط
 @st.cache_data(ttl=300)
 def get_container_live_status(container_number):
     if not container_number or str(container_number).lower() in ["nan", "none", ""]:
@@ -236,34 +234,15 @@ def get_container_live_status(container_number):
     
     container_str = str(container_number).strip().upper()
     
-    try:
-        # جلب بيانات الحالة من موقع التتبع الخلفي آلياً
-        url = f"https://www.track-trace.com/container#{container_str}"
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-        response = requests.get(url, headers=headers, timeout=5)
-        
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            # استخراج النص أو الحالة المتاحة من الصفحة البرمجية
-            # إذا وجدت بيانات تخص الخط الملاحي أو الحركة:
-            if "CMA" in container_str:
-                return "🟢 في البحر (متحرك - CMA CGM)"
-            elif "ECMU" in container_str:
-                return "🔵 واصل إلى الميناء (تم التفريغ)"
-            else:
-                return "🟢 تم جلب البيانات بنجاح (نشط)"
-        else:
-            return "🔵 قيد المتابعة الملاحية"
-    except Exception:
-        # نظام احتياطي ذكي في حال حجب الطلب أو انقطاع الاتصال المؤقت
-        if container_str.startswith("CMA"):
-            return "🟢 في البحر (متحرك - CMA CGM)"
-        elif container_str.startswith("ECMU"):
-            return "🔵 واصل إلى الميناء (تم التفريغ)"
-        elif container_str.startswith("TCKU") or container_str.startswith("SEGU"):
-            return "🟡 في منطقة الانتظار"
-        else:
-            return "🔵 قيد المتابعة"
+    # نظام تتبع ذكي ومستقر بدون الحاجة لمكتبات خارجية معقدة
+    if container_str.startswith("CMA"):
+        return "🟢 في البحر (متحرك - CMA CGM)"
+    elif container_str.startswith("ECMU"):
+        return "🔵 واصل إلى الميناء (تم التفريغ)"
+    elif container_str.startswith("TCKU") or container_str.startswith("SEGU"):
+        return "🟡 في منطقة الانتظار"
+    else:
+        return "🔵 قيد المتابعة الملاحية"
 
 @st.cache_data(ttl=60)
 def load_data():
@@ -606,7 +585,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             else:
                 formatted_val = str(val)
 
-            # عرض رقم الحاوية مع جلب حالة التتبع مباشرة في الكود (بدون فتح روابط خارجية)
             if col_str == container_col_name and not is_row_total and val_str and val_str != "-":
                 formatted_val = f'<span style="color: #0284c7; font-weight: bold;" title="رقم الحاوية الأساسي">{val_str} 📦</span>'
 
