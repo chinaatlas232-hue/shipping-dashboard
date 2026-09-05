@@ -236,11 +236,8 @@ def load_data():
             return None
 
     # الروابط الثلاثة المعتمدة
-    # 1. الشحن البحري
     df_marine = fetch_sheet("1amOmnZgzn2bhWTgje_9W2sUK6V-OygWk")
-    # 2. الشحن الجوي
     df_air = fetch_sheet("1L97mB_YenJN-vCGfrcL-uLRV9i3haN-zd0gr1cbn-ZI")
-    # 3. شيت تتبع الشحنات الجديد (إذا أردت تغيير المعرف مستقبلاً، يمكن وضعه هنا)
     df_tracking = fetch_sheet("1migl0qhyatX_Kf7LnpDhVVMlzdqAP4ID")
 
     dfs = [d for d in [df_marine, df_air] if d is not None and not d.empty]
@@ -264,6 +261,9 @@ def load_data():
         df = pd.concat(standardized_dfs, ignore_index=True)
 
     df.columns = df.columns.astype(str).str.strip()
+    
+    if df_tracking is not None and not df_tracking.empty:
+        df_tracking.columns = df_tracking.columns.astype(str).str.strip()
 
     for col in df.columns:
         if any(kw in str(col).lower() for kw in ["تاريخ", "date"]):
@@ -435,7 +435,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     if not is_sponsors_pivot and not has_grand_total:
         seq_list = []
         for _, row in df_with_seq.iterrows():
-            is_total = any(str(val).strip().lower() in ["grand total", "grandtotal", "الإجمالي الكلي"] for val in row.values)
+            is_total = any(str(val).strip().lower() in ["grand total", "grandtotal", "الإجمالي الكلي"] for val in row.values if val is not None)
             if is_total:
                 seq_list.append("")
             else:
@@ -447,7 +447,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     container_col_name = "رقم الحاوية"
     spans = {}
     if container_col_name in df_with_seq.columns:
-        col_values = df_with_seq[container_col_name].astype(str).tolist()
+        col_values = df_with_seq[container_col_name].fillna("").astype(str).tolist()
         i = 0
         while i < len(col_values):
             val = col_values[i]
