@@ -478,10 +478,10 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         if unique_containers:
             col_sel, col_btn_link = st.columns([3, 1])
             with col_sel:
-                selected_expand_container = st.selectbox("اختر رقم الحاوية لعرض تفاصيلها المباشرة:", ["اختر حاوية..."] + unique_containers, key=f"exp_container_{id(df_with_seq)}")
+                selected_expand_container = st.selectbox("اختر رقم الحاوية لعرض تفاصيلها المباشرة:", ["اختر حاوية..."] + unique_containers, key=f"exp_container_{id(df_with_seq)}", label_visibility="collapsed")
             with col_btn_link:
                 st.markdown("""
-                    <div style="margin-top: 28px;">
+                    <div style="margin-top: 0px;">
                         <a href="https://i.saas.freightower.com/#/tracking/ocean" target="_blank" style="
                             background-color: #2563eb;
                             color: white;
@@ -1110,7 +1110,6 @@ elif page == "tracking":
     st.markdown("### 📋 بيانات ومتابعة الشحنات المرفوعة على جوجل شيت")
 
     if df_tracking is not None and not df_tracking.empty:
-        # إزالة عمود التتبع من عرض شيت التتبع أيضاً إذا وجد لتوحيد الواجهة
         if "التتبع العلمي المباشر" in df_tracking.columns:
             df_tracking_clean = df_tracking.drop(columns=["التتبع العلمي المباشر"])
         else:
@@ -1121,7 +1120,7 @@ elif page == "tracking":
     else:
         st.warning("⚠️ لم يتم العثور على بيانات أو أن معرف شيت التتبع (Sheet ID) غير مُدخل بشكل صحيح. يرجى التأكد من صلاحيات المشاركة لملف جوجل شيت.")
 
-    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=`50px;'></div>`, unsafe_allow_html=True)
 
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
