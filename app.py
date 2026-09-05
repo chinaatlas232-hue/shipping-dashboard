@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
-# 1. إعداد الصفحة والتنسيقات
+# 1. إعداد الصفحة والتنسیقات
 st.set_page_config(
     page_title="شركة أطلس المحيط", page_icon="📦", layout="wide"
 )
@@ -31,18 +31,15 @@ st.markdown(
         font-weight: bold !important;
         padding: 10px 6px !important;
         border: 1px solid #cbd5e1 !important;
-        font-size: 15px !important;
-        word-break: normal !important;
-        white-space: nowrap !important;
+        font-size: 16px !important;
     }
     .custom-html-table td {
         text-align: center !important;
         padding: 8px 6px !important;
         border: 1px solid #cbd5e1 !important;
-        font-size: 15px !important;
+        font-size: 16px !important;
         color: #1e293b !important;
         vertical-align: middle !important;
-        word-break: break-word !important;
     }
 
     .metric-card {
@@ -128,7 +125,7 @@ st.markdown(
     @media print {
         @page {
             size: A4 landscape;
-            margin: 8mm !important;
+            margin: 5mm !important;
         }
         
         html, body {
@@ -137,7 +134,6 @@ st.markdown(
             padding: 0 !important;
             background-color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
         }
 
         [data-testid="stSidebar"],
@@ -167,14 +163,14 @@ st.markdown(
             print-color-adjust: exact !important;
             box-shadow: none !important;
             border: 1px solid #cbd5e1 !important;
-            margin-bottom: 8px !important;
+            margin-bottom: 10px !important;
         }
 
         h1 {
             margin-top: 0 !important;
-            margin-bottom: 8px !important;
-            padding: 6px 10px !important;
-            font-size: 13px !important;
+            margin-bottom: 10px !important;
+            padding: 8px 12px !important;
+            font-size: 14px !important;
             background-color: #1e293b !important;
             color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
@@ -185,15 +181,13 @@ st.markdown(
 
         .custom-html-table {
             width: 100% !important;
-            font-size: 9px !important;
+            font-size: 11px !important;
             border-collapse: collapse !important;
             margin: 0 !important;
-            table-layout: auto !important;
-            direction: rtl !important;
         }
 
         thead {
-            display: table-header-group !important;
+            display: table-row-group !important;
         }
 
         tr {
@@ -206,21 +200,15 @@ st.markdown(
             color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            padding: 5px 3px !important;
-            font-size: 9.5px !important;
-            white-space: nowrap !important;
-            border: 1px solid #64748b !important;
-            line-height: 1.2 !important;
+            padding: 4px !important;
+            font-size: 11px !important;
         }
 
         .custom-html-table td {
-            padding: 4px 3px !important;
-            font-size: 9px !important;
+            padding: 3px 2px !important;
+            font-size: 11px !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            border: 1px solid #cbd5e1 !important;
-            word-break: break-word !important;
-            line-height: 1.2 !important;
         }
     }
     </style>
@@ -242,29 +230,33 @@ def clean_numeric(series):
 def load_data():
     def fetch_sheet(sheet_id):
         try:
-            # رابط التصدير المباشر لملف Google Sheets باستخدام المعرف الجديد
             sheet_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
             return pd.read_csv(sheet_url)
-        except Exception as e:
-            st.error(f"خطأ في جلب البيانات من Google Sheets: {e}")
+        except Exception:
             return None
 
-    # استخدام معرف الشيت الجديد الذي أرسلته
-    sheet_id = "1migl0qhyatX_Kf7LnpDhVVMlzdqAP4ID"
-    df = fetch_sheet(sheet_id)
+    df_marine = fetch_sheet("1amOmnZgzn2bhWTgje_9W2sUK6V-OygWk")
+    df_air = fetch_sheet("1L97mB_YenJN-vCGfrcL-uLRV9i3haN-zd0gr1cbn-ZI")
 
-    if df is None or df.empty:
+    dfs = [d for d in [df_marine, df_air] if d is not None and not d.empty]
+    
+    if not dfs:
         df = pd.DataFrame(columns=[
             "No", "code", "الكفيل", "Shipping mark", "رقم دخول المخزن",
             "المكتب دفع", "الزبون دفع", "المجموع", "عدد الكارتون",
             "الوزن", "حجم", "رقم الحاوية", "مبلغ الجمرك", "قيمة الاستحصالات", "عدد الايام", "سعر البيع"
         ])
     else:
-        df.columns = df.columns.astype(str).str.strip()
-        for col in df.columns:
-            mask_total = df[col].astype(str).str.contains("Grand Total|GrandTotal|الإجمالي الكلي", case=False, na=False)
-            if mask_total.any():
-                df = df[~mask_total]
+        standardized_dfs = []
+        for d in dfs:
+            d.columns = d.columns.astype(str).str.strip()
+            for col in d.columns:
+                mask_total = d[col].astype(str).str.contains("Grand Total|GrandTotal|الإجمالي الكلي", case=False, na=False)
+                if mask_total.any():
+                    d = d[~mask_total]
+            standardized_dfs.append(d)
+        
+        df = pd.concat(standardized_dfs, ignore_index=True)
 
     df.columns = df.columns.astype(str).str.strip()
 
@@ -376,7 +368,7 @@ selected_page_label = st.sidebar.radio("📌 القائمة الرئيسية", l
 page = page_options[selected_page_label]
 
 st.sidebar.markdown("---")
-st.sidebar.info("متصل بملف Google Sheets بنجاح ✔️")
+st.sidebar.info("متصل بملفات Google Sheets بنجاح ✔️")
 
 def render_download_buttons(data_to_download):
     st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
@@ -468,7 +460,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 spans[k] = 0
             i += count
 
-    html = '<div style="width: 100%; overflow-x: auto;"><table class="custom-html-table"><thead><tr>'
+    html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
     for col in df_with_seq.columns:
         html += f'<th>{col}</th>'
     html += '</tr></thead><tbody>'
@@ -548,6 +540,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             elif numeric_val is not None:
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
                 if is_currency_col or is_sponsors_pivot:
+                    # تعديل الأعمدة المطلوبة لتكون أرقاماً بحتة بدون أي عملات أو رموز
                     if col_str in ["المجموع", "الزبون دفع", "المكتب دفع"]:
                         formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}" if numeric_val.is_integer() else f"{numeric_val:,.2f}"
                     elif "¥" in col_str or "يوان" in col_str or "¥" in val_str or (is_sponsors_pivot and "الزبون دفع" in col_str):
@@ -1048,3 +1041,5 @@ elif page == "data_entry":
     if st.button("💾 حفظ التغييرات وتحديث العرض"):
         st.session_state["df_updated"] = edited_df
         st.success("تم تحديث البيانات بنجاح في الجلسة الحالية!")
+        st.rerun()
+
