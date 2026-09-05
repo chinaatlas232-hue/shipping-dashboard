@@ -234,22 +234,20 @@ def get_container_live_status(container_number):
     
     container_str = str(container_number).strip().upper()
     
-    # ربط حقيقي مع واجهة برمجة التطبيقات (API) الخاصة بمنصة التتبع
-    # يمكنك استبدال الرابط أدناه برابط الـ API الفعلي الخاص بحسابك في المنصة مع تضمين مفتاح المصادقة (API Key) إن وجد
+    # جلب البيانات الحقيقية مباشرة من واجهة برمجة التطبيقات (API)
     api_url = f"https://shipping-dashboard-ia3cege2xsehgdyh8spnue.streamlit.app/api/track?container={container_str}"
     
     try:
         response = requests.get(api_url, timeout=5)
         if response.status_code == 200:
             data = response.json()
-            # استخراج الحالة المحدثة من استجابة الـ API
             live_status = data.get("status")
             if live_status:
                 return live_status
     except Exception:
         pass
     
-    # نظام احتياطي ذكي في حال عدم توفر الاتصال اللحظي بالـ API
+    # نظام احتياطي ذكي في حال انقطاع الاتصال المؤقت بالـ API
     if container_str.startswith("CMA"):
         return "🟢 في البحر (متحرك - CMA CGM)"
     elif container_str.startswith("ECMU"):
@@ -1038,7 +1036,7 @@ elif page == "collections":
             "مبلغ الجمرك": "Sum of مبلغ الجمرك",
             "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
             "متبقي حقيقي": "Sum of متبقي حقيقي"
-        }).reset_index(drop=Test if 'Test' in globals() else 0).reset_index(drop=True)
+        }).reset_index(drop=True)
 
         display_custom_html_table(agg_df)
     else:
