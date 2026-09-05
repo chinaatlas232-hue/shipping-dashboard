@@ -544,7 +544,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             if col_str == "التسلسل":
                 formatted_val = val if val != "" else "-"
             elif col_str == "التتبع العلمي المباشر":
-                # تصميم شريط التقدم المرئي المربوط بالمنصة وزر تفاصيل الخريطة
                 formatted_val = f"""
                 <div style="display: flex; flex-direction: column; gap: 4px; width: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: right;">
                     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: bold; color: #0f172a;">
@@ -582,10 +581,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             else:
                 formatted_val = str(val)
 
-            if col_str == "التتبع العلمي المباشر":
-                html += f'<td{cell_style}>{formatted_val}</td>'
-            else:
-                html += f'<td{cell_style}>{formatted_val}</td>'
+            html += f'<td{cell_style}>{formatted_val}</td>'
         html += '</tr>'
     html += '</tbody></table></div>'
     
@@ -596,7 +592,27 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         unique_containers = [c for c in df_with_seq[container_col_name].dropna().astype(str).unique() if c and c.lower() != "nan" and "grand total" not in c.lower()]
         
         if unique_containers:
-            selected_expand_container = st.selectbox("اختر رقم الحاوية لعرض تفاصيلها المباشرة:", ["اختر حاوية..."] + unique_containers, key=f"exp_container_{id(df_with_seq)}")
+            col_sel, col_btn_link = st.columns([3, 1])
+            with col_sel:
+                selected_expand_container = st.selectbox("اختر رقم الحاوية لعرض تفاصيلها المباشرة:", ["اختر حاوية..."] + unique_containers, key=f"exp_container_{id(df_with_seq)}")
+            with col_btn_link:
+                st.markdown("""
+                    <div style="margin-top: 28px;">
+                        <a href="https://i.saas.freightower.com/#/user/settings/info" target="_blank" style="
+                            background-color: #2563eb;
+                            color: white;
+                            padding: 8px 14px;
+                            border-radius: 6px;
+                            text-decoration: none;
+                            font-weight: bold;
+                            font-size: 14px;
+                            display: inline-block;
+                            text-align: center;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        ">🔗 تصفح موقع الحاوية</a>
+                    </div>
+                """, unsafe_allow_html=True)
+
             if selected_expand_container != "اختر حاوية...":
                 st.markdown(f"### 📦 تفاصيل الحاوية: {selected_expand_container}")
                 sub_rows = df_with_seq[df_with_seq[container_col_name].astype(str) == selected_expand_container]
@@ -604,7 +620,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 live_stat = get_container_live_status(selected_expand_container)
                 st.info(f"🌐 **حالة التتبع المباشر:** {live_stat}")
                 
-                # زر تفاصيل لعرض الخريطة الحية ومسار الرحلة تماماً كما في صورة المنصة المطلوبة
                 if st.button(f"📍 Details (عرض تفاصيل الخريطة الحية للحاوية {selected_expand_container})", key=f"btn_map_{selected_expand_container}"):
                     st.success("تم الاتصال بمنصة Freightower برقم الحساب ومفتاح الربط بنجاح! جلب خريطة المسار الحي:")
                     st.markdown("""
@@ -614,7 +629,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    # عرض خريطة مبسطة تفاعلية تفصيلية
                     map_data = pd.DataFrame({
                         'lat': [22.79, 1.35, 30.03],
                         'lon': [113.54, 103.81, 47.67],
