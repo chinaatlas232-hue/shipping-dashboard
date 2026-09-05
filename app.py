@@ -232,7 +232,7 @@ def get_container_live_status(container_number):
     if not container_number or str(container_number).lower() in ["nan", "none", ""]:
         return "غير متوفر"
     
-    container_str = str(container_number).strip().upper()
+    container_str = str(container_number).str.strip().upper() if hasattr(container_number, 'str') else str(container_number).strip().upper()
     try:
         if container_str.startswith("CMA"):
             return "🟢 في البحر (متحرك - CMA CGM)"
@@ -588,10 +588,10 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             else:
                 formatted_val = str(val)
 
-            # تحويل رقم الحاوية إلى رابط تفاعلي يوجه مباشرة إلى MarineTraffic
+            # تحويل رقم الحاوية إلى رابط بحث تفاعلي صحيح ومباشر
             if col_str == container_col_name and not is_row_total and val_str and val_str != "-":
-                tracking_url = f"https://www.marinetraffic.com/en/ais/details/containers/container:{val_str}"
-                formatted_val = f'<a href="{tracking_url}" target="_blank" style="color: #0284c7; text-decoration: underline; font-weight: bold;" title="انقر لتتبع الحاوية على الخريطة الحية">{val_str} 🌍</a>'
+                tracking_url = f"https://www.marinetraffic.com/en/ais/index/containers/all/search:{val_str}"
+                formatted_val = f'<a href="{tracking_url}" target="_blank" style="color: #0284c7; text-decoration: underline; font-weight: bold;" title="انقر لتتبع الحاوية">{val_str} 🌍</a>'
 
             html += f'<td{rowspan_attr}{cell_style}>{formatted_val}</td>'
         html += '</tr>'
