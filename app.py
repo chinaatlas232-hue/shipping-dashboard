@@ -640,29 +640,30 @@ if page == "dashboard":
     total_sum_col = next((c for c in ["المجموع", "Total"] if c in active_view_df.columns), None)
     total_amount_all = active_view_df[total_sum_col].sum() if total_sum_col else 0
 
+    # تم تعديل درجات الألوان هنا لتصبح متوسطة الشدّة ومتناسقة
     row1_c1, row1_c2, row1_c3 = st.columns(3)
     with row1_c1:
-        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">🚢 عدد الحاويات</div><div class="metric-value">{total_containers_count:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #3b82f6;"><div class="metric-title">🚢 عدد الحاويات</div><div class="metric-value">{total_containers_count:,}</div></div>', unsafe_allow_html=True)
     with row1_c2:
-        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">👥 عدد العملاء</div><div class="metric-value">{total_clients:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #14b8a6;"><div class="metric-title">👥 عدد العملاء</div><div class="metric-value">{total_clients:,}</div></div>', unsafe_allow_html=True)
     with row1_c3:
-        st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">💰 المبلغ الكلي</div><div class="metric-value">{total_amount_all:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #d97706;"><div class="metric-title">💰 المبلغ الكلي</div><div class="metric-value">{total_amount_all:,.2f}</div></div>', unsafe_allow_html=True)
 
     row2_c1, row2_c2, row2_c3, row2_c4 = st.columns(4)
     with row2_c1:
-        st.markdown(f'<div class="metric-card" style="background-color: #1d4ed8;"><div class="metric-title">📦 عدد الطلبات</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #2563eb;"><div class="metric-title">📦 عدد الطلبات</div><div class="metric-value">{total_orders:,}</div></div>', unsafe_allow_html=True)
     with row2_c2:
         st.markdown(f'<div class="metric-card" style="background-color: #b45309;"><div class="metric-title">📦 إجمالي عدد الكارتون</div><div class="metric-value">{total_ctns:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c3:
-        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">💰 مبالغ دفعت من المكتب</div><div class="metric-value">{total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #22c55e;"><div class="metric-title">💰 مبالغ دفعت من المكتب</div><div class="metric-value">{total_office_paid:,.2f}</div></div>', unsafe_allow_html=True)
     with row2_c4:
-        st.markdown(f'<div class="metric-card" style="background-color: #9333ea;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">{total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #a855f7;"><div class="metric-title">👤 مبالغ دفعت من الزبون</div><div class="metric-value">{total_client_paid:,.2f}</div></div>', unsafe_allow_html=True)
 
     row3_c1, row3_c2 = st.columns(2)
     with row3_c1:
-        st.markdown(f'<div class="metric-card" style="background-color: #047857;"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">⚖️ إجمالي الوزن (kg)</div><div class="metric-value">{total_weight:,.2f}</div></div>', unsafe_allow_html=True)
     with row3_c2:
-        st.markdown(f'<div class="metric-card" style="background-color: #7c2d12;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #9a3412;"><div class="metric-title">📐 إجمالي الحجم (m³)</div><div class="metric-value">{total_volume:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     render_download_buttons(active_view_df)
@@ -710,13 +711,13 @@ elif page == "customs":
 
     m1, m2, m3, m4 = st.columns(4)
     with m1:
-        st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">${total_customs:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #3b82f6;"><div class="metric-title">أجور الجمرك الكلي</div><div class="metric-value">${total_customs:,.2f}</div></div>', unsafe_allow_html=True)
     with m2:
-        st.markdown(f'<div class="metric-card" style="background-color: #0f766e;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">${total_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #14b8a6;"><div class="metric-title">إجمالي المتبقي الحقيقي</div><div class="metric-value">${total_remaining:,.2f}</div></div>', unsafe_allow_html=True)
     with m3:
-        st.markdown(f'<div class="metric-card" style="background-color: #16a34a;"><div class="metric-title">إجمالي الاستحصالات (المسدد)</div><div class="metric-value">${total_collected:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #22c55e;"><div class="metric-title">إجمالي الاستحصالات (المسدد)</div><div class="metric-value">${total_collected:,.2f}</div></div>', unsafe_allow_html=True)
     with m4:
-        st.markdown(f'<div class="metric-card" style="background-color: #dc2626;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">${not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-card" style="background-color: #ef4444;"><div class="metric-title">متبقي (لم تصل بعد)</div><div class="metric-value">${not_arrived_remaining:,.2f}</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### 📊 جدول ملخص أجور الكمارك والاستحصالات حسب الكود")
@@ -793,9 +794,9 @@ elif page == "sponsors":
             s_remaining = row["total_remaining"]
             s_orders = row["total_orders"]
             
-            card_bg = "#1e3a8a"
+            card_bg = "#3b82f6"
             if "لم تصل بعد" in str(sponsor_name):
-                card_bg = "#b45309"
+                card_bg = "#d97706"
             
             st.markdown(f"""
                 <div class="metric-card" style="background-color: {card_bg}; padding: 15px; border-radius: 10px; color: white; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -960,11 +961,11 @@ elif page == "collections":
         
         total_c = clean_coll_df["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in clean_coll_df.columns else 0
         total_coll = clean_coll_df["قيمة الاستحصالات"].sum() if "قيمة الاستحصالات" in clean_coll_df.columns else 0
-        total_rem = clean_coll_df["متبقي حقيقي"].sum() if "متبقي حقيقي" in clean_coll_df.columns else 0
+        total_rem = clean_coll_df["متبقي حقيقي" in clean_coll_df.columns else 0
 
         mc1, mc2, mc3 = st.columns(3)
         with mc1:
-            st.markdown(f'<div class="metric-card" style="background-color: #1e3a8a;"><div class="metric-title">إجمالي مبالغ الجمرك</div><div class="metric-value">${total_c:,.2f}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-card" style="background-color: #3b82f6;"><div class="metric-title">إجمالي مبالغ الجمرك</div><div class="metric-value">${total_c:,.2f}</div></div>', unsafe_allow_html=True)
         with mc2:
             st.markdown(f'<div class="metric-card" style="background-color: #059669;"><div class="metric-title">إجمالي الاستحصالات</div><div class="metric-value">${total_coll:,.2f}</div></div>', unsafe_allow_html=True)
         with mc3:
@@ -1066,4 +1067,3 @@ elif page == "data_entry":
         st.session_state["df_updated"] = edited_df
         st.success("تم تحديث البيانات بنجاح في الجلسة الحالية!")
         st.rerun()
-
