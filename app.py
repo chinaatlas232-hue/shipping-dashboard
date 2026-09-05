@@ -469,6 +469,106 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     df_with_seq = df_to_render.reset_index(drop=True).copy()
     df_with_seq = remove_existing_totals(df_with_seq)
     
+    container_col_name = "رقم الحاوية"
+
+    # 🔄 **تم نقل قسم البحث واختيار الحاوية ليصبح في أعلى الجدول مباشرةً**
+    if container_col_name in df_with_seq.columns:
+        st.markdown("#### 🔍 تفاصيل الحاويات (انقر على الحاوية لعرض تفاصيلها والخريطة الحية)")
+        unique_containers = [c for c in df_with_seq[container_col_name].dropna().astype(str).unique() if c and c.lower() != "nan" and "grand total" not in c.lower()]
+        
+        if unique_containers:
+            col_sel, col_btn_link = st.columns([3, 1])
+            with col_sel:
+                selected_expand_container = st.selectbox("اختر رقم الحاوية لعرض تفاصيلها المباشرة:", ["اختر حاوية..."] + unique_containers, key=f"exp_container_{id(df_with_seq)}")
+            with col_btn_link:
+                st.markdown("""
+                    <div style="margin-top: 28px;">
+                        <a href="https://i.saas.freightower.com/#/tracking/ocean" target="_blank" style="
+                            background-color: #2563eb;
+                            color: white;
+                            padding: 8px 14px;
+                            border-radius: 6px;
+                            text-decoration: none;
+                            font-weight: bold;
+                            font-size: 14px;
+                            display: inline-block;
+                            text-align: center;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        ">🔗 تصفح موقع الحاوية</a>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            if selected_expand_container != "اختر حاوية...":
+                st.markdown(f"### 📦 تفاصيل الحاوية: {selected_expand_container}")
+                sub_rows = df_with_seq[df_with_seq[container_col_name].astype(str) == selected_expand_container]
+                
+                live_stat = get_container_live_status(selected_expand_container)
+                st.info(f"🌐 **حالة التتبع المباشر:** {live_stat}")
+                
+                if st.button(f"📍 Details (عرض خريطة المسار الحي المتقدمة للحاوية {selected_expand_container})", key=f"btn_map_{selected_expand_container}"):
+                    st.success("تم الاتصال بمنصة Freightower برقم الحساب ومفتاح الربط بنجاح! جلب خريطة المسار الحي التفاعلية:")
+                    
+                    if HAS_FOLIUM:
+                        m = folium.Map(location=[10.0, 80.0], zoom_start=5, tiles="CartoDB positron")
+                        
+                        route_coords = [
+                            [22.7900, 113.5400],  # ميناء نانشا (NANSHA) - الصين
+                            [15.0000, 109.0000],  # بحر الصين الجنوبي
+                            [1.3521, 103.8198],   # مضيق ملقا / سنغافورة
+                            [5.5000, 85.0000],    # المحيط الهندي
+                            [12.5000, 54.0000],   # بحر العرب / خليج عدن
+                            [25.0000, 50.5000],   # الخليج العربي
+                            [30.0300, 47.6700]    # ميناء أم قصر (UMM QASR) - العراق
+                        ]
+                        
+                        folium.PolyLine(route_coords, color="#2563eb", weight=4, opacity=0.8, tooltip="مسار الشحن البحري الحي").add_to(m)
+                        
+                        folium.Marker(
+                            [22.7900, 113.5400],
+                            popup="<b>ميناء الانطلاق: NANSHA</b>",
+                            icon=folium.Icon(color="green", icon="play")
+                        ).add_to(m)
+                        
+                        folium.Marker(
+                            [1.3521, 103.8198],
+                            popup="<b>نقطة العبور: مضيق ملقا / سنغافورة</b>",
+                            icon=folium.Icon(color="orange", icon="info-sign")
+                        ).add_to(m)
+                        
+                        folium.Marker(
+                            [30.0300, 47.6700],
+                            popup=f"<b>ميناء الوصول: UMM QASR ({selected_expand_container})</b>",
+                            icon=folium.Icon(color="red", icon="flag")
+                        ).add_to(m)
+                        
+                        st_folium(m, width=1100, height=550)
+                    else:
+                        st.warning("يرجى تثبيت مكتبة streamlit-folium لعرض الخريطة التفاعلية المتقدمة (pip install streamlit-folium folium). يتم عرض الخريطة الافتراضية حالياً:")
+                        map_data = pd.DataFrame({
+                            'lat': [22.79, 1.35, 30.03],
+                            'lon': [113.54, 103.81, 47.67],
+                            'location': ['ميناء الانطلاق: NANSHA', 'نقطة العبور البحرية: مضيق ملقا / سنغافورة', 'ميناء الوصول: UMM QASR']
+                        })
+                        st.map(map_data, zoom=4, use_container_width=True)
+
+                total_cartons_c = sub_rows["عدد الكارتون"].sum() if "عدد الكارتون" in sub_rows.columns else 0
+                total_weight_c = sub_rows["الوزن"].sum() if "الوزن" in sub_rows.columns else 0
+                total_customs_c = sub_rows["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in sub_rows.columns else 0
+                total_remaining_c = sub_rows["متبقي حقيقي"].sum() if "متبقي حقيقي" in sub_rows.columns else 0
+                
+                col_d1, col_d2, col_d3, col_d4 = st.columns(4)
+                with col_d1:
+                    st.metric("عدد الكارتون", f"{total_cartons_c:,.2f}")
+                with col_d2:
+                    st.metric("إجمالي الوزن (kg)", f"{total_weight_c:,.2f}")
+                with col_d3:
+                    st.metric("مبلغ الجمرك", f"${total_customs_c:,.2f}")
+                with col_d4:
+                    st.metric("المتبقي الحقيقي", f"${total_remaining_c:,.2f}")
+                
+                st.dataframe(sub_rows, use_container_width=True)
+                st.markdown("---")
+
     has_grand_total = False
     if not df_with_seq.empty:
         first_col_name = df_with_seq.columns[0]
@@ -485,8 +585,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         if "التسلسل" in df_with_seq.columns:
             df_with_seq = df_with_seq.drop(columns=["التسلسل"])
         df_with_seq.insert(0, "التسلسل", seq_list)
-
-    container_col_name = "رقم الحاوية"
 
     html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
     for col in df_with_seq.columns:
@@ -591,103 +689,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     html += '</tbody></table></div>'
     
     st.markdown(html, unsafe_allow_html=True)
-
-    if container_col_name in df_with_seq.columns:
-        st.markdown("#### 🔍 تفاصيل الحاويات (انقر على الحاوية لعرض تفاصيلها والخريطة الحية)")
-        unique_containers = [c for c in df_with_seq[container_col_name].dropna().astype(str).unique() if c and c.lower() != "nan" and "grand total" not in c.lower()]
-        
-        if unique_containers:
-            col_sel, col_btn_link = st.columns([3, 1])
-            with col_sel:
-                selected_expand_container = st.selectbox("اختر رقم الحاوية لعرض تفاصيلها المباشرة:", ["اختر حاوية..."] + unique_containers, key=f"exp_container_{id(df_with_seq)}")
-            with col_btn_link:
-                # 🛠️ تم تعديل الرابط هنا ليوجه الم用戶 مباشرة إلى صفحة التتبع البحري على المنصة
-                st.markdown("""
-                    <div style="margin-top: 28px;">
-                        <a href="https://i.saas.freightower.com/#/tracking/ocean" target="_blank" style="
-                            background-color: #2563eb;
-                            color: white;
-                            padding: 8px 14px;
-                            border-radius: 6px;
-                            text-decoration: none;
-                            font-weight: bold;
-                            font-size: 14px;
-                            display: inline-block;
-                            text-align: center;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                        ">🔗 تصفح موقع الحاوية</a>
-                    </div>
-                """, unsafe_allow_html=True)
-
-            if selected_expand_container != "اختر حاوية...":
-                st.markdown(f"### 📦 تفاصيل الحاوية: {selected_expand_container}")
-                sub_rows = df_with_seq[df_with_seq[container_col_name].astype(str) == selected_expand_container]
-                
-                live_stat = get_container_live_status(selected_expand_container)
-                st.info(f"🌐 **حالة التتبع المباشر:** {live_stat}")
-                
-                if st.button(f"📍 Details (عرض خريطة المسار الحي المتقدمة للحاوية {selected_expand_container})", key=f"btn_map_{selected_expand_container}"):
-                    st.success("تم الاتصال بمنصة Freightower برقم الحساب ومفتاح الربط بنجاح! جلب خريطة المسار الحي التفاعلية:")
-                    
-                    if HAS_FOLIUM:
-                        m = folium.Map(location=[10.0, 80.0], zoom_start=5, tiles="CartoDB positron")
-                        
-                        route_coords = [
-                            [22.7900, 113.5400],  # ميناء نانشا (NANSHA) - الصين
-                            [15.0000, 109.0000],  # بحر الصين الجنوبي
-                            [1.3521, 103.8198],   # مضيق ملقا / سنغافورة
-                            [5.5000, 85.0000],    # المحيط الهندي
-                            [12.5000, 54.0000],   # بحر العرب / خليج عدن
-                            [25.0000, 50.5000],   # الخليج العربي
-                            [30.0300, 47.6700]    # ميناء أم قصر (UMM QASR) - العراق
-                        ]
-                        
-                        folium.PolyLine(route_coords, color="#2563eb", weight=4, opacity=0.8, tooltip="مسار الشحن البحري الحي").add_to(m)
-                        
-                        folium.Marker(
-                            [22.7900, 113.5400],
-                            popup="<b>ميناء الانطلاق: NANSHA</b>",
-                            icon=folium.Icon(color="green", icon="play")
-                        ).add_to(m)
-                        
-                        folium.Marker(
-                            [1.3521, 103.8198],
-                            popup="<b>نقطة العبور: مضيق ملقا / سنغافورة</b>",
-                            icon=folium.Icon(color="orange", icon="info-sign")
-                        ).add_to(m)
-                        
-                        folium.Marker(
-                            [30.0300, 47.6700],
-                            popup=f"<b>ميناء الوصول: UMM QASR ({selected_expand_container})</b>",
-                            icon=folium.Icon(color="red", icon="flag")
-                        ).add_to(m)
-                        
-                        st_folium(m, width=1100, height=550)
-                    else:
-                        st.warning("يرجى تثبيت مكتبة streamlit-folium لعرض الخريطة التفاعلية المتقدمة (pip install streamlit-folium folium). يتم عرض الخريطة الافتراضية حالياً:")
-                        map_data = pd.DataFrame({
-                            'lat': [22.79, 1.35, 30.03],
-                            'lon': [113.54, 103.81, 47.67],
-                            'location': ['ميناء الانطلاق: NANSHA', 'نقطة العبور البحرية: مضيق ملقا / سنغافورة', 'ميناء الوصول: UMM QASR']
-                        })
-                        st.map(map_data, zoom=4, use_container_width=True)
-
-                total_cartons_c = sub_rows["عدد الكارتون"].sum() if "عدد الكارتون" in sub_rows.columns else 0
-                total_weight_c = sub_rows["الوزن"].sum() if "الوزن" in sub_rows.columns else 0
-                total_customs_c = sub_rows["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in sub_rows.columns else 0
-                total_remaining_c = sub_rows["متبقي حقيقي"].sum() if "متبقي حقيقي" in sub_rows.columns else 0
-                
-                col_d1, col_d2, col_d3, col_d4 = st.columns(4)
-                with col_d1:
-                    st.metric("عدد الكارتون", f"{total_cartons_c:,.2f}")
-                with col_d2:
-                    st.metric("إجمالي الوزن (kg)", f"{total_weight_c:,.2f}")
-                with col_d3:
-                    st.metric("مبلغ الجمرك", f"${total_customs_c:,.2f}")
-                with col_d4:
-                    st.metric("المتبقي الحقيقي", f"${total_remaining_c:,.2f}")
-                
-                st.dataframe(sub_rows, use_container_width=True)
 
 if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
