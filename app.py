@@ -234,7 +234,6 @@ def get_container_live_status(container_number):
     
     container_str = str(container_number).strip().upper()
     try:
-        # محاكاة ذكية مبنية على البادئة أو المعيار الملاحي (قابلة للربط بأي API تتبع مجاني لاحقاً)
         if container_str.startswith("CMA"):
             return "🟢 في البحر (متحرك - CMA CGM)"
         elif container_str.startswith("ECMU"):
@@ -257,7 +256,6 @@ def load_data():
         except Exception:
             return None
 
-    # الروابط الثلاثة المعتمدة
     df_marine = fetch_sheet("1amOmnZgzn2bhWTgje_9W2sUK6V-OygWk")
     df_air = fetch_sheet("1L97mB_YenJN-vCGfrcL-uLRV9i3haN-zd0gr1cbn-ZI")
     df_tracking = fetch_sheet("1migl0qhyatX_Kf7LnpDhVVMlzdqAP4ID")
@@ -286,7 +284,6 @@ def load_data():
     
     if df_tracking is not None and not df_tracking.empty:
         df_tracking.columns = df_tracking.columns.astype(str).str.strip()
-        # إضافة عمود التتبع العلمي الآلي التلقائي إذا وجد رقم الحاوية
         container_col_track = next((c for c in ["رقم الحاوية", "رقم الحاويات", "Container", "Container No"] if c in df_tracking.columns), None)
         if container_col_track:
             df_tracking["التتبع العلمي المباشر"] = df_tracking[container_col_track].apply(get_container_live_status)
@@ -519,6 +516,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             val_str = "" if pd.isna(val) else str(val).strip()
             cell_style = ""
             
+            rowspan_attr = ''
             if col_str == container_col_name:
                 if is_row_total:
                     val = "Grand Total" if "grand total" in val_str.lower() or "grandtotal" in val_str.lower() or "الإجمالي الكلي" in val_str else val_str
@@ -536,8 +534,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 if not is_row_total and span_val == 0:
                     continue  
                 rowspan_attr = f' rowspan="{span_val}"' if (not is_row_total and span_val > 1) else ''
-            else:
-                rowspan_attr = ''
 
             if is_row_total:
                 cell_style = ' style="background-color: #374151 !important; color: #ffffff !important; font-weight: bold;"'
@@ -591,6 +587,11 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                     formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}" if numeric_val.is_integer() else f"{numeric_val:,.2f}"
             else:
                 formatted_val = str(val)
+
+            # التعديل لجعل رقم الحاوية رابطاً تفاعلياً يربط بمواقع الخريطة الحية
+            if col_str == container_col_name and not is_row_total and val_str and val_str != "-":
+                tracking_url = f"https://www.marinetraffic.com/en/ais/details/containers/container:{val_str}"
+                formatted_val = f'<a href="{tracking_url}" target="_blank" style="color: #0284c7; text-decoration: underline; font-weight: bold;" title="انقر لتتبع الحاوية على الخريطة الحية">{val_str} 🌍</a>'
 
             html += f'<td{rowspan_attr}{cell_style}>{formatted_val}</td>'
         html += '</tr>'
