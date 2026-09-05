@@ -625,7 +625,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 live_stat = get_container_live_status(selected_expand_container)
                 st.info(f"🌐 **حالة التتبع المباشر:** {live_stat}")
                 
-                # استخدام زر Streamlit حقيقي 100% لتجنب مشكلة عدم استجابة الأزرار
                 if st.button(f"📍 Details (عرض خريطة المسار الحي المتقدمة للحاوية {selected_expand_container})", key=f"btn_map_{selected_expand_container}"):
                     st.success("تم الاتصال بمنصة Freightower برقم الحساب ومفتاح الربط بنجاح! جلب خريطة المسار الحي التفاعلية:")
                     
