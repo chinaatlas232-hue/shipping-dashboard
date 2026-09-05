@@ -476,12 +476,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         df_with_seq.insert(0, "التسلسل", seq_list)
 
     container_col_name = "رقم الحاوية"
-    
-    # إدارة حالة الضغط لعرض تفاصيل الحاوية أسفلها في Streamlit Session State
-    if "expanded_containers" not in st.session_state:
-        st.session_state.expanded_containers = set()
 
-    # إذا تم تمرير بيانات من الاستعلام أو شيت التتبع مباشرة
     html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
     for col in df_with_seq.columns:
         html += f'<th>{col}</th>'
@@ -567,7 +562,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     
     st.markdown(html, unsafe_allow_html=True)
 
-    # إضافة تفاعل Streamlit أصلي لكل صف يحتوي على رقم حاوية لضمان ظهور المعلومات أسفله عند الضغط
     if container_col_name in df_with_seq.columns:
         st.markdown("#### 🔍 تفاصيل الحاويات (انقر على الحاوية لعرض تفاصيلها أسفلها)")
         unique_containers = [c for c in df_with_seq[container_col_name].dropna().astype(str).unique() if c and c.lower() != "nan" and "grand total" not in c.lower()]
@@ -578,11 +572,9 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 st.markdown(f"### 📦 تفاصيل الحاوية: {selected_expand_container}")
                 sub_rows = df_with_seq[df_with_seq[container_col_name].astype(str) == selected_expand_container]
                 
-                # جلب حالة التتبع المباشر لهذه الحاوية
                 live_stat = get_container_live_status(selected_expand_container)
                 st.info(f"🌐 **حالة التتبع المباشر:** {live_stat}")
                 
-                # عرض كارد معلومات تفصيلية مبسطة
                 total_cartons_c = sub_rows["عدد الكارتون"].sum() if "عدد الكارتون" in sub_rows.columns else 0
                 total_weight_c = sub_rows["الوزن"].sum() if "الوزن" in sub_rows.columns else 0
                 total_customs_c = sub_rows["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in sub_rows.columns else 0
