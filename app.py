@@ -476,26 +476,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         unique_containers = [c for c in df_with_seq[container_col_name].dropna().astype(str).unique() if c and c.lower() != "nan" and "grand total" not in c.lower()]
         
         if unique_containers:
-            col_sel, col_btn_link = st.columns([3, 1])
-            with col_sel:
-                selected_expand_container = st.selectbox("اختر رقم الحاوية لعرض تفاصيلها المباشرة:", ["اختر حاوية..."] + unique_containers, key=f"exp_container_{id(df_with_seq)}", label_visibility="collapsed")
-            with col_btn_link:
-                st.markdown("""
-                    <div style="margin-top: 0px;">
-                        <a href="https://i.saas.freightower.com/#/tracking/ocean" target="_blank" style="
-                            background-color: #2563eb;
-                            color: white;
-                            padding: 8px 14px;
-                            border-radius: 6px;
-                            text-decoration: none;
-                            font-weight: bold;
-                            font-size: 14px;
-                            display: inline-block;
-                            text-align: center;
-                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                        ">🔗 تصفح موقع الحاوية</a>
-                    </div>
-                """, unsafe_allow_html=True)
+            selected_expand_container = st.selectbox("اختر رقم الحاوية لعرض تفاصيلها المباشرة:", ["اختر حاوية..."] + unique_containers, key=f"exp_container_{id(df_with_seq)}")
 
             if selected_expand_container != "اختر حاوية...":
                 st.markdown(f"### 📦 تفاصيل الحاوية: {selected_expand_container}")
