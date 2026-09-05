@@ -234,7 +234,6 @@ def get_container_live_status(container_number):
     
     container_str = str(container_number).strip().upper()
     
-    # جلب البيانات الحقيقية مباشرة عبر الـ API بعد تفعيل باقة الاشتراك المدفوعة (199 يوان)
     api_url = f"https://shipping-dashboard-ia3cege2xsehgdyh8spnue.streamlit.app/api/track?container={container_str}&membership=active_vip"
     
     try:
@@ -247,7 +246,6 @@ def get_container_live_status(container_number):
     except Exception:
         pass
     
-    # نظام تتبع ذكي متصل بربط الحاويات الفعلي
     if container_str.startswith("CMA"):
         return "🟢 في البحر (متحرك - CMA CGM - مفعل VIP)"
     elif container_str.startswith("ECMU"):
