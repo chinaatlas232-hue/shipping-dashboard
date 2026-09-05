@@ -471,7 +471,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
     
     container_col_name = "رقم الحاوية"
 
-    # 🔄 **تم نقل قسم البحث واختيار الحاوية ليصبح في أعلى الجدول مباشرةً**
     if container_col_name in df_with_seq.columns:
         st.markdown("#### 🔍 تفاصيل الحاويات (انقر على الحاوية لعرض تفاصيلها والخريطة الحية)")
         unique_containers = [c for c in df_with_seq[container_col_name].dropna().astype(str).unique() if c and c.lower() != "nan" and "grand total" not in c.lower()]
@@ -543,7 +542,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                         
                         st_folium(m, width=1100, height=550)
                     else:
-                        st.warning("يرجى تثبيت مكتبة streamlit-folium لعرض الخريطة التفاعلية المتقدمة (pip install streamlit-folium folium). يتم عرض الخريطة الافتراضية حالياً:")
+                        st.warning("يرجى تثبيت مكتبة streamlit-folium لعرض الخريطة التفاعلية المتقدمة. يتم عرض الخريطة الافتراضية حالياً:")
                         map_data = pd.DataFrame({
                             'lat': [22.79, 1.35, 30.03],
                             'lon': [113.54, 103.81, 47.67],
@@ -588,10 +587,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
 
     html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
     for col in df_with_seq.columns:
-        if col == "التتبع العلمي المباشر":
-            html += '<th style="min-width: 320px;">حالة التتبع والمسار (VIP)</th>'
-        else:
-            html += f'<th>{col}</th>'
+        html += f'<th>{col}</th>'
     html += '</tr></thead><tbody>'
 
     sponsor_col_key = next((c for c in df_with_seq.columns if "كفيل" in str(c)), None)
@@ -640,28 +636,10 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                         else:
                             if col_str in ["رقم الحاوية", sponsor_col_key]:
                                 cell_style = ' style="background-color: #bbf7d0 !important; color: #065f46 !important; font-weight: bold;"'
-                            elif col_str == "التتبع العلمي المباشر":
-                                cell_style = ' style="background-color: #f8fafc !important; text-align: right !important;"'
 
             formatted_val = val
             if col_str == "التسلسل":
                 formatted_val = val if val != "" else "-"
-            elif col_str == "التتبع العلمي المباشر":
-                formatted_val = f"""
-                <div style="display: flex; flex-direction: column; gap: 4px; width: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: right;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: bold; color: #0f172a;">
-                        <span>{val_str}</span>
-                        <span style="background: #2563eb; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px;">مربوط بالمنصة</span>
-                    </div>
-                    <div style="width: 100%; background-color: #e2e8f0; height: 8px; border-radius: 4px; overflow: hidden; position: relative;">
-                        <div style="width: 65%; background-color: #3b82f6; height: 100%; border-radius: 4px;"></div>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748b;">
-                        <span>NANSHA ➔ UMM QASR</span>
-                        <span style="color: #2563eb; font-weight: 650;">متصل برقم الحساب ومفتاح الربط ✔️</span>
-                    </div>
-                </div>
-                """
             elif pd.isna(val) or val_str == "" or val_str.lower() == "nan":
                 formatted_val = "-"
             elif numeric_val is not None:
@@ -1129,11 +1107,17 @@ elif page == "collections":
 elif page == "tracking":
     st.title("📦 تتبع الشحنات الجديد")
     st.markdown("---")
-    st.markdown("### 📋 بيانات ومتابعة الشحنات المرفوعة على جوجل شيت مع التتبع العلمي الآلي (مفعل VIP)")
+    st.markdown("### 📋 بيانات ومتابعة الشحنات المرفوعة على جوجل شيت")
 
     if df_tracking is not None and not df_tracking.empty:
-        render_download_buttons(df_tracking)
-        display_custom_html_table(df_tracking)
+        # إزالة عمود التتبع من عرض شيت التتبع أيضاً إذا وجد لتوحيد الواجهة
+        if "التتبع العلمي المباشر" in df_tracking.columns:
+            df_tracking_clean = df_tracking.drop(columns=["التتبع العلمي المباشر"])
+        else:
+            df_tracking_clean = df_tracking
+            
+        render_download_buttons(df_tracking_clean)
+        display_custom_html_table(df_tracking_clean)
     else:
         st.warning("⚠️ لم يتم العثور على بيانات أو أن معرف شيت التتبع (Sheet ID) غير مُدخل بشكل صحيح. يرجى التأكد من صلاحيات المشاركة لملف جوجل شيت.")
 
