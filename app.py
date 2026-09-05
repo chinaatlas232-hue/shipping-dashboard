@@ -235,12 +235,13 @@ def load_data():
         except Exception:
             return None
 
-    # الشيتات الأساسية (البحري والجوي)
+    # الروابط الثلاثة المعتمدة
+    # 1. الشحن البحري
     df_marine = fetch_sheet("1amOmnZgzn2bhWTgje_9W2sUK6V-OygWk")
+    # 2. الشحن الجوي
     df_air = fetch_sheet("1L97mB_YenJN-vCGfrcL-uLRV9i3haN-zd0gr1cbn-ZI")
-    
-    # الشيت الجديد المضاف لملف تتبع الشحنات (قم بوضع معرف الشيت الخاص بك هنا بدلاً من النص التجريبي)
-    df_tracking = fetch_sheet("YOUR_NEW_TRACKING_SHEET_ID")
+    # 3. شيت تتبع الشحنات الجديد (إذا أردت تغيير المعرف مستقبلاً، يمكن وضعه هنا)
+    df_tracking = fetch_sheet("1migl0qhyatX_Kf7LnpDhVVMlzdqAP4ID")
 
     dfs = [d for d in [df_marine, df_air] if d is not None and not d.empty]
     
@@ -365,7 +366,7 @@ page_options = {
     "الديون على الكفلاء": "sponsors",
     "اعمار الديون (Aging Report)": "aging",
     "كمرك الشحنات والاستحصالات": "collections",
-    "تتبع الشحنات الجديد": "tracking",  # <-- الشيت الجديد المضاف لملف تتبع الشحنات
+    "تتبع الشحنات الجديد": "tracking",
     "الرسوم البيانية": "charts",
     "إدخال وتعديل البيانات": "data_entry"
 }
@@ -1006,7 +1007,6 @@ elif page == "collections":
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
-# <-- الشيت الجديد المضاف لملف تتبع الشحنات
 elif page == "tracking":
     st.title("📦 تتبع الشحنات الجديد")
     st.markdown("---")
@@ -1016,7 +1016,7 @@ elif page == "tracking":
         render_download_buttons(df_tracking)
         display_custom_html_table(df_tracking)
     else:
-        st.warning("⚠️ لم يتم العثور على بيانات أو أن معرف شيت التتبع (Sheet ID) غير مُدخل بشكل صحيح. يرجى تعديل المعرف في الكود لربط الشيت بنجاح.")
+        st.warning("⚠️ لم يتم العثور على بيانات أو أن معرف شيت التتبع (Sheet ID) غير مُدخل بشكل صحيح. يرجى التأكد من صلاحيات المشاركة لملف جوجل شيت.")
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
