@@ -134,6 +134,7 @@ st.markdown(
             padding: 0 !important;
             background-color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
 
         [data-testid="stSidebar"],
@@ -181,13 +182,15 @@ st.markdown(
 
         .custom-html-table {
             width: 100% !important;
-            font-size: 11px !important;
+            font-size: 10px !important;
             border-collapse: collapse !important;
             margin: 0 !important;
+            table-layout: auto !important;
+            direction: rtl !important;
         }
 
         thead {
-            display: table-row-group !important;
+            display: table-header-group !important;
         }
 
         tr {
@@ -195,20 +198,25 @@ st.markdown(
             break-inside: avoid !important;
         }
 
+        /* إصلاح مشكلة تداخل أسماء العواميد في الطباعة */
         .custom-html-table th {
             background-color: #0b2239 !important;
             color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            padding: 4px !important;
-            font-size: 11px !important;
+            padding: 4px 2px !important;
+            font-size: 9px !important;
+            white-space: nowrap !important;
+            border: 1px solid #94a3b8 !important;
         }
 
         .custom-html-table td {
             padding: 3px 2px !important;
-            font-size: 11px !important;
+            font-size: 9px !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            border: 1px solid #cbd5e1 !important;
+            word-break: break-word !important;
         }
     }
     </style>
@@ -460,7 +468,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 spans[k] = 0
             i += count
 
-    html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
+    html = '<div style="width: 100%; overflow-x: auto;"><table class="custom-html-table"><thead><tr>'
     for col in df_with_seq.columns:
         html += f'<th>{col}</th>'
     html += '</tr></thead><tbody>'
@@ -540,7 +548,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             elif numeric_val is not None:
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
                 if is_currency_col or is_sponsors_pivot:
-                    # تعديل الأعمدة المطلوبة لتكون أرقاماً بحتة بدون أي عملات أو رموز
                     if col_str in ["المجموع", "الزبون دفع", "المكتب دفع"]:
                         formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}" if numeric_val.is_integer() else f"{numeric_val:,.2f}"
                     elif "¥" in col_str or "يوان" in col_str or "¥" in val_str or (is_sponsors_pivot and "الزبون دفع" in col_str):
@@ -1029,7 +1036,7 @@ elif page == "charts":
                 volume_data = chart_clean_df.groupby(container_col)["حجم"].sum()
                 st.bar_chart(volume_data)
 
-    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 50px;'>`</div>", unsafe_allow_html=True)
 
 elif page == "data_entry":
     st.title("📝 إدخال وتعديل البيانات محلياً")
@@ -1041,4 +1048,3 @@ elif page == "data_entry":
     if st.button("💾 حفظ التغييرات وتحديث العرض"):
         st.session_state["df_updated"] = edited_df
         st.success("تم تحديث البيانات بنجاح في الجلسة الحالية!")
-        st.rerun()
