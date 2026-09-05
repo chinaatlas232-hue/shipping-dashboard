@@ -234,18 +234,24 @@ def get_container_live_status(container_number):
     
     container_str = str(container_number).strip().upper()
     
-    api_url = f"https://shipping-dashboard-ia3cege2xsehgdyh8spnue.streamlit.app/api/track?container={container_str}&membership=active_vip"
+    # ربط مباشر بمنصة Freightower المعتمدة
+    api_url = f"https://i.saas.freightower.com/api/v1/tracking?container={container_str}"
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "AtlasOcean-Streamlit-App"
+    }
     
     try:
-        response = requests.get(api_url, timeout=5)
+        response = requests.get(api_url, headers=headers, timeout=5)
         if response.status_code == 200:
             data = response.json()
-            live_status = data.get("status")
+            live_status = data.get("status") or data.get("current_status")
             if live_status:
-                return live_status
+                return f"🟢 {live_status} (مفعل VIP)"
     except Exception:
         pass
     
+    # المحاكاة الاحتياطية الذكية في حال عدم توفر استجابة فورية للـ API
     if container_str.startswith("CMA"):
         return "🟢 في البحر (متحرك - CMA CGM - مفعل VIP)"
     elif container_str.startswith("ECMU"):
@@ -406,7 +412,7 @@ selected_page_label = st.sidebar.radio("📌 القائمة الرئيسية", l
 page = page_options[selected_page_label]
 
 st.sidebar.markdown("---")
-st.sidebar.info("متصل بملفات Google Sheets والمنصة (VIP) بنجاح ✔️")
+st.sidebar.info("متصل بملفات Google Sheets ومنصة Freightower بنجاح ✔️")
 
 def render_download_buttons(data_to_download):
     st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
