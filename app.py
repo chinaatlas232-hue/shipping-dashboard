@@ -31,15 +31,18 @@ st.markdown(
         font-weight: bold !important;
         padding: 10px 6px !important;
         border: 1px solid #cbd5e1 !important;
-        font-size: 16px !important;
+        font-size: 15px !important;
+        word-break: normal !important;
+        white-space: nowrap !important;
     }
     .custom-html-table td {
         text-align: center !important;
         padding: 8px 6px !important;
         border: 1px solid #cbd5e1 !important;
-        font-size: 16px !important;
+        font-size: 15px !important;
         color: #1e293b !important;
         vertical-align: middle !important;
+        word-break: break-word !important;
     }
 
     .metric-card {
@@ -122,10 +125,11 @@ st.markdown(
         border-radius: 4px !important;
     }
 
+    /* تحسينات طباعة المستندات بشكل دقيق ومنع تداخل النصوص */
     @media print {
         @page {
             size: A4 landscape;
-            margin: 5mm !important;
+            margin: 8mm !important;
         }
         
         html, body {
@@ -164,14 +168,14 @@ st.markdown(
             print-color-adjust: exact !important;
             box-shadow: none !important;
             border: 1px solid #cbd5e1 !important;
-            margin-bottom: 10px !important;
+            margin-bottom: 8px !important;
         }
 
         h1 {
             margin-top: 0 !important;
-            margin-bottom: 10px !important;
-            padding: 8px 12px !important;
-            font-size: 14px !important;
+            margin-bottom: 8px !important;
+            padding: 6px 10px !important;
+            font-size: 13px !important;
             background-color: #1e293b !important;
             color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
@@ -182,7 +186,7 @@ st.markdown(
 
         .custom-html-table {
             width: 100% !important;
-            font-size: 10px !important;
+            font-size: 9px !important;
             border-collapse: collapse !important;
             margin: 0 !important;
             table-layout: auto !important;
@@ -198,25 +202,27 @@ st.markdown(
             break-inside: avoid !important;
         }
 
-        /* إصلاح مشكلة تداخل أسماء العواميد في الطباعة */
+        /* تعديل هوامش وحجم خلايا رؤوس الجداول لمنع التداخل تماماً */
         .custom-html-table th {
             background-color: #0b2239 !important;
             color: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            padding: 4px 2px !important;
-            font-size: 9px !important;
+            padding: 5px 3px !important;
+            font-size: 9.5px !important;
             white-space: nowrap !important;
-            border: 1px solid #94a3b8 !important;
+            border: 1px solid #64748b !important;
+            line-height: 1.2 !important;
         }
 
         .custom-html-table td {
-            padding: 3px 2px !important;
+            padding: 4px 3px !important;
             font-size: 9px !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             border: 1px solid #cbd5e1 !important;
             word-break: break-word !important;
+            line-height: 1.2 !important;
         }
     }
     </style>
