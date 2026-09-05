@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
-# 1. إعداد الصفحة والتنسیقات
+# 1. إعداد الصفحة والتنسيقات
 st.set_page_config(
     page_title="شركة أطلس المحيط", page_icon="📦", layout="wide"
 )
@@ -235,8 +235,12 @@ def load_data():
         except Exception:
             return None
 
+    # الشيتات الأساسية (البحري والجوي)
     df_marine = fetch_sheet("1amOmnZgzn2bhWTgje_9W2sUK6V-OygWk")
     df_air = fetch_sheet("1L97mB_YenJN-vCGfrcL-uLRV9i3haN-zd0gr1cbn-ZI")
+    
+    # الشيت الجديد المضاف لملف تتبع الشحنات (قم بوضع معرف الشيت الخاص بك هنا بدلاً من النص التجريبي)
+    df_tracking = fetch_sheet("YOUR_NEW_TRACKING_SHEET_ID")
 
     dfs = [d for d in [df_marine, df_air] if d is not None and not d.empty]
     
@@ -293,7 +297,7 @@ def load_data():
     if "مبلغ الجمرك" in df.columns and "قيمة الاستحصالات" in df.columns:
         df["متبقي حقيقي"] = df["مبلغ الجمرك"] - df["قيمة الاستحصالات"]
 
-    return df
+    return df, df_tracking
 
 st.sidebar.title("🚢 شركة أطلس المحيط")
 st.sidebar.markdown("---")
@@ -304,8 +308,9 @@ if st.sidebar.button("🔄 تحديث البيانات من جوجل شيت"):
 
 if "df_updated" in st.session_state:
     df = st.session_state["df_updated"]
+    df_tracking = st.session_state.get("df_tracking_updated", pd.DataFrame())
 else:
-    df = load_data()
+    df, df_tracking = load_data()
 
 def remove_existing_totals(data_df):
     if data_df.empty:
@@ -360,6 +365,7 @@ page_options = {
     "الديون على الكفلاء": "sponsors",
     "اعمار الديون (Aging Report)": "aging",
     "كمرك الشحنات والاستحصالات": "collections",
+    "تتبع الشحنات الجديد": "tracking",  # <-- الشيت الجديد المضاف لملف تتبع الشحنات
     "الرسوم البيانية": "charts",
     "إدخال وتعديل البيانات": "data_entry"
 }
@@ -540,7 +546,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             elif numeric_val is not None:
                 is_currency_col = any(kw in col_str for kw in ["مبلغ", "قيمة", "المجموع", "دفع", "سعر", "الاستحصالات", "متبقي", "المتبقي"])
                 if is_currency_col or is_sponsors_pivot:
-                    # تعديل الأعمدة المطلوبة لتكون أرقاماً بحتة بدون أي عملات أو رموز
                     if col_str in ["المجموع", "الزبون دفع", "المكتب دفع"]:
                         formatted_val = f"{numeric_val:,.2f}" if isinstance(numeric_val, float) and not numeric_val.is_integer() else f"{int(numeric_val):,}" if numeric_val.is_integer() else f"{numeric_val:,.2f}"
                     elif "¥" in col_str or "يوان" in col_str or "¥" in val_str or (is_sponsors_pivot and "الزبون دفع" in col_str):
@@ -1001,6 +1006,20 @@ elif page == "collections":
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
+# <-- الشيت الجديد المضاف لملف تتبع الشحنات
+elif page == "tracking":
+    st.title("📦 تتبع الشحنات الجديد")
+    st.markdown("---")
+    st.markdown("### 📋 بيانات ومتابعة الشحنات المرفوعة على جوجل شيت")
+
+    if df_tracking is not None and not df_tracking.empty:
+        render_download_buttons(df_tracking)
+        display_custom_html_table(df_tracking)
+    else:
+        st.warning("⚠️ لم يتم العثور على بيانات أو أن معرف شيت التتبع (Sheet ID) غير مُدخل بشكل صحيح. يرجى تعديل المعرف في الكود لربط الشيت بنجاح.")
+
+    st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
+
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
     st.markdown("---")
@@ -1042,4 +1061,3 @@ elif page == "data_entry":
         st.session_state["df_updated"] = edited_df
         st.success("تم تحديث البيانات بنجاح في الجلسة الحالية!")
         st.rerun()
-
