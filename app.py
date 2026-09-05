@@ -1048,21 +1048,18 @@ elif page == "tracking":
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
     st.markdown("---")
-    st.markdown("### رسم بياني: عدد الحاويات والطرود حسب المิناء (من شيت التتبع)")
+    st.markdown("### رسم بياني: عدد الحاويات والطرود حسب الميناء (من شيت التتبع)")
 
     if df_tracking is not None and not df_tracking.empty:
-        # البحث عن اسم عمود الميناء وعمود الطرود وعمود الحاويات في شيت التتبع
         tracking_cols = df_tracking.columns.tolist()
         port_col = next((c for c in tracking_cols if any(k in str(c).lower() for k in ["ميناء", "port"])), None)
         packages_col = next((c for c in tracking_cols if any(k in str(c).lower() for k in ["الطرود", "طرد", "carton", "karto", "package"])), None)
         container_track_col = next((c for c in tracking_cols if any(k in str(c).lower() for k in ["حاوية", "container"])), None)
 
         if port_col:
-            # تجهيز البيانات للتجميع حسب الميناء
             chart_df = df_tracking.copy()
             chart_df[port_col] = chart_df[port_col].fillna("غير محدد").astype(str).str.strip()
             
-            # تنظيف وتحويل عمود الطرود إلى أرقام إذا وجد
             if packages_col:
                 chart_df[packages_col] = pd.to_numeric(
                     chart_df[packages_col].astype(str).str.replace(",", "", regex=False).str.strip(), 
@@ -1072,7 +1069,6 @@ elif page == "charts":
                 chart_df["الطرود_مفترض"] = 0
                 packages_col = "الطرود_مفترض"
 
-            # التجميع حسب الميناء: حساب مجموع الطرود وعدد الحاويات الفريدة
             agg_dict = {packages_col: "sum"}
             if container_track_col:
                 agg_dict[container_track_col] = pd.Series.nunique
@@ -1084,18 +1080,16 @@ elif page == "charts":
             grouped_chart = chart_df.groupby(port_col).agg(agg_dict).reset_index()
             grouped_chart.columns = ["الميناء", "Sum of الطرود", "Count of الحاويات"]
 
-            # عرض جدول ملخص البيانات بجانب الرسم البياني إن أمكن
             st.markdown("#### جدول الملخص:")
             display_custom_html_table(grouped_chart)
 
-            # رسم المخطط البياني باستخدام Plotly مطابقة للشكل المطلوب
             fig = px.bar(
                 grouped_chart,
                 x="الميناء",
                 y="Sum of الطرود",
                 text="Count of الحاويات",
                 title="مقارنة الحاويات والطرود حسب الميناء",
-                color_discrete_sequence=["#a3e635"] # لون أخضر فستقي مشابه للصورة
+                color_discrete_sequence=["#a3e635"]
             )
             
             fig.update_traces(
@@ -1116,7 +1110,7 @@ elif page == "charts":
         else:
             st.warning("⚠️ لم يتم العثور على عمود يمثل (الميناء) في شيت التتبع. يرجى التأكد من أسماء الأعمدة في ملف Google Sheets.")
     else:
-    st.warning("⚠️ لا توجد بيانات متاحة في شيت التتبع لعرض الرسوم البيانية.")
+        st.warning("⚠️ لا توجد بيانات متاحة في شيت التتبع لعرض الرسوم البيانية.")
 
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
