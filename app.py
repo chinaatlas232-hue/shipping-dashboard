@@ -476,28 +476,12 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
         df_with_seq.insert(0, "التسلسل", seq_list)
 
     container_col_name = "رقم الحاوية"
-    spans = {}
-    if container_col_name in df_with_seq.columns:
-        col_values = df_with_seq[container_col_name].fillna("").astype(str).tolist()
-        i = 0
-        while i < len(col_values):
-            val = col_values[i]
-            val_lower = val.strip().lower()
-            if "grand total" in val_lower or "grandtotal" in val_lower or "الإجمالي" in val_lower or val == "":
-                spans[i] = 1
-                i += 1
-                continue
-            count = 1
-            for j in range(i + 1, len(col_values)):
-                if col_values[j].strip().lower() == val_lower:
-                    count += 1
-                else:
-                    break
-            spans[i] = count
-            for k in range(i + 1, i + count):
-                spans[k] = 0
-            i += count
+    
+    # إدارة حالة الضغط لعرض تفاصيل الحاوية أسفلها في Streamlit Session State
+    if "expanded_containers" not in st.session_state:
+        st.session_state.expanded_containers = set()
 
+    # إذا تم تمرير بيانات من الاستعلام أو شيت التتبع مباشرة
     html = '<div style="width: 100%;"><table class="custom-html-table"><thead><tr>'
     for col in df_with_seq.columns:
         html += f'<th>{col}</th>'
@@ -524,25 +508,6 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             val_str = "" if pd.isna(val) else str(val).strip()
             cell_style = ""
             
-            rowspan_attr = ''
-            if col_str == container_col_name:
-                if is_row_total:
-                    val = "Grand Total" if "grand total" in val_str.lower() or "grandtotal" in val_str.lower() or "الإجمالي الكلي" in val_str else val_str
-                    val_str = val
-                else:
-                    try:
-                        num_chk = float(val_str)
-                        if num_chk == 0.0:
-                            val = ""
-                            val_str = ""
-                    except ValueError:
-                        pass
-
-                span_val = spans.get(idx, 1)
-                if not is_row_total and span_val == 0:
-                    continue  
-                rowspan_attr = f' rowspan="{span_val}"' if (not is_row_total and span_val > 1) else ''
-
             if is_row_total:
                 cell_style = ' style="background-color: #374151 !important; color: #ffffff !important; font-weight: bold;"'
             else:
@@ -596,14 +561,44 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             else:
                 formatted_val = str(val)
 
-            if col_str == container_col_name and not is_row_total and val_str and val_str != "-":
-                formatted_val = f'<span style="color: #0284c7; font-weight: bold;" title="رقم الحاوية الأساسي">{val_str} 📦</span>'
-
-            html += f'<td{rowspan_attr}{cell_style}>{formatted_val}</td>'
+            html += f'<td{cell_style}>{formatted_val}</td>'
         html += '</tr>'
     html += '</tbody></table></div>'
     
     st.markdown(html, unsafe_allow_html=True)
+
+    # إضافة تفاعل Streamlit أصلي لكل صف يحتوي على رقم حاوية لضمان ظهور المعلومات أسفله عند الضغط
+    if container_col_name in df_with_seq.columns:
+        st.markdown("#### 🔍 تفاصيل الحاويات (انقر على الحاوية لعرض تفاصيلها أسفلها)")
+        unique_containers = [c for c in df_with_seq[container_col_name].dropna().astype(str).unique() if c and c.lower() != "nan" and "grand total" not in c.lower()]
+        
+        if unique_containers:
+            selected_expand_container = st.selectbox("اختر رقم الحاوية لعرض تفاصيلها المباشرة:", ["اختر حاوية..."] + unique_containers, key=f"exp_container_{id(df_with_seq)}")
+            if selected_expand_container != "اختر حاوية...":
+                st.markdown(f"### 📦 تفاصيل الحاوية: {selected_expand_container}")
+                sub_rows = df_with_seq[df_with_seq[container_col_name].astype(str) == selected_expand_container]
+                
+                # جلب حالة التتبع المباشر لهذه الحاوية
+                live_stat = get_container_live_status(selected_expand_container)
+                st.info(f"🌐 **حالة التتبع المباشر:** {live_stat}")
+                
+                # عرض كارد معلومات تفصيلية مبسطة
+                total_cartons_c = sub_rows["عدد الكارتون"].sum() if "عدد الكارتون" in sub_rows.columns else 0
+                total_weight_c = sub_rows["الوزن"].sum() if "الوزن" in sub_rows.columns else 0
+                total_customs_c = sub_rows["مبلغ الجمرك"].sum() if "مبلغ الجمرك" in sub_rows.columns else 0
+                total_remaining_c = sub_rows["متبقي حقيقي"].sum() if "متبقي حقيقي" in sub_rows.columns else 0
+                
+                col_d1, col_d2, col_d3, col_d4 = st.columns(4)
+                with col_d1:
+                    st.metric("عدد الكارتون", f"{total_cartons_c:,.2f}")
+                with col_d2:
+                    st.metric("إجمالي الوزن (kg)", f"{total_weight_c:,.2f}")
+                with col_d3:
+                    st.metric("مبلغ الجمرك", f"${total_customs_c:,.2f}")
+                with col_d4:
+                    st.metric("المتبقي الحقيقي", f"${total_remaining_c:,.2f}")
+                
+                st.dataframe(sub_rows, use_container_width=True)
 
 if page == "dashboard":
     st.title("📊 لوحة التحكم الرئيسية")
