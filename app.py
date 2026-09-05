@@ -1053,31 +1053,7 @@ elif page == "tracking":
 elif page == "charts":
     st.title("📈 لوحة الرسوم البيانية والتحليلات")
     st.markdown("---")
-
-    if filtered_df.empty:
-        st.warning("لا توجد بيانات متاحة لعرض الرسوم البيانية.")
-    else:
-        chart_clean_df = remove_existing_totals(filtered_df.copy())
-        
-        if container_col and "مبلغ الجمرك" in chart_clean_df.columns:
-            st.subheader("📦 مقارنة مبالغ الجمرك والاستحصالات حسب الحاويات")
-            chart_data = chart_clean_df.groupby(container_col)[["مبلغ الجمرك", "قيمة الاستحصالات", "متبقي حقيقي"]].sum()
-            st.bar_chart(chart_data)
-            st.markdown("---")
-
-        col_chart1, col_chart2 = st.columns(2)
-        with col_chart1:
-            if container_col and "الوزن" in chart_clean_df.columns:
-                st.subheader("⚖️ إجمالي الوزن حسب الحاوية (kg)")
-                weight_data = chart_clean_df.groupby(container_col)["الوزن"].sum()
-                st.bar_chart(weight_data)
-
-        with col_chart2:
-            if container_col and "حجم" in chart_clean_df.columns:
-                st.subheader("📐 إجمالي الحجم حسب الحاوية (m³)")
-                volume_data = chart_clean_df.groupby(container_col)["حجم"].sum()
-                st.bar_chart(volume_data)
-
+    st.info("تم إفراغ قسم الرسوم البيانية بناءً على طلبك. يمكنك الآن إعادة تصميم أو إضافة المؤشرات والرسوم التي ترغب بها هنا لاحقاً.")
     st.markdown("<div style='margin-bottom: 50px;'></div>", unsafe_allow_html=True)
 
 elif page == "data_entry":
