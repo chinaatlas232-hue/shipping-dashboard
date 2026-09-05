@@ -588,7 +588,7 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
             else:
                 formatted_val = str(val)
 
-            # التعديل لجعل رقم الحاوية رابطاً تفاعلياً يربط بمواقع الخريطة الحية
+            # تحويل رقم الحاوية إلى رابط تفاعلي يوجه مباشرة إلى MarineTraffic
             if col_str == container_col_name and not is_row_total and val_str and val_str != "-":
                 tracking_url = f"https://www.marinetraffic.com/en/ais/details/containers/container:{val_str}"
                 formatted_val = f'<a href="{tracking_url}" target="_blank" style="color: #0284c7; text-decoration: underline; font-weight: bold;" title="انقر لتتبع الحاوية على الخريطة الحية">{val_str} 🌍</a>'
