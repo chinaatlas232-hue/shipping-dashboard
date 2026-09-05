@@ -998,7 +998,7 @@ elif page == "collections":
         agg_df = agg_df.rename(columns={
             container_field: "رقم الحاوية",
             "مبلغ الجمرك": "Sum of مبلغ الجمرك",
-            "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
+            "قيمة الاستحصالات": "Sum of الاستحصالات",
             "متبقي حقيقي": "Sum of متبقي حقيقي"
         }).reset_index(drop=True)
 
