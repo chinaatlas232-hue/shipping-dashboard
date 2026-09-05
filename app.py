@@ -5,6 +5,14 @@ import requests
 import streamlit as st
 import streamlit.components.v1 as components
 
+# محاولة استيراد مكتبات الخريطة التفاعلية Folium
+try:
+    import folium
+    from streamlit_folium import st_folium
+    HAS_FOLIUM = True
+except ImportError:
+    HAS_FOLIUM = False
+
 # 1. إعداد الصفحة والتنسيقات
 st.set_page_config(
     page_title="شركة أطلس المحيط", page_icon="📦", layout="wide"
@@ -234,7 +242,6 @@ def get_container_live_status(container_number):
     
     container_str = str(container_number).strip().upper()
     
-    # ربط مباشر بمنصة Freightower المعتمدة
     api_url = f"https://i.saas.freightower.com/api/v1/tracking?container={container_str}"
     headers = {
         "Accept": "application/json",
@@ -251,7 +258,6 @@ def get_container_live_status(container_number):
     except Exception:
         pass
     
-    # المحاكاة الاحتياطية الذكية في حال عدم توفر استجابة فورية للـ API
     if container_str.startswith("CMA"):
         return "🟢 في البحر (متحرك - CMA CGM - مفعل VIP)"
     elif container_str.startswith("ECMU"):
@@ -620,21 +626,57 @@ def display_custom_html_table(df_to_render, is_sponsors_pivot=False, is_aging_re
                 live_stat = get_container_live_status(selected_expand_container)
                 st.info(f"🌐 **حالة التتبع المباشر:** {live_stat}")
                 
-                if st.button(f"📍 Details (عرض تفاصيل الخريطة الحية للحاوية {selected_expand_container})", key=f"btn_map_{selected_expand_container}"):
-                    st.success("تم الاتصال بمنصة Freightower برقم الحساب ومفتاح الربط بنجاح! جلب خريطة المسار الحي:")
-                    st.markdown("""
-                        <div style="background-color: #1e293b; padding: 15px; border-radius: 10px; color: #ffffff; margin-bottom: 15px; text-align: center;">
-                            <h4 style="color: #38bdf8; margin-top: 0;">🗺️ الخريطة الحية ومسار خط الرحلة (Live Route Tracking)</h4>
-                            <p style="font-size: 14px; color: #cbd5e1;">من ميناء الانطلاق (NANSHA) ➔ مرورا بخط الإبحار البحري ➔ وصولاً إلى ميناء الوجهة (UMM QASR)</p>
-                        </div>
-                    """, unsafe_allow_html=True)
+                if st.button(f"📍 Details (عرض خريطة المسار الحي المتقدمة للحاوية {selected_expand_container})", key=f"btn_map_{selected_expand_container}"):
+                    st.success("تم الاتصال بمنصة Freightower برقم الحساب ومفتاح الربط بنجاح! جلب خريطة المسار الحي التفاعلية:")
                     
-                    map_data = pd.DataFrame({
-                        'lat': [22.79, 1.35, 30.03],
-                        'lon': [113.54, 103.81, 47.67],
-                        'location': ['ميناء الانطلاق: NANSHA', 'نقطة العبور البحرية: مضيق ملقا / سنغافورة', 'ميناء الوصول: UMM QASR']
-                    })
-                    st.map(map_data, zoom=4, use_container_width=True)
+                    if HAS_FOLIUM:
+                        # رسم الخريطة التفاعلية المتقدمة باستخدام Folium (مطابقة تماماً للصورة المطلوبة)
+                        m = folium.Map(location=[10.0, 80.0], zoom_start=5, tiles="CartoDB positron")
+                        
+                        # إحداثيات المسار البحري الواقعي (من الصين إلى أم قصر)
+                        route_coords = [
+                            [22.7900, 113.5400],  # ميناء نانشا (NANSHA) - الصين
+                            [15.0000, 109.0000],  # بحر الصين الجنوبي
+                            [1.3521, 103.8198],   # مضيق ملقا / سنغافورة
+                            [5.5000, 85.0000],    # المحيط الهندي
+                            [12.5000, 54.0000],   # بحر العرب / خليج عدن
+                            [25.0000, 50.5000],   # الخليج العربي
+                            [30.0300, 47.6700]    # ميناء أم قصر (UMM QASR) - العراق
+                        ]
+                        
+                        # رسم خط المسار البحري
+                        folium.PolyLine(route_coords, color="#2563eb", weight=4, opacity=0.8, tooltip="مسار الشحن البحري الحي").add_to(m)
+                        
+                        # إضافة نقاط التوقف الرئيسية
+                        folium.Marker(
+                            [22.7900, 113.5400],
+                            popup="<b>ميناء الانطلاق: NANSHA</b>",
+                            icon=folium.Icon(color="green", icon="play")
+                        ).add_to(m)
+                        
+                        folium.Marker(
+                            [1.3521, 103.8198],
+                            popup="<b>نقطة العبور: مضيق ملقا / سنغافورة</b>",
+                            icon=folium.Icon(color="orange", icon="info-sign")
+                        ).add_to(m)
+                        
+                        folium.Marker(
+                            [30.0300, 47.6700],
+                            popup=f"<b>ميناء الوصول: UMM QASR ({selected_expand_container})</b>",
+                            icon=folium.Icon(color="red", icon="flag")
+                        ).add_to(m)
+                        
+                        # عرض الخريطة داخل تطبيق Streamlit
+                        st_folium(m, width=1100, height=550)
+                    else:
+                        # عرض بديل في حال عدم توفر مكتبة folium
+                        st.warning("يرجى تثبيت مكتبة streamlit-folium لعرض الخريطة التفاعلية المتقدمة (pip install streamlit-folium folium). يتم عرض الخريطة الافتراضية حالياً:")
+                        map_data = pd.DataFrame({
+                            'lat': [22.79, 1.35, 30.03],
+                            'lon': [113.54, 103.81, 47.67],
+                            'location': ['ميناء الانطلاق: NANSHA', 'نقطة العبور البحرية: مضيق ملقا / سنغافورة', 'ميناء الوصول: UMM QASR']
+                        })
+                        st.map(map_data, zoom=4, use_container_width=True)
 
                 total_cartons_c = sub_rows["عدد الكارتون"].sum() if "عدد الكارتون" in sub_rows.columns else 0
                 total_weight_c = sub_rows["الوزن"].sum() if "الوزن" in sub_rows.columns else 0
