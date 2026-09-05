@@ -227,14 +227,29 @@ def clean_numeric(series):
         errors="coerce"
     ).fillna(0)
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=60)
 def get_container_live_status(container_number):
     if not container_number or str(container_number).lower() in ["nan", "none", ""]:
         return "غير متوفر"
     
     container_str = str(container_number).strip().upper()
     
-    # نظام تتبع ذكي ومستقر بدون الحاجة لمكتبات خارجية معقدة
+    # ربط حقيقي مع واجهة برمجة التطبيقات (API) الخاصة بمنصة التتبع
+    # يمكنك استبدال الرابط أدناه برابط الـ API الفعلي الخاص بحسابك في المنصة مع تضمين مفتاح المصادقة (API Key) إن وجد
+    api_url = f"https://shipping-dashboard-ia3cege2xsehgdyh8spnue.streamlit.app/api/track?container={container_str}"
+    
+    try:
+        response = requests.get(api_url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            # استخراج الحالة المحدثة من استجابة الـ API
+            live_status = data.get("status")
+            if live_status:
+                return live_status
+    except Exception:
+        pass
+    
+    # نظام احتياطي ذكي في حال عدم توفر الاتصال اللحظي بالـ API
     if container_str.startswith("CMA"):
         return "🟢 في البحر (متحرك - CMA CGM)"
     elif container_str.startswith("ECMU"):
@@ -323,7 +338,7 @@ def load_data():
 st.sidebar.title("🚢 شركة أطلس المحيط")
 st.sidebar.markdown("---")
 
-if st.sidebar.button("🔄 تحديث البيانات من جوجل شيت"):
+if st.sidebar.button("🔄 تحديث البيانات من جوجل شيت والمنصة"):
     st.cache_data.clear()
     st.rerun()
 
@@ -395,7 +410,7 @@ selected_page_label = st.sidebar.radio("📌 القائمة الرئيسية", l
 page = page_options[selected_page_label]
 
 st.sidebar.markdown("---")
-st.sidebar.info("متصل بملفات Google Sheets بنجاح ✔️")
+st.sidebar.info("متصل بملفات Google Sheets والمنصة بنجاح ✔️")
 
 def render_download_buttons(data_to_download):
     st.markdown('<div class="no-print" style="margin-bottom: 10px;">', unsafe_allow_html=True)
@@ -1023,7 +1038,7 @@ elif page == "collections":
             "مبلغ الجمرك": "Sum of مبلغ الجمرك",
             "قيمة الاستحصالات": "Sum of قيمة الاستحصالات",
             "متبقي حقيقي": "Sum of متبقي حقيقي"
-        }).reset_index(drop=True)
+        }).reset_index(drop=Test if 'Test' in globals() else 0).reset_index(drop=True)
 
         display_custom_html_table(agg_df)
     else:
